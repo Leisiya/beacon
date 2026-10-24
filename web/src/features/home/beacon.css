@@ -17,13 +17,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 .beacon-page {
-  --beacon-bg: #f5f0e6;
-  --beacon-surface: #fcfaf5;
-  --beacon-soft: #eee9de;
-  --beacon-text: #202522;
-  --beacon-muted: #626862;
-  --beacon-border: #deddd4;
-  --beacon-button: #17201d;
+  --beacon-bg: #f8f8f4;
+  --beacon-surface: #fdfdfa;
+  --beacon-soft: #f0f2ed;
+  --beacon-text: #26312a;
+  --beacon-muted: #606b62;
+  --beacon-border: #dce2db;
+  --beacon-button: #25372d;
   --beacon-button-text: #fff;
   --beacon-green: #738477;
   --beacon-glow: #ebc99e;
@@ -121,6 +121,14 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-nav-login {
   color: var(--beacon-text);
   font-size: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--beacon-note-border);
+  border-radius: 6px;
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
 }
 .beacon-theme-label {
   display: inline-flex;
@@ -173,10 +181,21 @@ For commercial licensing, please contact support@quantumnous.com
 }
 .beacon-button-secondary {
   color: var(--beacon-text);
-  background: var(--beacon-surface);
+  background-color: var(--beacon-surface);
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  border-color: var(--beacon-note-border);
+  box-shadow: var(--beacon-note-shadow);
 }
 .beacon-button-secondary:hover {
-  background: var(--beacon-soft);
+  background-image:
+    linear-gradient(
+      var(--beacon-note-active-wash),
+      var(--beacon-note-active-wash)
+    ),
+    var(--beacon-paper-texture);
 }
 .beacon-nav-start {
   min-height: 42px;
@@ -259,6 +278,7 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-benefits {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
   padding-block: 22px 34px;
   border-bottom: 1px solid var(--beacon-border);
 }
@@ -267,14 +287,14 @@ For commercial licensing, please contact support@quantumnous.com
   grid-template-columns: 36px 1fr;
   column-gap: 14px;
   align-content: start;
-  padding: 10px 32px;
-  border-right: 1px solid var(--beacon-border);
-}
-.beacon-benefits > div:first-child {
-  padding-left: 0;
-}
-.beacon-benefits > div:last-child {
-  border-right: 0;
+  padding: 17px 20px;
+  border: 1px solid var(--beacon-note-border);
+  border-radius: 8px;
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
 }
 .beacon-benefits svg {
   grid-row: span 2;
@@ -315,6 +335,15 @@ For commercial licensing, please contact support@quantumnous.com
   font-size: 14px;
   font-weight: 650;
   white-space: nowrap;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--beacon-note-border);
+  border-radius: 6px;
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
 }
 .beacon-page footer {
   background: var(--beacon-soft);
@@ -366,14 +395,31 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-preview-side span {
   display: block;
   padding: 11px 13px;
+  margin-top: 7px;
+  min-height: 44px;
+  border: 1px solid var(--beacon-note-border);
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
   color: var(--beacon-muted);
   font-size: 13px;
-  border-radius: 5px;
+  border-radius: 6px;
 }
 .beacon-preview-side .active {
-  background: var(--beacon-soft);
+  background-image:
+    linear-gradient(
+      var(--beacon-note-active-wash),
+      var(--beacon-note-active-wash)
+    ),
+    var(--beacon-paper-texture);
   color: var(--beacon-text);
   font-weight: 700;
+}
+.beacon-preview-side a:hover {
+  color: var(--beacon-text);
+  border-color: var(--beacon-green);
 }
 .beacon-preview-main {
   min-width: 0;
@@ -547,7 +593,11 @@ For commercial licensing, please contact support@quantumnous.com
     align-items: stretch;
     gap: 0;
     padding: 12px 18px 18px;
-    background: var(--beacon-bg);
+    background-color: var(--beacon-bg);
+    background-image:
+      linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
+      var(--beacon-paper-texture);
+    background-size: auto, var(--beacon-paper-size);
     border-bottom: 1px solid var(--beacon-border);
     box-shadow: 0 14px 20px #0001;
   }
@@ -555,8 +605,16 @@ For commercial licensing, please contact support@quantumnous.com
     display: flex;
   }
   .beacon-nav > a {
-    padding: 13px 8px;
+    padding: 12px 13px;
+    margin-top: 5px;
     min-height: 44px;
+    border: 1px solid var(--beacon-note-border);
+    border-radius: 6px;
+    background-image:
+      linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+      var(--beacon-paper-texture);
+    background-size: auto, var(--beacon-paper-size);
+    box-shadow: var(--beacon-note-shadow);
   }
   .beacon-nav-actions {
     margin: 10px 0 0;
@@ -590,7 +648,19 @@ For commercial licensing, please contact support@quantumnous.com
     grid-template-columns: 1fr;
   }
   .beacon-preview-side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px;
+  }
+  .beacon-preview-side h2 {
     display: none;
+  }
+  .beacon-preview-side a,
+  .beacon-preview-side span {
+    flex: 0 0 auto;
+    margin-top: 0;
   }
 }
 @media (max-width: 520px) {
@@ -623,16 +693,12 @@ For commercial licensing, please contact support@quantumnous.com
   }
   .beacon-benefits {
     grid-template-columns: 1fr;
-    padding-block: 9px 20px;
+    gap: 9px;
+    padding-block: 12px 20px;
   }
   .beacon-benefits > div,
   .beacon-benefits > div:first-child {
-    padding: 15px 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--beacon-border);
-  }
-  .beacon-benefits > div:last-child {
-    border-bottom: 0;
+    padding: 14px 16px;
   }
   .beacon-next {
     display: block;

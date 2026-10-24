@@ -21,26 +21,31 @@ For commercial licensing, please contact support@quantumnous.com
 :root {
   --beacon-paper-texture: url('../../public/beacon/paper-aged-light.jpg');
   --beacon-paper-size: 1536px 1024px;
-  --beacon-paper-wash: rgb(245 240 230 / 32%);
-  --beacon-paper-surface-wash: rgb(252 250 245 / 82%);
-  --beacon-paper-header-wash: rgb(252 250 245 / 68%);
+  --beacon-paper-wash: rgb(250 250 248 / 58%);
+  --beacon-paper-surface-wash: rgb(255 255 253 / 88%);
+  --beacon-paper-header-wash: rgb(254 254 251 / 80%);
+  --beacon-note-wash: rgb(245 248 243 / 76%);
+  --beacon-note-active-wash: rgb(234 240 231 / 82%);
+  --beacon-note-border: #dde4dc;
+  --beacon-note-shadow: 0 1px 2px rgb(37 52 42 / 5%),
+    0 7px 18px rgb(37 52 42 / 4%);
   --radius: 0.55rem;
-  --background: #f5f0e6;
-  --foreground: #1e2722;
-  --card: #fcfaf5;
-  --card-foreground: #1e2722;
-  --popover: #fcfaf5;
-  --popover-foreground: #1e2722;
-  --primary: #1c2923;
-  --primary-foreground: #fffaf0;
-  --secondary: #eee9de;
-  --secondary-foreground: #27352c;
-  --muted: #efeadf;
-  --muted-foreground: #5d685e;
-  --accent: #e5e8df;
+  --background: #f8f8f4;
+  --foreground: #26312a;
+  --card: #fdfdfa;
+  --card-foreground: #26312a;
+  --popover: #fdfdfa;
+  --popover-foreground: #26312a;
+  --primary: #25372d;
+  --primary-foreground: #fffefa;
+  --secondary: #f0f2ec;
+  --secondary-foreground: #2a392e;
+  --muted: #f1f3ed;
+  --muted-foreground: #5d6a60;
+  --accent: #e9eee8;
   --accent-foreground: #223128;
-  --border: #dcd9cf;
-  --input: #d8d8cf;
+  --border: #dce2db;
+  --input: #dce2db;
   --ring: #708575;
   --chart-1: #637a6a;
   --chart-2: #d9a97d;
@@ -50,13 +55,13 @@ For commercial licensing, please contact support@quantumnous.com
   --overview-accent-1: #637a6a;
   --overview-accent-2: #d9a97d;
   --overview-accent-3: #8e9b8d;
-  --sidebar: #f3eee4;
-  --sidebar-foreground: #1e2722;
-  --sidebar-primary: #1c2923;
-  --sidebar-primary-foreground: #fffaf0;
-  --sidebar-accent: #e8e6dc;
+  --sidebar: #f6f7f2;
+  --sidebar-foreground: #26312a;
+  --sidebar-primary: #25372d;
+  --sidebar-primary-foreground: #fffefa;
+  --sidebar-accent: #ecf0e9;
   --sidebar-accent-foreground: #27352c;
-  --sidebar-border: #dcd9cf;
+  --sidebar-border: #dce2db;
   --sidebar-ring: #708575;
 }
 
@@ -66,6 +71,10 @@ For commercial licensing, please contact support@quantumnous.com
   --beacon-paper-wash: rgb(20 27 24 / 92%);
   --beacon-paper-surface-wash: rgb(32 42 35 / 96%);
   --beacon-paper-header-wash: rgb(32 42 35 / 96%);
+  --beacon-note-wash: rgb(38 51 42 / 95%);
+  --beacon-note-active-wash: rgb(49 65 53 / 96%);
+  --beacon-note-border: #455448;
+  --beacon-note-shadow: none;
   --background: #151c18;
   --foreground: #eef0e8;
   --card: #202a23;
@@ -178,6 +187,30 @@ body {
   background-size: auto, var(--beacon-paper-size);
 }
 
+/* Navigation entries read as small paper slips without changing their controls. */
+.beacon-console-layout [data-sidebar='menu-button'] {
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+}
+
+.beacon-console-layout [data-sidebar='menu-button']:hover,
+.beacon-console-layout [data-sidebar='menu-button'][data-active='true'] {
+  border-color: var(--beacon-note-border);
+  box-shadow: var(--beacon-note-shadow);
+}
+
+.beacon-console-layout [data-sidebar='menu-button'][data-active='true'] {
+  background-image:
+    linear-gradient(
+      var(--beacon-note-active-wash),
+      var(--beacon-note-active-wash)
+    ),
+    var(--beacon-paper-texture);
+}
+
 .beacon-public-layout [data-slot='card'],
 .beacon-console-layout [data-slot='card'],
 .beacon-auth-layout [data-slot='card'] {
@@ -235,6 +268,25 @@ body {
 
 .beacon-pricing {
   position: relative;
+}
+
+.beacon-pricing .bg-card,
+.beacon-rankings .bg-card {
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+}
+
+.beacon-pricing [data-slot='toggle-group-item'],
+.beacon-pricing [data-slot='button'][aria-pressed] {
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
 }
 
 .beacon-pricing-watermark,
@@ -337,14 +389,25 @@ body {
 
 .beacon-docs-nav a {
   padding: 10px 12px;
-  border-radius: 5px;
+  border: 1px solid var(--beacon-note-border);
+  border-radius: 6px;
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
   color: var(--muted-foreground);
   font-size: 13px;
 }
 
 .beacon-docs-nav a:hover,
 .beacon-docs-nav a:focus-visible {
-  background: var(--muted);
+  background-image:
+    linear-gradient(
+      var(--beacon-note-active-wash),
+      var(--beacon-note-active-wash)
+    ),
+    var(--beacon-paper-texture);
   color: var(--foreground);
 }
 
@@ -392,6 +455,15 @@ body {
   align-items: center;
   gap: 6px;
   margin-top: 16px;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--beacon-note-border);
+  border-radius: 6px;
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
   font-size: 13px;
   font-weight: 700;
 }
@@ -405,9 +477,14 @@ body {
 .beacon-docs-steps > div {
   min-width: 0;
   padding: 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--beacon-note-border);
   border-radius: 6px;
-  background: var(--background);
+  background-color: var(--background);
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
 }
 
 .beacon-docs-steps svg {
