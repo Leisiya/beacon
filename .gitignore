@@ -40,6 +40,8 @@ skills-lock.json
 
 # Local-only live probes and scratch test workspaces.
 .local-tests/
+.local/
+.env.beacon.local
 relaykit/relayconvert/chat_responses_live_local_test.go
 service/openaicompat/chat_responses_live_local_test.go
 go.work
