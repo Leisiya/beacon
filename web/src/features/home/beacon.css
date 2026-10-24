@@ -29,8 +29,12 @@ For commercial licensing, please contact support@quantumnous.com
   --beacon-glow: #ebc99e;
   --beacon-tower: #f1f0e8;
   min-height: 100vh;
-  background: var(--beacon-bg)
-    url('../../../public/beacon/paper-grain-light.svg') repeat;
+  background-color: var(--beacon-bg);
+  background-image:
+    linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  background-repeat: repeat;
   color: var(--beacon-text);
   font-family:
     -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
@@ -48,7 +52,6 @@ For commercial licensing, please contact support@quantumnous.com
   --beacon-button-text: #17201d;
   --beacon-green: #a5b7a1;
   --beacon-tower: #cdd4c8;
-  background-image: url('../../../public/beacon/paper-grain-dark.svg');
 }
 
 .beacon-page *,
@@ -62,7 +65,14 @@ For commercial licensing, please contact support@quantumnous.com
 }
 .beacon-header {
   border-bottom: 1px solid var(--beacon-border);
-  background: var(--beacon-surface);
+  background-color: var(--beacon-surface);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-header-wash),
+      var(--beacon-paper-header-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
 }
 .beacon-header-inner {
   display: flex;
@@ -332,7 +342,14 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-preview-side,
 .beacon-preview-card {
   border: 1px solid var(--beacon-border);
-  background: var(--beacon-surface);
+  background-color: var(--beacon-surface);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
   border-radius: 8px;
 }
 .beacon-preview-side {
@@ -371,7 +388,14 @@ For commercial licensing, please contact support@quantumnous.com
   margin-bottom: 14px;
   border: 1px solid var(--beacon-border);
   border-radius: 8px;
-  background: var(--beacon-surface);
+  background-color: var(--beacon-surface);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
   overflow: hidden;
 }
 .beacon-preview-eyebrow {

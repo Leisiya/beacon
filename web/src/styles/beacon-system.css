@@ -19,6 +19,11 @@ For commercial licensing, please contact support@quantumnous.com
 /* Beacon's shared surface language. Business components keep their behavior and
    inherit these tokens through the existing layout and UI primitives. */
 :root {
+  --beacon-paper-texture: url('../../public/beacon/paper-aged-light.jpg');
+  --beacon-paper-size: 1536px 1024px;
+  --beacon-paper-wash: rgb(245 240 230 / 32%);
+  --beacon-paper-surface-wash: rgb(252 250 245 / 82%);
+  --beacon-paper-header-wash: rgb(252 250 245 / 68%);
   --radius: 0.55rem;
   --background: #f5f0e6;
   --foreground: #1e2722;
@@ -56,6 +61,11 @@ For commercial licensing, please contact support@quantumnous.com
 }
 
 .dark {
+  --beacon-paper-texture: url('../../public/beacon/paper-grain-dark.svg');
+  --beacon-paper-size: 192px 192px;
+  --beacon-paper-wash: rgb(20 27 24 / 92%);
+  --beacon-paper-surface-wash: rgb(32 42 35 / 96%);
+  --beacon-paper-header-wash: rgb(32 42 35 / 96%);
   --background: #151c18;
   --foreground: #eef0e8;
   --card: #202a23;
@@ -92,20 +102,23 @@ For commercial licensing, please contact support@quantumnous.com
 }
 
 body {
-  background-image: url('../../public/beacon/paper-grain-light.svg');
+  background-color: var(--background);
+  background-image:
+    linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
+    var(--beacon-paper-texture);
   background-repeat: repeat;
-}
-
-.dark body {
-  background-image: url('../../public/beacon/paper-grain-dark.svg');
+  background-size: auto, var(--beacon-paper-size);
 }
 
 .beacon-public-layout,
 .beacon-auth-layout,
 .beacon-console-inset {
   background-color: var(--background);
-  background-image: url('../../public/beacon/paper-grain-light.svg');
+  background-image:
+    linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
+    var(--beacon-paper-texture);
   background-repeat: repeat;
+  background-size: auto, var(--beacon-paper-size);
 }
 
 .beacon-artwork {
@@ -131,26 +144,51 @@ body {
   display: block;
 }
 
-.dark .beacon-public-layout,
-.dark .beacon-auth-layout,
-.dark .beacon-console-inset {
-  background-image: url('../../public/beacon/paper-grain-dark.svg');
-}
-
 .beacon-public-layout > header {
-  background: color-mix(in srgb, var(--card) 95%, transparent);
+  background-color: var(--card);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-header-wash),
+      var(--beacon-paper-header-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
   border-bottom: 1px solid var(--border);
 }
 
 .beacon-console-layout > header {
-  background: var(--card);
+  background-color: var(--card);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-header-wash),
+      var(--beacon-paper-header-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
   border-bottom: 1px solid var(--border);
+}
+
+.beacon-console-layout [data-slot='sidebar'] {
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-header-wash),
+      var(--beacon-paper-header-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
 }
 
 .beacon-public-layout [data-slot='card'],
 .beacon-console-layout [data-slot='card'],
 .beacon-auth-layout [data-slot='card'] {
-  background: var(--card);
+  background-color: var(--card);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
   box-shadow: 0 3px 16px rgb(36 38 29 / 4%);
 }
 
@@ -166,7 +204,11 @@ body {
 
 .beacon-auth-art {
   border-right: 1px solid var(--border);
-  background: color-mix(in srgb, var(--background) 72%, var(--card));
+  background-color: var(--background);
+  background-image:
+    linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
 }
 
 .beacon-auth-art .beacon-artwork {
@@ -176,7 +218,14 @@ body {
 .beacon-auth-panel {
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--card);
+  background-color: var(--card);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
   box-shadow: 0 12px 36px rgb(36 38 29 / 7%);
 }
 
@@ -212,7 +261,14 @@ body {
   padding: 36px 42px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--card);
+  background-color: var(--card);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
 }
 
 .beacon-docs-hero > div {
@@ -269,7 +325,14 @@ body {
   padding: 15px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--card);
+  background-color: var(--card);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
 }
 
 .beacon-docs-nav a {
@@ -295,7 +358,14 @@ body {
   padding: 34px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--card);
+  background-color: var(--card);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
 }
 
 .beacon-docs-content h2 {
