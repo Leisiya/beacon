@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="112" viewBox="0 0 160 112" fill="none">
+  <defs><filter id="edge"><feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="3" seed="7" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="7"/></filter></defs>
+  <g fill="#a9adb1" filter="url(#edge)">
+    <path opacity=".05" d="M0 0h71c-7 8-3 17-11 24-8 6-22 3-28 13-7 10-15 12-32 11z"/>
+    <path opacity=".035" d="M0 0h35c4 15-4 23 5 37 3 7 3 17-5 22-12-5-19-13-35-8z"/>
+    <path opacity=".03" d="M7 23c17 7 25 18 21 27-4 10-14 12-18 22-4-13-1-21-10-27z"/>
+  </g>
+  <path d="M5 54c9-11 16-5 24-14M3 77c8-5 16-4 22-12" stroke="#b6bac0" stroke-opacity=".045"/>
+</svg>

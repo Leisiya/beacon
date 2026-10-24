@@ -19,20 +19,23 @@ For commercial licensing, please contact support@quantumnous.com
 /* Beacon's shared surface language. Business components keep their behavior and
    inherit these tokens through the existing layout and UI primitives. */
 :root {
-  --beacon-paper-texture: url('../../public/beacon/paper-aged-light.jpg');
+  --beacon-backdrop-texture: url("../../public/beacon/paper-grain-light.svg");
+  --beacon-backdrop-size: 192px 192px;
+  --beacon-paper-texture: url("../../public/beacon/paper-aged-light.jpg");
   --beacon-paper-size: 1536px 1024px;
-  --beacon-paper-wash: rgb(250 250 248 / 58%);
-  --beacon-paper-surface-wash: rgb(255 255 253 / 88%);
-  --beacon-paper-header-wash: rgb(254 254 251 / 80%);
   --beacon-paper-card-wash: rgb(252 252 249 / 58%);
-  --beacon-paper-card-wear: url('../../public/beacon/paper-card-wear.svg');
-  --beacon-paper-card-shadow: 0 2px 3px rgb(50 53 43 / 8%),
-    0 11px 18px rgb(50 53 43 / 7%), inset 0 1px rgb(255 255 255 / 75%);
-  --beacon-note-wash: rgb(245 248 243 / 76%);
-  --beacon-note-active-wash: rgb(234 240 231 / 82%);
+  --beacon-paper-card-wear: url("../../public/beacon/paper-card-wear.svg");
+  --beacon-paper-card-wear-b: url("../../public/beacon/paper-card-wear-b.svg");
+  --beacon-paper-card-wear-c: url("../../public/beacon/paper-card-wear-c.svg");
+  --beacon-paper-card-shadow:
+    0 2px 3px rgb(50 53 43 / 8%), 0 11px 18px rgb(50 53 43 / 7%),
+    inset 0 1px rgb(255 255 255 / 75%);
+  --beacon-note-wash: rgb(250 249 245 / 62%);
+  --beacon-note-active-wash: rgb(239 239 233 / 72%);
   --beacon-note-border: #dde4dc;
-  --beacon-note-shadow: 0 1px 2px rgb(37 52 42 / 5%),
-    0 7px 18px rgb(37 52 42 / 4%);
+  --beacon-note-shadow:
+    0 1px 2px rgb(37 52 42 / 5%), 0 7px 18px rgb(37 52 42 / 4%);
+  --beacon-primary-paper-wash: rgb(37 55 45 / 91%);
   --radius: 0.55rem;
   --background: #f8f8f4;
   --foreground: #26312a;
@@ -70,73 +73,70 @@ For commercial licensing, please contact support@quantumnous.com
 }
 
 .dark {
-  --beacon-paper-texture: url('../../public/beacon/paper-aged-night.jpg');
+  --beacon-backdrop-texture: url("../../public/beacon/paper-grain-dark.svg");
+  --beacon-paper-texture: url("../../public/beacon/paper-aged-night.jpg");
   --beacon-paper-size: 1536px 1024px;
-  --beacon-paper-wash: rgb(14 21 17 / 36%);
-  --beacon-paper-surface-wash: rgb(44 58 46 / 40%);
-  --beacon-paper-header-wash: rgb(40 53 43 / 43%);
-  --beacon-paper-card-wash: rgb(77 91 74 / 40%);
-  --beacon-paper-card-wear: url('../../public/beacon/paper-card-wear-night.svg');
-  --beacon-paper-card-shadow: 0 2px 4px rgb(0 0 0 / 19%),
-    0 12px 22px rgb(0 0 0 / 15%), inset 0 1px rgb(220 231 215 / 8%);
-  --beacon-note-wash: rgb(68 83 68 / 42%);
-  --beacon-note-active-wash: rgb(87 105 84 / 45%);
-  --beacon-note-border: #455448;
-  --beacon-note-shadow: 0 2px 4px rgb(0 0 0 / 13%),
-    0 8px 18px rgb(0 0 0 / 10%);
-  --background: #151c18;
-  --foreground: #eef0e8;
-  --card: #202a23;
-  --card-foreground: #eef0e8;
-  --popover: #202a23;
-  --popover-foreground: #eef0e8;
+  --beacon-paper-card-wash: rgb(47 52 57 / 74%);
+  --beacon-paper-card-wear: url("../../public/beacon/paper-card-wear-night.svg");
+  --beacon-paper-card-wear-b: url("../../public/beacon/paper-card-wear-night-b.svg");
+  --beacon-paper-card-wear-c: url("../../public/beacon/paper-card-wear-night-c.svg");
+  --beacon-paper-card-shadow:
+    0 2px 4px rgb(0 0 0 / 19%), 0 12px 22px rgb(0 0 0 / 15%),
+    inset 0 1px rgb(220 231 215 / 8%);
+  --beacon-note-wash: rgb(48 53 58 / 72%);
+  --beacon-note-active-wash: rgb(65 70 75 / 76%);
+  --beacon-note-border: #4a5053;
+  --beacon-note-shadow: 0 2px 4px rgb(0 0 0 / 13%), 0 8px 18px rgb(0 0 0 / 10%);
+  --beacon-primary-paper-wash: rgb(232 199 157 / 91%);
+  --background: #171b20;
+  --foreground: #f0efeb;
+  --card: #252a2f;
+  --card-foreground: #f0efeb;
+  --popover: #252a2f;
+  --popover-foreground: #f0efeb;
   --primary: #e8c79d;
-  --primary-foreground: #19221c;
-  --secondary: #253228;
-  --secondary-foreground: #e5eadf;
-  --muted: #243027;
-  --muted-foreground: #bcc6ba;
-  --accent: #304035;
-  --accent-foreground: #edf1e8;
-  --border: #405044;
-  --input: #465648;
-  --ring: #afc0a9;
-  --chart-1: #a3b8a4;
+  --primary-foreground: #21252a;
+  --secondary: #30363b;
+  --secondary-foreground: #ebebe7;
+  --muted: #2b3035;
+  --muted-foreground: #c1c3c0;
+  --accent: #3b4248;
+  --accent-foreground: #f0efeb;
+  --border: #454c51;
+  --input: #4b5257;
+  --ring: #b6bbb9;
+  --chart-1: #a8b4b5;
   --chart-2: #e8c79d;
-  --chart-3: #7f9c84;
-  --chart-4: #b6a997;
-  --chart-5: #d2dec8;
-  --overview-accent-1: #a3b8a4;
+  --chart-3: #879ca2;
+  --chart-4: #b9a998;
+  --chart-5: #d2d9d9;
+  --overview-accent-1: #a8b4b5;
   --overview-accent-2: #e8c79d;
-  --overview-accent-3: #7f9c84;
-  --sidebar: #1b251e;
-  --sidebar-foreground: #eef0e8;
+  --overview-accent-3: #879ca2;
+  --sidebar: #20252a;
+  --sidebar-foreground: #f0efeb;
   --sidebar-primary: #e8c79d;
-  --sidebar-primary-foreground: #19221c;
-  --sidebar-accent: #304035;
-  --sidebar-accent-foreground: #edf1e8;
-  --sidebar-border: #405044;
-  --sidebar-ring: #afc0a9;
+  --sidebar-primary-foreground: #21252a;
+  --sidebar-accent: #3b4248;
+  --sidebar-accent-foreground: #f0efeb;
+  --sidebar-border: #454c51;
+  --sidebar-ring: #b6bbb9;
 }
 
 body {
   background-color: var(--background);
-  background-image:
-    linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
-    var(--beacon-paper-texture);
+  background-image: var(--beacon-backdrop-texture);
   background-repeat: repeat;
-  background-size: auto, var(--beacon-paper-size);
+  background-size: var(--beacon-backdrop-size);
 }
 
 .beacon-public-layout,
 .beacon-auth-layout,
 .beacon-console-inset {
   background-color: var(--background);
-  background-image:
-    linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
-    var(--beacon-paper-texture);
+  background-image: var(--beacon-backdrop-texture);
   background-repeat: repeat;
-  background-size: auto, var(--beacon-paper-size);
+  background-size: var(--beacon-backdrop-size);
 }
 
 .beacon-artwork {
@@ -164,54 +164,41 @@ body {
 
 .beacon-public-layout > header {
   background-color: var(--card);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-header-wash),
-      var(--beacon-paper-header-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: var(--beacon-backdrop-texture);
+  background-size: var(--beacon-backdrop-size);
   border-bottom: 1px solid var(--border);
 }
 
 .beacon-console-layout > header {
   background-color: var(--card);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-header-wash),
-      var(--beacon-paper-header-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: var(--beacon-backdrop-texture);
+  background-size: var(--beacon-backdrop-size);
   border-bottom: 1px solid var(--border);
 }
 
-.beacon-console-layout [data-slot='sidebar'] {
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-header-wash),
-      var(--beacon-paper-header-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+.beacon-console-layout [data-slot="sidebar"] {
+  background-image: var(--beacon-backdrop-texture);
+  background-size: var(--beacon-backdrop-size);
 }
 
 /* Navigation entries read as small paper slips without changing their controls. */
-.beacon-console-layout [data-sidebar='menu-button'] {
-  border: 1px solid transparent;
+.beacon-console-layout [data-sidebar="menu-button"] {
+  border: 1px solid var(--beacon-note-border);
+  background-color: var(--card);
   background-image:
     linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
     var(--beacon-paper-texture);
   background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
 }
 
-.beacon-console-layout [data-sidebar='menu-button']:hover,
-.beacon-console-layout [data-sidebar='menu-button'][data-active='true'] {
+.beacon-console-layout [data-sidebar="menu-button"]:hover,
+.beacon-console-layout [data-sidebar="menu-button"][data-active="true"] {
   border-color: var(--beacon-note-border);
   box-shadow: var(--beacon-note-shadow);
 }
 
-.beacon-console-layout [data-sidebar='menu-button'][data-active='true'] {
+.beacon-console-layout [data-sidebar="menu-button"][data-active="true"] {
   background-image:
     linear-gradient(
       var(--beacon-note-active-wash),
@@ -220,23 +207,17 @@ body {
     var(--beacon-paper-texture);
 }
 
-.beacon-public-layout [data-slot='card'],
-.beacon-console-layout [data-slot='card'],
-.beacon-auth-layout [data-slot='card'] {
+.beacon-public-layout [data-slot="card"],
+.beacon-console-layout [data-slot="card"],
+.beacon-auth-layout [data-slot="card"] {
   background-color: var(--card);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: none;
   box-shadow: 0 3px 16px rgb(36 38 29 / 4%);
 }
 
-.dark .beacon-public-layout [data-slot='card'],
-.dark .beacon-console-layout [data-slot='card'],
-.dark .beacon-auth-layout [data-slot='card'] {
+.dark .beacon-public-layout [data-slot="card"],
+.dark .beacon-console-layout [data-slot="card"],
+.dark .beacon-auth-layout [data-slot="card"] {
   box-shadow: none;
 }
 
@@ -247,10 +228,8 @@ body {
 .beacon-auth-art {
   border-right: 1px solid var(--border);
   background-color: var(--background);
-  background-image:
-    linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: var(--beacon-backdrop-texture);
+  background-size: var(--beacon-backdrop-size);
 }
 
 .beacon-auth-art .beacon-artwork {
@@ -261,13 +240,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   background-color: var(--card);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: none;
   box-shadow: 0 12px 36px rgb(36 38 29 / 7%);
 }
 
@@ -281,13 +254,7 @@ body {
 
 .beacon-pricing .bg-card,
 .beacon-rankings .bg-card {
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: none;
 }
 
 .beacon-pricing .beacon-model-paper-card {
@@ -302,8 +269,14 @@ body {
       var(--beacon-paper-card-wash)
     ),
     var(--beacon-paper-texture);
-  background-position: right top, center, center;
-  background-size: 160px 112px, auto, var(--beacon-paper-size);
+  background-position:
+    right top,
+    center,
+    center;
+  background-size:
+    160px 112px,
+    auto,
+    var(--beacon-paper-size);
   background-repeat: no-repeat, repeat, repeat;
   box-shadow: var(--beacon-paper-card-shadow);
   transition:
@@ -313,7 +286,8 @@ body {
 
 .beacon-pricing .beacon-model-paper-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 7px rgb(40 48 39 / 10%),
+  box-shadow:
+    0 4px 7px rgb(40 48 39 / 10%),
     0 15px 23px rgb(40 48 39 / 9%);
 }
 
@@ -322,17 +296,42 @@ body {
 }
 
 .dark .beacon-pricing .beacon-model-paper-card:hover {
-  box-shadow: 0 5px 10px rgb(0 0 0 / 22%),
+  box-shadow:
+    0 5px 10px rgb(0 0 0 / 22%),
     0 16px 25px rgb(0 0 0 / 18%);
 }
 
 .beacon-pricing .beacon-model-paper-card:nth-child(3n + 2) {
-  background-position: left top, center, center;
+  background-image:
+    var(--beacon-paper-card-wear-b),
+    linear-gradient(
+      var(--beacon-paper-card-wash),
+      var(--beacon-paper-card-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-position:
+    left top,
+    center,
+    37% 28%;
 }
 
-.beacon-pricing .beacon-model-paper-card [data-slot='card-header'],
-.beacon-pricing .beacon-model-paper-card [data-slot='card-content'],
-.beacon-pricing .beacon-model-paper-card [data-slot='card-footer'] {
+.beacon-pricing .beacon-model-paper-card:nth-child(3n) {
+  background-image:
+    var(--beacon-paper-card-wear-c),
+    linear-gradient(
+      var(--beacon-paper-card-wash),
+      var(--beacon-paper-card-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-position:
+    right top,
+    center,
+    65% 73%;
+}
+
+.beacon-pricing .beacon-model-paper-card [data-slot="card-header"],
+.beacon-pricing .beacon-model-paper-card [data-slot="card-content"],
+.beacon-pricing .beacon-model-paper-card [data-slot="card-footer"] {
   padding-inline: 20px;
 }
 
@@ -353,10 +352,60 @@ body {
   white-space: nowrap;
 }
 
-.beacon-pricing [data-slot='toggle-group-item'],
-.beacon-pricing [data-slot='button'][aria-pressed] {
+.beacon-pricing [data-slot="toggle-group-item"],
+.beacon-pricing [data-slot="button"][aria-pressed] {
   background-image:
     linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+}
+
+.beacon-rankings [role="tablist"] {
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.beacon-rankings [role="tab"] {
+  min-height: 44px;
+  margin-bottom: 0;
+  border: 1px solid var(--beacon-note-border);
+  border-radius: 6px;
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
+}
+
+.beacon-rankings [role="tab"][aria-selected="true"] {
+  background-image:
+    linear-gradient(
+      var(--beacon-note-active-wash),
+      var(--beacon-note-active-wash)
+    ),
+    var(--beacon-paper-texture);
+  border-color: var(--ring);
+}
+
+:is(.beacon-public-layout, .beacon-console-layout, .beacon-auth-layout)
+  [data-slot="button"][data-variant="outline"],
+:is(.beacon-public-layout, .beacon-console-layout, .beacon-auth-layout)
+  [data-slot="button"][data-variant="secondary"] {
+  border-color: var(--beacon-note-border);
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
+}
+
+:is(.beacon-public-layout, .beacon-console-layout, .beacon-auth-layout)
+  [data-slot="button"][data-variant="default"] {
+  background-image:
+    linear-gradient(
+      var(--beacon-primary-paper-wash),
+      var(--beacon-primary-paper-wash)
+    ),
     var(--beacon-paper-texture);
   background-size: auto, var(--beacon-paper-size);
 }
@@ -373,7 +422,7 @@ body {
 
 .dark .beacon-pricing-watermark,
 .dark .beacon-rankings-watermark {
-  opacity: 0.16;
+  opacity: 0.72;
 }
 
 .beacon-docs-hero {
@@ -386,13 +435,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   background-color: var(--card);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: none;
 }
 
 .beacon-docs-hero > div {
@@ -450,13 +493,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   background-color: var(--card);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: none;
 }
 
 .beacon-docs-nav a {
@@ -494,13 +531,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   background-color: var(--card);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: none;
 }
 
 .beacon-docs-content h2 {
@@ -552,11 +583,7 @@ body {
   border: 1px solid var(--beacon-note-border);
   border-radius: 6px;
   background-color: var(--background);
-  background-image:
-    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
-  box-shadow: var(--beacon-note-shadow);
+  background-image: none;
 }
 
 .beacon-docs-steps svg {

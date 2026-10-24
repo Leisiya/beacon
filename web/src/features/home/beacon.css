@@ -30,28 +30,26 @@ For commercial licensing, please contact support@quantumnous.com
   --beacon-tower: #f1f0e8;
   min-height: 100vh;
   background-color: var(--beacon-bg);
-  background-image:
-    linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: var(--beacon-backdrop-texture);
+  background-size: var(--beacon-backdrop-size);
   background-repeat: repeat;
   color: var(--beacon-text);
   font-family:
-    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
+    -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
     sans-serif;
 }
 
 .dark .beacon-page {
-  --beacon-bg: #141b18;
-  --beacon-surface: #202b25;
-  --beacon-soft: #19221d;
-  --beacon-text: #f1f2eb;
-  --beacon-muted: #bcc5ba;
-  --beacon-border: #3a483e;
+  --beacon-bg: #171b20;
+  --beacon-surface: #252a2f;
+  --beacon-soft: #20252a;
+  --beacon-text: #f0efeb;
+  --beacon-muted: #c1c3c0;
+  --beacon-border: #454c51;
   --beacon-button: #ebc99e;
-  --beacon-button-text: #17201d;
-  --beacon-green: #a5b7a1;
-  --beacon-tower: #cdd4c8;
+  --beacon-button-text: #21252a;
+  --beacon-green: #aebbbd;
+  --beacon-tower: #d2d4d1;
 }
 
 .beacon-page *,
@@ -66,13 +64,8 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-header {
   border-bottom: 1px solid var(--beacon-border);
   background-color: var(--beacon-surface);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-header-wash),
-      var(--beacon-paper-header-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: var(--beacon-backdrop-texture);
+  background-size: var(--beacon-backdrop-size);
 }
 .beacon-header-inner {
   display: flex;
@@ -141,10 +134,15 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-theme-label select {
   height: 42px;
   max-width: 105px;
-  padding: 0 7px;
-  border: 1px solid var(--beacon-border);
-  border-radius: 5px;
-  background: var(--beacon-surface);
+  padding: 0 30px 0 13px;
+  border: 1px solid var(--beacon-note-border);
+  border-radius: 6px;
+  background-color: var(--beacon-surface);
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  box-shadow: var(--beacon-note-shadow);
   color: var(--beacon-text);
   font-size: 13px;
 }
@@ -175,7 +173,14 @@ For commercial licensing, please contact support@quantumnous.com
   transform: translateY(0);
 }
 .beacon-button-primary {
-  background: var(--beacon-button);
+  background-color: var(--beacon-button);
+  background-image:
+    linear-gradient(
+      var(--beacon-primary-paper-wash),
+      var(--beacon-primary-paper-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
   color: var(--beacon-button-text) !important;
   border-color: var(--beacon-button);
 }
@@ -269,7 +274,7 @@ For commercial licensing, please contact support@quantumnous.com
   top: 52%;
   color: var(--beacon-text);
   font-size: clamp(12px, 1.15vw, 17px);
-  font-family: 'Bradley Hand', 'Segoe Print', 'KaiTi', cursive;
+  font-family: "Bradley Hand", "Segoe Print", "KaiTi", cursive;
   font-style: italic;
   letter-spacing: 0.04em;
   line-height: 1.65;
@@ -292,20 +297,8 @@ For commercial licensing, please contact support@quantumnous.com
   border: 1px solid var(--beacon-note-border);
   border-radius: 8px;
   background-color: var(--beacon-surface);
-  background-image:
-    var(--beacon-paper-card-wear),
-    linear-gradient(
-      var(--beacon-paper-card-wash),
-      var(--beacon-paper-card-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-position: right top, center, center;
-  background-size: 132px 92px, auto, var(--beacon-paper-size);
-  background-repeat: no-repeat, repeat, repeat;
-  box-shadow: var(--beacon-paper-card-shadow);
-}
-.beacon-benefits > div:nth-child(2) {
-  background-position: left top, center, center;
+  background-image: none;
+  box-shadow: 0 1px 5px rgb(30 34 33 / 3%);
 }
 .beacon-benefits svg {
   grid-row: span 2;
@@ -361,13 +354,8 @@ For commercial licensing, please contact support@quantumnous.com
 }
 .beacon-page footer {
   background-color: var(--beacon-soft);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: var(--beacon-backdrop-texture);
+  background-size: var(--beacon-backdrop-size);
   border-top: 1px solid var(--beacon-border);
 }
 
@@ -377,13 +365,8 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-preview-banner {
   padding: 11px 24px;
   background-color: var(--beacon-soft);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: var(--beacon-backdrop-texture);
+  background-size: var(--beacon-backdrop-size);
   border-bottom: 1px solid var(--beacon-border);
   color: var(--beacon-muted);
   font-size: 12px;
@@ -400,13 +383,7 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-preview-card {
   border: 1px solid var(--beacon-border);
   background-color: var(--beacon-surface);
-  background-image:
-    linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-image: none;
   border-radius: 8px;
 }
 .beacon-preview-side {
@@ -425,23 +402,21 @@ For commercial licensing, please contact support@quantumnous.com
   padding: 11px 13px;
   margin-top: 7px;
   min-height: 44px;
-  border: 1px solid var(--beacon-note-border);
+  border: 1px solid transparent;
+  color: var(--beacon-muted);
+  font-size: 13px;
+  border-radius: 6px;
+}
+.beacon-preview-side a {
+  border-color: var(--beacon-note-border);
   background-image:
     linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
     var(--beacon-paper-texture);
   background-size: auto, var(--beacon-paper-size);
   box-shadow: var(--beacon-note-shadow);
-  color: var(--beacon-muted);
-  font-size: 13px;
-  border-radius: 6px;
 }
 .beacon-preview-side .active {
-  background-image:
-    linear-gradient(
-      var(--beacon-note-active-wash),
-      var(--beacon-note-active-wash)
-    ),
-    var(--beacon-paper-texture);
+  background-color: var(--beacon-soft);
   color: var(--beacon-text);
   font-weight: 700;
 }
@@ -463,17 +438,7 @@ For commercial licensing, please contact support@quantumnous.com
   border: 1px solid var(--beacon-border);
   border-radius: 8px;
   background-color: var(--beacon-surface);
-  background-image:
-    var(--beacon-paper-card-wear),
-    linear-gradient(
-      var(--beacon-paper-card-wash),
-      var(--beacon-paper-card-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-position: right top, center, center;
-  background-size: 160px 112px, auto, var(--beacon-paper-size);
-  background-repeat: no-repeat, repeat, repeat;
-  box-shadow: var(--beacon-paper-card-shadow);
+  background-image: none;
   overflow: hidden;
 }
 .beacon-preview-eyebrow {
@@ -514,20 +479,7 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-preview-card {
   padding: 20px;
   min-width: 0;
-  background-image:
-    var(--beacon-paper-card-wear),
-    linear-gradient(
-      var(--beacon-paper-card-wash),
-      var(--beacon-paper-card-wash)
-    ),
-    var(--beacon-paper-texture);
-  background-position: right top, center, center;
-  background-size: 160px 112px, auto, var(--beacon-paper-size);
-  background-repeat: no-repeat, repeat, repeat;
-  box-shadow: var(--beacon-paper-card-shadow);
-}
-.beacon-preview-card:nth-child(3n + 2) {
-  background-position: left top, center, center;
+  background-image: none;
 }
 .beacon-preview-card h2 {
   color: var(--beacon-muted);
@@ -621,7 +573,12 @@ For commercial licensing, please contact support@quantumnous.com
     height: 44px;
     border: 1px solid var(--beacon-border);
     border-radius: 5px;
-    background: var(--beacon-surface);
+    background-color: var(--beacon-surface);
+    background-image:
+      linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+      var(--beacon-paper-texture);
+    background-size: auto, var(--beacon-paper-size);
+    box-shadow: var(--beacon-note-shadow);
     color: var(--beacon-text);
   }
   .beacon-nav {
@@ -636,10 +593,8 @@ For commercial licensing, please contact support@quantumnous.com
     gap: 0;
     padding: 12px 18px 18px;
     background-color: var(--beacon-bg);
-    background-image:
-      linear-gradient(var(--beacon-paper-wash), var(--beacon-paper-wash)),
-      var(--beacon-paper-texture);
-    background-size: auto, var(--beacon-paper-size);
+    background-image: var(--beacon-backdrop-texture);
+    background-size: var(--beacon-backdrop-size);
     border-bottom: 1px solid var(--beacon-border);
     box-shadow: 0 14px 20px #0001;
   }
