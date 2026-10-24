@@ -4,8 +4,8 @@
 
 | 需求 | 分类 | 依据与边界 |
 | --- | --- | --- |
-| 注册、登录、管理员与用户 | 已有/配置 | `router/api-router.go`、`middleware/auth.go`、前端 auth 路由；未初始化管理员。 |
-| API Key、额度、访问限制 | 已有 | token 路由及 `model/quota_reserve.go`；待端到端验证。 |
+| 注册、登录、管理员与用户 | 已有/配置 | `router/api-router.go`、`middleware/auth.go`、前端 auth 路由；本地管理员已初始化并验证登录，普通用户注册及隔离仍待实测。 |
+| API Key、额度、访问限制 | 已有 | token 路由及 `model/quota_reserve.go`；本机已验证零额度 Key 创建、列表脱敏和删除，额度扣减与访问限制仍待端到端验证。 |
 | 渠道增删改、启停、测试、余额、调度 | 已有/配置 | `router/channel-router.go`、`controller/channel-test.go`、`controller/channel-billing.go`；真实测试会花上游额度。 |
 | 模型价格、上架、计费 | 已有/配置 | `model/model_pricing*.go` 等；需展示后台真实价格及准确单位。 |
 | 调用日志、消费、余额 | 已有 | `model/log.go`、额度储备与自助路由；失败、重试、异步和用户隔离待验证。 |
