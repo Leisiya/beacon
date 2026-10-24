@@ -19,7 +19,7 @@ import { Link } from '@tanstack/react-router'
 import { Footer } from '@/components/layout/components/footer'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { BeaconHeader } from './beacon-home'
+import { BeaconHeader, BeaconScene } from './beacon-home'
 
 const previewCards = [
   { title: '我的余额', detail: '登录后接入个人余额' },
@@ -44,10 +44,18 @@ export function BeaconDashboardPreview() {
           <Link to='/wallet'>充值与余额</Link>
         </aside>
         <div className='beacon-preview-main'>
-          <h1>总览</h1>
-          <p className='beacon-preview-subtitle'>
-            清楚查看自己的额度、用量与调用记录。
-          </p>
+          <div className='beacon-preview-intro'>
+            <div>
+              <p className='beacon-preview-eyebrow'>BEACON / OVERVIEW</p>
+              <h1>总览</h1>
+              <p className='beacon-preview-subtitle'>
+                清楚查看自己的额度、用量与调用记录。
+              </p>
+            </div>
+            <div className='beacon-preview-scene' aria-hidden='true'>
+              <BeaconScene />
+            </div>
+          </div>
           <div className='beacon-preview-grid'>
             {previewCards.map((card) => (
               <section className='beacon-preview-card' key={card.title}>

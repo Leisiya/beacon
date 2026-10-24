@@ -1,17 +1,18 @@
 .beacon-page {
-  --beacon-bg: #faf9f6;
-  --beacon-surface: #fdfcf9;
-  --beacon-soft: #f8f6f1;
+  --beacon-bg: #f7f4ec;
+  --beacon-surface: #fcfaf5;
+  --beacon-soft: #f1eee5;
   --beacon-text: #202522;
   --beacon-muted: #626862;
-  --beacon-border: #e5e6df;
+  --beacon-border: #deddd4;
   --beacon-button: #17201d;
   --beacon-button-text: #fff;
   --beacon-green: #738477;
   --beacon-glow: #ebc99e;
   --beacon-tower: #f1f0e8;
   min-height: 100vh;
-  background: var(--beacon-bg);
+  background: var(--beacon-bg)
+    url('../../../public/beacon/paper-grain-light.svg') repeat;
   color: var(--beacon-text);
   font-family:
     -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
@@ -29,6 +30,7 @@
   --beacon-button-text: #17201d;
   --beacon-green: #a5b7a1;
   --beacon-tower: #cdd4c8;
+  background-image: url('../../../public/beacon/paper-grain-dark.svg');
 }
 
 .beacon-page *,
@@ -42,7 +44,7 @@
 }
 .beacon-header {
   border-bottom: 1px solid var(--beacon-border);
-  background: var(--beacon-bg);
+  background: var(--beacon-surface);
 }
 .beacon-header-inner {
   display: flex;
@@ -215,6 +217,7 @@
   width: 100%;
   max-width: 730px;
   overflow: visible;
+  shape-rendering: crispEdges;
 }
 .beacon-art-caption {
   position: absolute;
@@ -228,69 +231,78 @@
   transform: rotate(-5deg);
 }
 .scene-sun {
-  fill: #ebc99e;
+  fill: #e9b88d;
+}
+.scene-sun-shade {
+  fill: #dfaa80;
 }
 .scene-moon,
 .scene-stars {
   display: none;
 }
 .scene-beam {
-  fill: #ebc99e;
-  opacity: 0.35;
+  fill: #e2a773;
+  opacity: 0.85;
 }
 .scene-bird {
-  stroke: #39433d;
+  fill: #26302b;
 }
 .scene-hill-far {
-  fill: #e8ede6;
+  fill: #d9ddd4;
 }
 .scene-island {
-  fill: #8c9c8f;
-  stroke: #25312b;
-  stroke-width: 3;
-  stroke-linejoin: bevel;
+  fill: #899489;
 }
 .scene-rock {
-  fill: #56685c;
-  stroke: #25312b;
-  stroke-width: 3;
-  stroke-linejoin: bevel;
+  fill: #34433b;
+}
+.scene-rock-highlight {
+  fill: #a8afa2;
+}
+.scene-tower-outline {
+  fill: #1d2924;
 }
 .scene-tower {
-  fill: #f1f0e8;
-  stroke: #25312b;
-  stroke-width: 4;
+  fill: #ece9dd;
 }
 .scene-tower-side {
-  fill: #d7dbd1;
+  fill: #bec8ba;
 }
 .scene-lantern {
-  fill: #24332c;
-  stroke: #1b2620;
-  stroke-width: 4;
+  fill: #25352d;
+}
+.scene-lantern-frame {
+  fill: #1d2924;
 }
 .scene-roof,
 .scene-cap {
-  fill: #17201d;
+  fill: #1d2924;
 }
 .scene-light {
-  fill: #ebc99e;
+  fill: #f5d5aa;
 }
 .scene-window,
 .scene-door {
-  fill: #26332b;
+  fill: #26362e;
+}
+.scene-tower-shade {
+  fill: #9eada0;
 }
 .scene-house {
-  fill: #f1f0e8;
-  stroke: #25312b;
-  stroke-width: 3;
+  fill: #e5e5d9;
 }
 .scene-house-roof {
-  fill: #25312b;
+  fill: #233129;
 }
-.scene-shore,
+.scene-house-trim,
+.scene-foreground {
+  fill: #1d2924;
+}
+.scene-shore {
+  fill: #aeb9ab;
+}
 .scene-reflection {
-  stroke: #bdc8bc;
+  fill: #8f9d90;
 }
 .dark .scene-sun {
   display: none;
@@ -299,38 +311,44 @@
   display: block;
   fill: #dfddc4;
 }
+.dark .scene-moon-shadow {
+  fill: var(--beacon-bg);
+}
 .dark .scene-stars {
   display: block;
   fill: #cbd7c5;
 }
 .dark .scene-beam {
   fill: #ebc99e;
-  opacity: 0.26;
+  opacity: 0.68;
 }
 .dark .scene-bird {
-  stroke: #bac6b8;
+  fill: #bac6b8;
 }
 .dark .scene-hill-far {
   fill: #27382e;
 }
 .dark .scene-island {
   fill: #506b59;
-  stroke: #0c1711;
 }
 .dark .scene-rock {
   fill: #304b3b;
-  stroke: #102019;
+}
+.dark .scene-rock-highlight {
+  fill: #6f8573;
+}
+.dark .scene-tower-outline,
+.dark .scene-lantern-frame {
+  fill: #0c1711;
 }
 .dark .scene-tower {
   fill: #cdd4c8;
-  stroke: #111d16;
 }
 .dark .scene-tower-side {
   fill: #879b89;
 }
 .dark .scene-lantern {
   fill: #2c352a;
-  stroke: #0c1711;
 }
 .dark .scene-roof,
 .dark .scene-cap {
@@ -340,16 +358,22 @@
 .dark .scene-door {
   fill: #253d2f;
 }
+.dark .scene-tower-shade {
+  fill: #8da393;
+}
 .dark .scene-house {
   fill: #aebbad;
-  stroke: #102019;
 }
 .dark .scene-house-roof {
   fill: #15241a;
 }
+.dark .scene-house-trim,
+.dark .scene-foreground {
+  fill: #101b14;
+}
 .dark .scene-shore,
 .dark .scene-reflection {
-  stroke: #728c78;
+  fill: #728c78;
 }
 
 .beacon-benefits {
@@ -418,7 +442,6 @@
 }
 
 .beacon-preview {
-  background: var(--beacon-bg);
   min-height: 100vh;
 }
 .beacon-preview-banner {
@@ -468,6 +491,40 @@
 .beacon-preview-main {
   min-width: 0;
 }
+.beacon-preview-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 150px;
+  padding: 14px 24px 10px;
+  margin-bottom: 14px;
+  border: 1px solid var(--beacon-border);
+  border-radius: 8px;
+  background: var(--beacon-surface);
+  overflow: hidden;
+}
+.beacon-preview-eyebrow {
+  margin: 0 0 8px;
+  color: var(--beacon-green);
+  font:
+    650 10px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.2em;
+}
+.beacon-preview-scene {
+  flex: 0 0 230px;
+  height: 126px;
+  overflow: hidden;
+  opacity: 0.86;
+}
+.beacon-preview-scene .beacon-scene {
+  width: 240px;
+  height: 170px;
+  margin-top: -28px;
+}
 .beacon-preview-main h1 {
   font-size: clamp(25px, 3vw, 36px);
   font-weight: 740;
@@ -486,6 +543,10 @@
 .beacon-preview-card {
   padding: 20px;
   min-width: 0;
+  box-shadow: 0 3px 12px rgb(31 37 30 / 3%);
+}
+.dark .beacon-preview-card {
+  box-shadow: none;
 }
 .beacon-preview-card h2 {
   color: var(--beacon-muted);
@@ -685,6 +746,13 @@
   .beacon-preview-shell {
     width: min(100% - 28px, 1320px);
     margin-top: 24px;
+  }
+  .beacon-preview-intro {
+    min-height: 132px;
+    padding: 20px;
+  }
+  .beacon-preview-scene {
+    display: none;
   }
   .beacon-preview-grid,
   .beacon-preview-columns {
