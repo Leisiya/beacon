@@ -16,10 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { Link } from '@tanstack/react-router'
 
+import { BeaconArtwork } from '@/components/beacon-artwork'
 import { Footer } from '@/components/layout/components/footer'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { BeaconHeader, BeaconScene } from './beacon-home'
+import { BeaconHeader } from './beacon-home'
 
 const previewCards = [
   { title: '我的余额', detail: '登录后接入个人余额' },
@@ -41,6 +42,7 @@ export function BeaconDashboardPreview() {
           <span className='active'>总览</span>
           <Link to='/keys'>API Key</Link>
           <Link to='/pricing'>模型与价格</Link>
+          <Link to='/docs'>API 文档</Link>
           <Link to='/wallet'>充值与余额</Link>
         </aside>
         <div className='beacon-preview-main'>
@@ -53,7 +55,7 @@ export function BeaconDashboardPreview() {
               </p>
             </div>
             <div className='beacon-preview-scene' aria-hidden='true'>
-              <BeaconScene />
+              <BeaconArtwork decorative />
             </div>
           </div>
           <div className='beacon-preview-grid'>

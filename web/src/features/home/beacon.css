@@ -1,7 +1,25 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 .beacon-page {
-  --beacon-bg: #f7f4ec;
+  --beacon-bg: #f5f0e6;
   --beacon-surface: #fcfaf5;
-  --beacon-soft: #f1eee5;
+  --beacon-soft: #eee9de;
   --beacon-text: #202522;
   --beacon-muted: #626862;
   --beacon-border: #deddd4;
@@ -212,170 +230,22 @@
   justify-content: center;
   min-width: 0;
 }
-.beacon-scene {
-  display: block;
+.beacon-hero-illustration {
   width: 100%;
   max-width: 730px;
-  overflow: visible;
-  shape-rendering: crispEdges;
 }
 .beacon-art-caption {
   position: absolute;
   right: 2%;
-  bottom: 8%;
-  color: var(--beacon-muted);
-  font-size: 11px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.12em;
-  line-height: 1.5;
-  transform: rotate(-5deg);
+  top: 52%;
+  color: var(--beacon-text);
+  font-size: clamp(12px, 1.15vw, 17px);
+  font-family: 'Bradley Hand', 'Segoe Print', 'KaiTi', cursive;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  line-height: 1.65;
+  transform: rotate(-9deg);
 }
-.scene-sun {
-  fill: #e9b88d;
-}
-.scene-sun-shade {
-  fill: #dfaa80;
-}
-.scene-moon,
-.scene-stars {
-  display: none;
-}
-.scene-beam {
-  fill: #e2a773;
-  opacity: 0.85;
-}
-.scene-bird {
-  fill: #26302b;
-}
-.scene-hill-far {
-  fill: #d9ddd4;
-}
-.scene-island {
-  fill: #899489;
-}
-.scene-rock {
-  fill: #34433b;
-}
-.scene-rock-highlight {
-  fill: #a8afa2;
-}
-.scene-tower-outline {
-  fill: #1d2924;
-}
-.scene-tower {
-  fill: #ece9dd;
-}
-.scene-tower-side {
-  fill: #bec8ba;
-}
-.scene-lantern {
-  fill: #25352d;
-}
-.scene-lantern-frame {
-  fill: #1d2924;
-}
-.scene-roof,
-.scene-cap {
-  fill: #1d2924;
-}
-.scene-light {
-  fill: #f5d5aa;
-}
-.scene-window,
-.scene-door {
-  fill: #26362e;
-}
-.scene-tower-shade {
-  fill: #9eada0;
-}
-.scene-house {
-  fill: #e5e5d9;
-}
-.scene-house-roof {
-  fill: #233129;
-}
-.scene-house-trim,
-.scene-foreground {
-  fill: #1d2924;
-}
-.scene-shore {
-  fill: #aeb9ab;
-}
-.scene-reflection {
-  fill: #8f9d90;
-}
-.dark .scene-sun {
-  display: none;
-}
-.dark .scene-moon {
-  display: block;
-  fill: #dfddc4;
-}
-.dark .scene-moon-shadow {
-  fill: var(--beacon-bg);
-}
-.dark .scene-stars {
-  display: block;
-  fill: #cbd7c5;
-}
-.dark .scene-beam {
-  fill: #ebc99e;
-  opacity: 0.68;
-}
-.dark .scene-bird {
-  fill: #bac6b8;
-}
-.dark .scene-hill-far {
-  fill: #27382e;
-}
-.dark .scene-island {
-  fill: #506b59;
-}
-.dark .scene-rock {
-  fill: #304b3b;
-}
-.dark .scene-rock-highlight {
-  fill: #6f8573;
-}
-.dark .scene-tower-outline,
-.dark .scene-lantern-frame {
-  fill: #0c1711;
-}
-.dark .scene-tower {
-  fill: #cdd4c8;
-}
-.dark .scene-tower-side {
-  fill: #879b89;
-}
-.dark .scene-lantern {
-  fill: #2c352a;
-}
-.dark .scene-roof,
-.dark .scene-cap {
-  fill: #0f1a13;
-}
-.dark .scene-window,
-.dark .scene-door {
-  fill: #253d2f;
-}
-.dark .scene-tower-shade {
-  fill: #8da393;
-}
-.dark .scene-house {
-  fill: #aebbad;
-}
-.dark .scene-house-roof {
-  fill: #15241a;
-}
-.dark .scene-house-trim,
-.dark .scene-foreground {
-  fill: #101b14;
-}
-.dark .scene-shore,
-.dark .scene-reflection {
-  fill: #728c78;
-}
-
 .beacon-benefits {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -515,15 +385,14 @@
   letter-spacing: 0.2em;
 }
 .beacon-preview-scene {
-  flex: 0 0 230px;
+  flex: 0 0 240px;
   height: 126px;
   overflow: hidden;
   opacity: 0.86;
 }
-.beacon-preview-scene .beacon-scene {
+.beacon-preview-scene .beacon-artwork {
   width: 240px;
-  height: 170px;
-  margin-top: -28px;
+  margin-top: -24px;
 }
 .beacon-preview-main h1 {
   font-size: clamp(25px, 3vw, 36px);
@@ -686,13 +555,12 @@
   .beacon-hero-art {
     height: 360px;
   }
-  .beacon-scene {
-    height: 100%;
-    max-width: 600px;
+  .beacon-hero-illustration {
+    width: min(100%, 480px);
   }
   .beacon-art-caption {
-    right: 5%;
-    bottom: 3%;
+    right: 4%;
+    top: 50%;
   }
   .beacon-preview-shell {
     grid-template-columns: 1fr;
@@ -720,8 +588,14 @@
     height: 260px;
     margin-inline: -12px;
   }
+  .beacon-hero-illustration {
+    width: min(100%, 346px);
+  }
   .beacon-art-caption {
-    display: none;
+    top: auto;
+    right: 5%;
+    bottom: 2%;
+    font-size: 11px;
   }
   .beacon-benefits {
     grid-template-columns: 1fr;

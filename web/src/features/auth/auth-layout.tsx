@@ -17,44 +17,37 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { useTranslation } from 'react-i18next'
 
-import { Skeleton } from '@/components/ui/skeleton'
-import { useSystemConfig } from '@/hooks/use-system-config'
+import { BeaconArtwork } from '@/components/beacon-artwork'
+import { BeaconMark } from '@/components/beacon-mark'
 
 type AuthLayoutProps = {
   children: React.ReactNode
 }
 
 export function AuthLayout({ children }: AuthLayoutProps) {
-  const { t } = useTranslation()
-  const { systemName, logo, loading } = useSystemConfig()
-
   return (
-    <div className='relative grid h-svh max-w-none'>
+    <div className='beacon-auth-layout relative grid lg:grid-cols-[minmax(0,1fr)_minmax(440px,0.9fr)]'>
       <Link
         to='/'
-        className='absolute top-4 left-4 z-10 flex items-center gap-2 transition-opacity hover:opacity-80 sm:top-8 sm:left-8'
+        className='absolute top-5 left-5 z-10 flex items-center gap-2.5 text-xl font-bold tracking-tight transition-opacity hover:opacity-80 sm:top-8 sm:left-8'
       >
-        <div className='relative h-8 w-8'>
-          {loading ? (
-            <Skeleton className='absolute inset-0 rounded-full' />
-          ) : (
-            <img
-              src={logo}
-              alt={t('Logo')}
-              className='h-8 w-8 rounded-full object-cover'
-            />
-          )}
-        </div>
-        {loading ? (
-          <Skeleton className='h-6 w-24' />
-        ) : (
-          <h1 className='text-xl font-medium'>{systemName}</h1>
-        )}
+        <BeaconMark className='size-9' />
+        <span>Beacon</span>
       </Link>
-      <div className='container flex items-center pt-16 sm:pt-0'>
-        <div className='mx-auto flex w-full flex-col justify-center space-y-2 px-4 py-8 sm:w-[480px] sm:p-8'>
+      <aside className='beacon-auth-art hidden min-h-svh items-center justify-center px-8 pt-24 pb-14 lg:flex'>
+        <div className='flex w-full max-w-[630px] flex-col items-center text-center'>
+          <BeaconArtwork alt='海岛上的灯塔' />
+          <p className='text-muted-foreground mt-2 font-mono text-[11px] tracking-[0.28em]'>
+            A BRIGHTER WAY TO AI
+          </p>
+          <p className='mt-4 text-2xl font-semibold tracking-tight'>
+            让强大的模型，更简单地抵达你。
+          </p>
+        </div>
+      </aside>
+      <div className='flex min-w-0 items-center justify-center px-4 pt-24 pb-10 sm:px-8 lg:px-12 lg:py-16'>
+        <div className='beacon-auth-panel flex w-full max-w-[490px] flex-col justify-center space-y-2 px-5 py-7 sm:px-9 sm:py-10'>
           {children}
         </div>
       </div>

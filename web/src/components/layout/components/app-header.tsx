@@ -25,7 +25,10 @@ import { SystemUpdateAction } from '@/features/system-update/system-update-actio
 import { useNotifications } from '@/hooks/use-notifications'
 import { useTopNavLinks } from '@/hooks/use-top-nav-links'
 
-import { defaultTopNavLinks } from '../config/top-nav.config'
+import {
+  defaultTopNavLinks,
+  resolveBeaconTopNavLinks,
+} from '../config/top-nav.config'
 import type { TopNavLink } from '../types'
 import { Header } from './header'
 import { SystemBrand } from './system-brand'
@@ -106,7 +109,9 @@ export function AppHeader({
 }: AppHeaderProps) {
   // Prioritize dynamically generated links from backend
   const dynamicLinks = useTopNavLinks()
-  const links = dynamicLinks.length > 0 ? dynamicLinks : navLinks
+  const links = resolveBeaconTopNavLinks(
+    dynamicLinks.length > 0 ? dynamicLinks : navLinks
+  )
 
   // Notifications hook
   const notifications = useNotifications()

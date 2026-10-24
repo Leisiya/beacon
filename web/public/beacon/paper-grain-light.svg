@@ -3,10 +3,13 @@
     <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="3" seed="8" stitchTiles="stitch"/>
     <feColorMatrix type="saturate" values="0"/>
   </filter>
-  <rect width="192" height="192" filter="url(#paper)" opacity="0.075"/>
-  <g fill="#847b69" opacity="0.12">
+  <rect width="192" height="192" filter="url(#paper)" opacity="0.16"/>
+  <g fill="#847b69" opacity="0.2">
     <rect x="22" y="48" width="1" height="1"/><rect x="148" y="26" width="1" height="1"/>
     <rect x="79" y="119" width="1" height="1"/><rect x="169" y="151" width="1" height="1"/>
     <rect x="41" y="174" width="2" height="1"/><rect x="122" y="83" width="2" height="1"/>
+  </g>
+  <g fill="none" stroke="#9d917e" stroke-width="0.65" opacity="0.12">
+    <path d="M8 18q25-6 48 1M102 141q30-5 57 2M13 130q20 4 38-2M134 52q19 2 42-4"/>
   </g>
 </svg>

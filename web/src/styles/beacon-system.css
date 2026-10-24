@@ -1,0 +1,388 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/* Beacon's shared surface language. Business components keep their behavior and
+   inherit these tokens through the existing layout and UI primitives. */
+:root {
+  --radius: 0.55rem;
+  --background: #f5f0e6;
+  --foreground: #1e2722;
+  --card: #fcfaf5;
+  --card-foreground: #1e2722;
+  --popover: #fcfaf5;
+  --popover-foreground: #1e2722;
+  --primary: #1c2923;
+  --primary-foreground: #fffaf0;
+  --secondary: #eee9de;
+  --secondary-foreground: #27352c;
+  --muted: #efeadf;
+  --muted-foreground: #5d685e;
+  --accent: #e5e8df;
+  --accent-foreground: #223128;
+  --border: #dcd9cf;
+  --input: #d8d8cf;
+  --ring: #708575;
+  --chart-1: #637a6a;
+  --chart-2: #d9a97d;
+  --chart-3: #8e9b8d;
+  --chart-4: #b4a58d;
+  --chart-5: #3d5648;
+  --overview-accent-1: #637a6a;
+  --overview-accent-2: #d9a97d;
+  --overview-accent-3: #8e9b8d;
+  --sidebar: #f3eee4;
+  --sidebar-foreground: #1e2722;
+  --sidebar-primary: #1c2923;
+  --sidebar-primary-foreground: #fffaf0;
+  --sidebar-accent: #e8e6dc;
+  --sidebar-accent-foreground: #27352c;
+  --sidebar-border: #dcd9cf;
+  --sidebar-ring: #708575;
+}
+
+.dark {
+  --background: #151c18;
+  --foreground: #eef0e8;
+  --card: #202a23;
+  --card-foreground: #eef0e8;
+  --popover: #202a23;
+  --popover-foreground: #eef0e8;
+  --primary: #e8c79d;
+  --primary-foreground: #19221c;
+  --secondary: #253228;
+  --secondary-foreground: #e5eadf;
+  --muted: #243027;
+  --muted-foreground: #bcc6ba;
+  --accent: #304035;
+  --accent-foreground: #edf1e8;
+  --border: #405044;
+  --input: #465648;
+  --ring: #afc0a9;
+  --chart-1: #a3b8a4;
+  --chart-2: #e8c79d;
+  --chart-3: #7f9c84;
+  --chart-4: #b6a997;
+  --chart-5: #d2dec8;
+  --overview-accent-1: #a3b8a4;
+  --overview-accent-2: #e8c79d;
+  --overview-accent-3: #7f9c84;
+  --sidebar: #1b251e;
+  --sidebar-foreground: #eef0e8;
+  --sidebar-primary: #e8c79d;
+  --sidebar-primary-foreground: #19221c;
+  --sidebar-accent: #304035;
+  --sidebar-accent-foreground: #edf1e8;
+  --sidebar-border: #405044;
+  --sidebar-ring: #afc0a9;
+}
+
+body {
+  background-image: url('../../public/beacon/paper-grain-light.svg');
+  background-repeat: repeat;
+}
+
+.dark body {
+  background-image: url('../../public/beacon/paper-grain-dark.svg');
+}
+
+.beacon-public-layout,
+.beacon-auth-layout,
+.beacon-console-inset {
+  background-color: var(--background);
+  background-image: url('../../public/beacon/paper-grain-light.svg');
+  background-repeat: repeat;
+}
+
+.beacon-artwork {
+  position: relative;
+  display: block;
+  aspect-ratio: 1448 / 1086;
+}
+
+.beacon-artwork img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.beacon-artwork-night,
+.dark .beacon-artwork-day {
+  display: none;
+}
+
+.dark .beacon-artwork-night {
+  display: block;
+}
+
+.dark .beacon-public-layout,
+.dark .beacon-auth-layout,
+.dark .beacon-console-inset {
+  background-image: url('../../public/beacon/paper-grain-dark.svg');
+}
+
+.beacon-public-layout > header {
+  background: color-mix(in srgb, var(--card) 95%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.beacon-console-layout > header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.beacon-public-layout [data-slot='card'],
+.beacon-console-layout [data-slot='card'],
+.beacon-auth-layout [data-slot='card'] {
+  background: var(--card);
+  box-shadow: 0 3px 16px rgb(36 38 29 / 4%);
+}
+
+.dark .beacon-public-layout [data-slot='card'],
+.dark .beacon-console-layout [data-slot='card'],
+.dark .beacon-auth-layout [data-slot='card'] {
+  box-shadow: none;
+}
+
+.beacon-auth-layout {
+  min-height: 100svh;
+}
+
+.beacon-auth-art {
+  border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--background) 72%, var(--card));
+}
+
+.beacon-auth-art .beacon-artwork {
+  width: min(100%, 620px);
+}
+
+.beacon-auth-panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 12px 36px rgb(36 38 29 / 7%);
+}
+
+.dark .beacon-auth-panel {
+  box-shadow: none;
+}
+
+.beacon-pricing {
+  position: relative;
+}
+
+.beacon-pricing-watermark,
+.beacon-rankings-watermark {
+  position: absolute;
+  top: 70px;
+  right: 3%;
+  width: min(26vw, 260px);
+  opacity: 0.64;
+  pointer-events: none;
+}
+
+.dark .beacon-pricing-watermark,
+.dark .beacon-rankings-watermark {
+  opacity: 0.16;
+}
+
+.beacon-docs-hero {
+  position: relative;
+  display: flex;
+  min-height: 260px;
+  align-items: center;
+  overflow: hidden;
+  padding: 36px 42px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.beacon-docs-hero > div {
+  position: relative;
+  z-index: 1;
+  max-width: 650px;
+}
+
+.beacon-docs-hero h1 {
+  margin-top: 10px;
+  font-size: clamp(2.3rem, 5vw, 4rem);
+  font-weight: 750;
+  letter-spacing: -0.055em;
+}
+
+.beacon-docs-hero p:not(.beacon-docs-eyebrow) {
+  margin-top: 14px;
+  color: var(--muted-foreground);
+  line-height: 1.8;
+}
+
+.beacon-docs-hero > .beacon-artwork {
+  position: absolute;
+  top: -20px;
+  right: -18px;
+  width: min(46vw, 480px);
+  opacity: 0.68;
+}
+
+.beacon-docs-eyebrow {
+  color: #718674;
+  font:
+    650 11px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.22em;
+}
+
+.beacon-docs-grid {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 32px;
+  margin-top: 36px;
+}
+
+.beacon-docs-nav {
+  position: sticky;
+  top: 90px;
+  display: flex;
+  height: max-content;
+  flex-direction: column;
+  gap: 6px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.beacon-docs-nav a {
+  padding: 10px 12px;
+  border-radius: 5px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.beacon-docs-nav a:hover,
+.beacon-docs-nav a:focus-visible {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.beacon-docs-content {
+  display: grid;
+  gap: 22px;
+}
+
+.beacon-docs-content section {
+  scroll-margin-top: 100px;
+  padding: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.beacon-docs-content h2 {
+  margin: 8px 0 18px;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 720;
+  letter-spacing: -0.035em;
+}
+
+.beacon-docs-content h3 {
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.beacon-docs-content p:not(.beacon-docs-eyebrow) {
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.beacon-docs-content a:not(.beacon-docs-nav a) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.beacon-docs-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.beacon-docs-steps > div {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+}
+
+.beacon-docs-steps svg {
+  color: #738b79;
+}
+
+.beacon-docs-code {
+  margin-top: 18px;
+  overflow-x: auto;
+  padding: 24px;
+  border-radius: 6px;
+  background: #1c2520;
+  color: #e9eee6;
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+@media (max-width: 720px) {
+  .beacon-pricing-watermark,
+  .beacon-rankings-watermark {
+    display: none;
+  }
+  .beacon-docs-hero {
+    min-height: 205px;
+    padding: 26px;
+  }
+  .beacon-docs-hero > .beacon-artwork {
+    right: -90px;
+    opacity: 0.18;
+    width: 380px;
+  }
+  .beacon-docs-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .beacon-docs-nav {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .beacon-docs-content section {
+    padding: 24px;
+  }
+  .beacon-docs-steps {
+    grid-template-columns: 1fr;
+  }
+}

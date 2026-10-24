@@ -34,7 +34,10 @@ import { useTopNavLinks } from '@/hooks/use-top-nav-links'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { defaultTopNavLinks } from '../config/top-nav.config'
+import {
+  defaultTopNavLinks,
+  resolveBeaconTopNavLinks,
+} from '../config/top-nav.config'
 import type { TopNavLink } from '../types'
 import { HeaderLogo } from './header-logo'
 
@@ -97,7 +100,9 @@ export function PublicHeader(props: PublicHeaderProps) {
   const user = auth.user
   const isAuthenticated = !!user
   const displaySiteName = customSiteName || systemName
-  const links = dynamicLinks.length > 0 ? dynamicLinks : navLinks
+  const links = resolveBeaconTopNavLinks(
+    dynamicLinks.length > 0 ? dynamicLinks : navLinks
+  )
 
   let logoContent: ReactNode = (
     <HeaderLogo

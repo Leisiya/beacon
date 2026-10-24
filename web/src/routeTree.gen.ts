@@ -30,6 +30,7 @@ import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
 import { Route as BeaconPreviewDashboardRouteImport } from './routes/beacon-preview/dashboard'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
@@ -176,6 +177,11 @@ const AboutIndexRoute = AboutIndexRouteImport.update({
 const BeaconPreviewDashboardRoute = BeaconPreviewDashboardRouteImport.update({
   id: '/beacon-preview/dashboard',
   path: '/beacon-preview/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OauthProviderRoute = OauthProviderRouteImport.update({
@@ -449,6 +455,7 @@ export interface FileRoutesByFullPath {
   '/beacon-preview/dashboard': typeof BeaconPreviewDashboardRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -512,6 +519,7 @@ export interface FileRoutesByTo {
   '/beacon-preview/dashboard': typeof BeaconPreviewDashboardRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
+  '/docs': typeof DocsIndexRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/setup': typeof SetupIndexRoute
@@ -579,6 +587,7 @@ export interface FileRoutesById {
   '/beacon-preview/dashboard': typeof BeaconPreviewDashboardRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -645,6 +654,7 @@ export interface FileRouteTypes {
     | '/beacon-preview/dashboard'
     | '/oauth/$provider'
     | '/about/'
+    | '/docs/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
@@ -708,6 +718,7 @@ export interface FileRouteTypes {
     | '/beacon-preview/dashboard'
     | '/oauth/$provider'
     | '/about'
+    | '/docs'
     | '/pricing'
     | '/rankings'
     | '/setup'
@@ -774,6 +785,7 @@ export interface FileRouteTypes {
     | '/beacon-preview/dashboard'
     | '/oauth/$provider'
     | '/about/'
+    | '/docs/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
@@ -832,6 +844,7 @@ export interface RootRouteChildren {
   BeaconPreviewDashboardRoute: typeof BeaconPreviewDashboardRoute
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
+  DocsIndexRoute: typeof DocsIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
@@ -985,6 +998,13 @@ declare module '@tanstack/react-router' {
       path: '/beacon-preview/dashboard'
       fullPath: '/beacon-preview/dashboard'
       preLoaderRoute: typeof BeaconPreviewDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/': {
+      id: '/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/oauth/$provider': {
@@ -1449,6 +1469,7 @@ const rootRouteChildren: RootRouteChildren = {
   BeaconPreviewDashboardRoute: BeaconPreviewDashboardRoute,
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
+  DocsIndexRoute: DocsIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,

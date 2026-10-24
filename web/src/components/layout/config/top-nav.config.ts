@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type TopNavLink } from '../types'
+import type { TopNavLink } from '../types'
 
 /**
  * Default top navigation links
@@ -24,7 +24,19 @@ import { type TopNavLink } from '../types'
  * In practice, navigation links are dynamically fetched from backend.
  * Priority: Backend dynamic links > Provided navLinks > defaultTopNavLinks
  *
- * This is intentionally empty to encourage backend configuration.
- * If you need fallback links, add them here.
+ * Beacon provides a small fallback set when the backend has no configured
+ * links. Backend links still take priority in the shared headers.
  */
-export const defaultTopNavLinks: TopNavLink[] = []
+export const defaultTopNavLinks: TopNavLink[] = [
+  { title: '模型广场', href: '/pricing' },
+  { title: 'API 文档', href: '/docs' },
+  { title: '关于', href: '/about' },
+]
+
+export function resolveBeaconTopNavLinks(links: TopNavLink[]): TopNavLink[] {
+  return links.map((link) =>
+    /^https?:\/\/docs\.newapi\.(ai|pro)(\/|$)/.test(link.href)
+      ? { ...link, href: '/docs', external: false }
+      : link
+  )
+}
