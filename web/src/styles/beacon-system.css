@@ -24,6 +24,10 @@ For commercial licensing, please contact support@quantumnous.com
   --beacon-paper-wash: rgb(250 250 248 / 58%);
   --beacon-paper-surface-wash: rgb(255 255 253 / 88%);
   --beacon-paper-header-wash: rgb(254 254 251 / 80%);
+  --beacon-paper-card-wash: rgb(252 252 249 / 58%);
+  --beacon-paper-card-wear: url('../../public/beacon/paper-card-wear.svg');
+  --beacon-paper-card-shadow: 0 2px 3px rgb(50 53 43 / 8%),
+    0 11px 18px rgb(50 53 43 / 7%), inset 0 1px rgb(255 255 255 / 75%);
   --beacon-note-wash: rgb(245 248 243 / 76%);
   --beacon-note-active-wash: rgb(234 240 231 / 82%);
   --beacon-note-border: #dde4dc;
@@ -66,15 +70,20 @@ For commercial licensing, please contact support@quantumnous.com
 }
 
 .dark {
-  --beacon-paper-texture: url('../../public/beacon/paper-grain-dark.svg');
-  --beacon-paper-size: 192px 192px;
-  --beacon-paper-wash: rgb(20 27 24 / 92%);
-  --beacon-paper-surface-wash: rgb(32 42 35 / 96%);
-  --beacon-paper-header-wash: rgb(32 42 35 / 96%);
-  --beacon-note-wash: rgb(38 51 42 / 95%);
-  --beacon-note-active-wash: rgb(49 65 53 / 96%);
+  --beacon-paper-texture: url('../../public/beacon/paper-aged-night.jpg');
+  --beacon-paper-size: 1536px 1024px;
+  --beacon-paper-wash: rgb(14 21 17 / 36%);
+  --beacon-paper-surface-wash: rgb(44 58 46 / 40%);
+  --beacon-paper-header-wash: rgb(40 53 43 / 43%);
+  --beacon-paper-card-wash: rgb(77 91 74 / 40%);
+  --beacon-paper-card-wear: url('../../public/beacon/paper-card-wear-night.svg');
+  --beacon-paper-card-shadow: 0 2px 4px rgb(0 0 0 / 19%),
+    0 12px 22px rgb(0 0 0 / 15%), inset 0 1px rgb(220 231 215 / 8%);
+  --beacon-note-wash: rgb(68 83 68 / 42%);
+  --beacon-note-active-wash: rgb(87 105 84 / 45%);
   --beacon-note-border: #455448;
-  --beacon-note-shadow: none;
+  --beacon-note-shadow: 0 2px 4px rgb(0 0 0 / 13%),
+    0 8px 18px rgb(0 0 0 / 10%);
   --background: #151c18;
   --foreground: #eef0e8;
   --card: #202a23;
@@ -279,6 +288,69 @@ body {
     ),
     var(--beacon-paper-texture);
   background-size: auto, var(--beacon-paper-size);
+}
+
+.beacon-pricing .beacon-model-paper-card {
+  min-height: 288px;
+  border: 1px solid var(--beacon-note-border);
+  border-radius: 9px;
+  background-color: var(--card);
+  background-image:
+    var(--beacon-paper-card-wear),
+    linear-gradient(
+      var(--beacon-paper-card-wash),
+      var(--beacon-paper-card-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-position: right top, center, center;
+  background-size: 160px 112px, auto, var(--beacon-paper-size);
+  background-repeat: no-repeat, repeat, repeat;
+  box-shadow: var(--beacon-paper-card-shadow);
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.beacon-pricing .beacon-model-paper-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 7px rgb(40 48 39 / 10%),
+    0 15px 23px rgb(40 48 39 / 9%);
+}
+
+.dark .beacon-pricing .beacon-model-paper-card {
+  box-shadow: var(--beacon-paper-card-shadow);
+}
+
+.dark .beacon-pricing .beacon-model-paper-card:hover {
+  box-shadow: 0 5px 10px rgb(0 0 0 / 22%),
+    0 16px 25px rgb(0 0 0 / 18%);
+}
+
+.beacon-pricing .beacon-model-paper-card:nth-child(3n + 2) {
+  background-position: left top, center, center;
+}
+
+.beacon-pricing .beacon-model-paper-card [data-slot='card-header'],
+.beacon-pricing .beacon-model-paper-card [data-slot='card-content'],
+.beacon-pricing .beacon-model-paper-card [data-slot='card-footer'] {
+  padding-inline: 20px;
+}
+
+.beacon-model-tag {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 4px 8px;
+  border: 1px solid var(--beacon-note-border);
+  border-radius: 4px;
+  background-image:
+    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .beacon-pricing [data-slot='toggle-group-item'],
@@ -531,5 +603,14 @@ body {
   }
   .beacon-docs-steps {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beacon-pricing .beacon-model-paper-card {
+    transition: none;
+  }
+  .beacon-pricing .beacon-model-paper-card:hover {
+    transform: none;
   }
 }

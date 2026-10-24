@@ -284,29 +284,43 @@ For commercial licensing, please contact support@quantumnous.com
 }
 .beacon-benefits > div {
   display: grid;
-  grid-template-columns: 36px 1fr;
-  column-gap: 14px;
-  align-content: start;
-  padding: 17px 20px;
+  grid-template-columns: 38px 1fr;
+  column-gap: 18px;
+  align-content: center;
+  min-height: 146px;
+  padding: 22px 24px;
   border: 1px solid var(--beacon-note-border);
   border-radius: 8px;
+  background-color: var(--beacon-surface);
   background-image:
-    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
+    var(--beacon-paper-card-wear),
+    linear-gradient(
+      var(--beacon-paper-card-wash),
+      var(--beacon-paper-card-wash)
+    ),
     var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
-  box-shadow: var(--beacon-note-shadow);
+  background-position: right top, center, center;
+  background-size: 132px 92px, auto, var(--beacon-paper-size);
+  background-repeat: no-repeat, repeat, repeat;
+  box-shadow: var(--beacon-paper-card-shadow);
+}
+.beacon-benefits > div:nth-child(2) {
+  background-position: left top, center, center;
 }
 .beacon-benefits svg {
   grid-row: span 2;
   margin-top: 2px;
+  width: 31px;
+  height: 31px;
 }
 .beacon-benefits strong {
-  font-size: 14px;
+  font-size: 17px;
 }
 .beacon-benefits span {
-  margin-top: 3px;
+  margin-top: 8px;
   color: var(--beacon-muted);
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 .beacon-next {
   display: flex;
@@ -346,7 +360,14 @@ For commercial licensing, please contact support@quantumnous.com
   box-shadow: var(--beacon-note-shadow);
 }
 .beacon-page footer {
-  background: var(--beacon-soft);
+  background-color: var(--beacon-soft);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
   border-top: 1px solid var(--beacon-border);
 }
 
@@ -355,7 +376,14 @@ For commercial licensing, please contact support@quantumnous.com
 }
 .beacon-preview-banner {
   padding: 11px 24px;
-  background: var(--beacon-soft);
+  background-color: var(--beacon-soft);
+  background-image:
+    linear-gradient(
+      var(--beacon-paper-surface-wash),
+      var(--beacon-paper-surface-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-size: auto, var(--beacon-paper-size);
   border-bottom: 1px solid var(--beacon-border);
   color: var(--beacon-muted);
   font-size: 12px;
@@ -436,12 +464,16 @@ For commercial licensing, please contact support@quantumnous.com
   border-radius: 8px;
   background-color: var(--beacon-surface);
   background-image:
+    var(--beacon-paper-card-wear),
     linear-gradient(
-      var(--beacon-paper-surface-wash),
-      var(--beacon-paper-surface-wash)
+      var(--beacon-paper-card-wash),
+      var(--beacon-paper-card-wash)
     ),
     var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
+  background-position: right top, center, center;
+  background-size: 160px 112px, auto, var(--beacon-paper-size);
+  background-repeat: no-repeat, repeat, repeat;
+  box-shadow: var(--beacon-paper-card-shadow);
   overflow: hidden;
 }
 .beacon-preview-eyebrow {
@@ -482,10 +514,20 @@ For commercial licensing, please contact support@quantumnous.com
 .beacon-preview-card {
   padding: 20px;
   min-width: 0;
-  box-shadow: 0 3px 12px rgb(31 37 30 / 3%);
+  background-image:
+    var(--beacon-paper-card-wear),
+    linear-gradient(
+      var(--beacon-paper-card-wash),
+      var(--beacon-paper-card-wash)
+    ),
+    var(--beacon-paper-texture);
+  background-position: right top, center, center;
+  background-size: 160px 112px, auto, var(--beacon-paper-size);
+  background-repeat: no-repeat, repeat, repeat;
+  box-shadow: var(--beacon-paper-card-shadow);
 }
-.dark .beacon-preview-card {
-  box-shadow: none;
+.beacon-preview-card:nth-child(3n + 2) {
+  background-position: left top, center, center;
 }
 .beacon-preview-card h2 {
   color: var(--beacon-muted);
@@ -698,6 +740,7 @@ For commercial licensing, please contact support@quantumnous.com
   }
   .beacon-benefits > div,
   .beacon-benefits > div:first-child {
+    min-height: 110px;
     padding: 14px 16px;
   }
   .beacon-next {
