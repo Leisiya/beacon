@@ -37,8 +37,8 @@ var (
 
 // BeaconLedgerEntry is append-only through the posting API. A correction adds
 // a linked row; the original amount, FX snapshot and operator never change.
-// Posting is internal only until the management API and its authorization
-// checks are implemented. Adding this table does not rewrite legacy top-ups.
+// The management API requires a root browser session and a single-use proof.
+// Adding this table does not rewrite legacy top-ups.
 type BeaconLedgerEntry struct {
 	ID                  int64   `json:"id" gorm:"primaryKey"`
 	IdempotencyKey      string  `json:"idempotency_key" gorm:"type:varchar(64);not null;uniqueIndex"`
@@ -164,6 +164,68 @@ func (input BeaconLedgerInput) normalized(now int64) (BeaconLedgerInput, error) 
 	return input, nil
 }
 
+// NormalizeBeaconLedgerInput is shared by proof binding and posting so a proof
+// covers the same canonical financial details that will actually be recorded.
+func NormalizeBeaconLedgerInput(input BeaconLedgerInput) (BeaconLedgerInput, error) {
+	return input.normalized(common.GetTimestamp())
+}
+
+type BeaconLedgerRecord struct {
+	BeaconLedgerEntry
+	CorrectionID *int64 `json:"correction_id"`
+}
+
+type BeaconLedgerPage struct {
+	Items      []BeaconLedgerRecord `json:"items"`
+	NextBefore int64                `json:"next_before"`
+}
+
+// ListBeaconLedgerEntries uses an ID cursor so newly posted rows do not shift
+// later pages. Corrections are resolved separately, even outside this page.
+func ListBeaconLedgerEntries(userID int, beforeID int64, limit int) (*BeaconLedgerPage, error) {
+	if userID < 0 || beforeID < 0 || limit < 1 || limit > 100 {
+		return nil, ErrBeaconLedgerInput
+	}
+	query := DB.Model(&BeaconLedgerEntry{})
+	if userID > 0 {
+		query = query.Where("user_id = ?", userID)
+	}
+	if beforeID > 0 {
+		query = query.Where("id < ?", beforeID)
+	}
+	var entries []BeaconLedgerEntry
+	if err := query.Order("id DESC").Limit(limit + 1).Find(&entries).Error; err != nil {
+		return nil, err
+	}
+	page := &BeaconLedgerPage{Items: make([]BeaconLedgerRecord, 0, min(len(entries), limit))}
+	if len(entries) > limit {
+		entries = entries[:limit]
+		page.NextBefore = entries[len(entries)-1].ID
+	}
+	ids := make([]int64, 0, len(entries))
+	for _, entry := range entries {
+		page.Items = append(page.Items, BeaconLedgerRecord{BeaconLedgerEntry: entry})
+		ids = append(ids, entry.ID)
+	}
+	if len(ids) == 0 {
+		return page, nil
+	}
+	var corrections []BeaconLedgerEntry
+	if err := DB.Select("id", "corrects_id").Where("corrects_id IN ?", ids).Find(&corrections).Error; err != nil {
+		return nil, err
+	}
+	byOriginal := make(map[int64]int64, len(corrections))
+	for _, correction := range corrections {
+		byOriginal[*correction.CorrectsID] = correction.ID
+	}
+	for i := range page.Items {
+		if id, ok := byOriginal[page.Items[i].ID]; ok {
+			page.Items[i].CorrectionID = &id
+		}
+	}
+	return page, nil
+}
+
 // PostBeaconLedgerEntry is an internal posting primitive, not an HTTP handler.
 // The caller must supply the authenticated operator, never a client-supplied ID.
 // created=false means an identical committed request was replayed. Callers must
@@ -176,7 +238,7 @@ func PostBeaconLedgerEntry(input BeaconLedgerInput, operatorID int) (entry *Beac
 	if common.RedisEnabled || common.BatchUpdateEnabled {
 		return nil, false, ErrBeaconLedgerMode
 	}
-	input, err = input.normalized(common.GetTimestamp())
+	input, err = NormalizeBeaconLedgerInput(input)
 	if err != nil {
 		return nil, false, err
 	}

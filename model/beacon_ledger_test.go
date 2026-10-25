@@ -345,6 +345,36 @@ func TestBeaconLedgerMigrationPreservesExistingData(t *testing.T) {
 	t.Logf("%s %s: new table and populated database, repeated migration, data and payment uniqueness preserved", common.MainDatabaseType(), version)
 }
 
+func TestBeaconLedgerCursorAndCorrectionVisibility(t *testing.T) {
+	operator, user := setupBeaconLedgerTest(t)
+	first, _, err := PostBeaconLedgerEntry(beaconReceiptInput(user.Id, "page-receipt-00001"), operator.Id)
+	require.NoError(t, err)
+	second, _, err := PostBeaconLedgerEntry(beaconReceiptInput(operator.Id, "page-receipt-00002"), operator.Id)
+	require.NoError(t, err)
+	page, err := ListBeaconLedgerEntries(0, 0, 1)
+	require.NoError(t, err)
+	require.Len(t, page.Items, 1)
+	assert.Equal(t, second.ID, page.Items[0].ID)
+	assert.Equal(t, second.ID, page.NextBefore)
+	correction, _, err := PostBeaconLedgerEntry(BeaconLedgerInput{IdempotencyKey: "page-correction-01", Kind: BeaconReversal, CorrectsID: first.ID, OccurredAt: common.GetTimestamp(), Note: "test correction"}, operator.Id)
+	require.NoError(t, err)
+	older, err := ListBeaconLedgerEntries(0, page.NextBefore, 1)
+	require.NoError(t, err)
+	require.Len(t, older.Items, 1)
+	assert.Equal(t, first.ID, older.Items[0].ID)
+	require.NotNil(t, older.Items[0].CorrectionID)
+	assert.Equal(t, correction.ID, *older.Items[0].CorrectionID)
+	assert.Zero(t, older.NextBefore)
+	filtered, err := ListBeaconLedgerEntries(operator.Id, 0, 25)
+	require.NoError(t, err)
+	require.Len(t, filtered.Items, 1)
+	assert.Equal(t, second.ID, filtered.Items[0].ID)
+	_, err = ListBeaconLedgerEntries(0, 0, 101)
+	require.ErrorIs(t, err, ErrBeaconLedgerInput)
+	_, err = ListBeaconLedgerEntries(-1, 0, 25)
+	require.ErrorIs(t, err, ErrBeaconLedgerInput)
+}
+
 func TestBeaconLedgerSQLiteContendingTransactions(t *testing.T) {
 	operator, user := setupBeaconLedgerTest(t)
 	if !common.UsingMainDatabase(common.DatabaseTypeSQLite) {

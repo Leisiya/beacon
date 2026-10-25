@@ -148,6 +148,12 @@ export function useSidebarData(): SidebarData {
             icon: Users,
           },
           {
+            title: t('Manual ledger'),
+            url: '/beacon-ledger',
+            icon: ClipboardList,
+            requiredRole: ROLE.SUPER_ADMIN,
+          },
+          {
             title: t('Redemption Codes'),
             url: '/redemption-codes',
             icon: Ticket,

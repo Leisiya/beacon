@@ -6,14 +6,168 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestBeaconLedgerAPIRequiresExactSingleUseProof(t *testing.T) {
+	operator, identity, target := setupAdminUserTest(t)
+	require.NoError(t, model.DB.AutoMigrate(&model.BeaconLedgerEntry{}))
+	input := model.BeaconLedgerInput{
+		IdempotencyKey: "ledger-api-test-0001", Kind: model.BeaconReceipt, UserID: target.Id,
+		Amount: "100.00", Currency: "CNY", CNYPerUnit: "1", FXSource: "same currency",
+		Quota: 500, PaymentMethod: "bank", PaymentReference: "bank-api-0001", OccurredAt: common.GetTimestamp(), Note: "test receipt",
+	}
+	body, err := common.Marshal(input)
+	require.NoError(t, err)
+	response := adminUserRequest(http.MethodPost, "/api/beacon/ledger", string(body), "", identity, common.RoleRootUser, nil, PostBeaconLedger)
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	assert.Contains(t, response.Body.String(), "SECURITY_PROOF_REQUIRED")
+	context, err := common.Marshal(service.BeaconLedgerPostContext{Entry: input})
+	require.NoError(t, err)
+	operation := service.VerificationOperation{Scope: service.VerificationScopeBeaconLedgerPost, Context: context}
+	proof := issueSecurityEnrollmentProof(t, identity, operation, service.VerificationMethodPassword)
+	for _, field := range []string{"amount", "quota", "user", "reference", "kind"} {
+		changed := input
+		switch field {
+		case "amount":
+			changed.Amount = "200.00"
+		case "quota":
+			changed.Quota = 501
+		case "user":
+			changed.UserID = operator.Id
+		case "reference":
+			changed.PaymentReference = "bank-api-other"
+		case "kind":
+			changed.Kind, changed.Amount, changed.Currency, changed.CNYPerUnit, changed.FXSource, changed.PaymentMethod, changed.PaymentReference = model.BeaconGift, "", "", "", "", "", ""
+		}
+		changedBody, err := common.Marshal(changed)
+		require.NoError(t, err)
+		response = adminUserRequest(http.MethodPost, "/api/beacon/ledger", string(changedBody), proof, identity, common.RoleRootUser, nil, PostBeaconLedger)
+		assert.Equal(t, http.StatusForbidden, response.Code, field)
+		assert.Contains(t, response.Body.String(), "SECURITY_PROOF_CONTEXT_MISMATCH", field)
+	}
+	var count int64
+	require.NoError(t, model.DB.Model(&model.BeaconLedgerEntry{}).Count(&count).Error)
+	assert.Zero(t, count)
+	response = adminUserRequest(http.MethodPost, "/api/beacon/ledger", string(body), proof, identity, common.RoleRootUser, nil, PostBeaconLedger)
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	assert.Contains(t, response.Body.String(), `"created":true`)
+	assert.Contains(t, response.Body.String(), fmt.Sprintf(`"operator_id":%d`, operator.Id))
+	response = adminUserRequest(http.MethodPost, "/api/beacon/ledger", string(body), proof, identity, common.RoleRootUser, nil, PostBeaconLedger)
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	assert.Contains(t, response.Body.String(), "SECURITY_PROOF_CONSUMED")
+	// A fresh proof after a lost response can safely replay the same request.
+	proof = issueSecurityEnrollmentProof(t, identity, operation, service.VerificationMethodPassword)
+	response = adminUserRequest(http.MethodPost, "/api/beacon/ledger", string(body), proof, identity, common.RoleRootUser, nil, PostBeaconLedger)
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.Contains(t, response.Body.String(), `"created":false`)
+	stored, err := model.GetUserById(target.Id, false)
+	require.NoError(t, err)
+	assert.Equal(t, 500, stored.Quota)
+	var audits []model.AuditLog
+	require.NoError(t, model.LOG_DB.Where("action = ?", "beacon.ledger.post").Find(&audits).Error)
+	require.Len(t, audits, 1)
+	auditJSON, err := common.Marshal(audits)
+	require.NoError(t, err)
+	assert.NotContains(t, string(auditJSON), proof)
+}
+
+func TestBeaconLedgerProofRejectsExpiredSessionAndWeakMethod(t *testing.T) {
+	for _, mode := range []string{"expired", "another session", "enrolled second factor", "administrator", "personal token"} {
+		t.Run(mode, func(t *testing.T) {
+			operator, identity, target := setupAdminUserTest(t)
+			require.NoError(t, model.DB.AutoMigrate(&model.BeaconLedgerEntry{}))
+			input := model.BeaconLedgerInput{
+				IdempotencyKey: "ledger-security-0001", Kind: model.BeaconGift,
+				UserID: target.Id, Quota: 100, OccurredAt: common.GetTimestamp(), Note: "security test",
+			}
+			context, err := common.Marshal(service.BeaconLedgerPostContext{Entry: input})
+			require.NoError(t, err)
+			operation := service.VerificationOperation{Scope: service.VerificationScopeBeaconLedgerPost, Context: context}
+			proof := issueSecurityEnrollmentProof(t, identity, operation, service.VerificationMethodPassword)
+			body, err := common.Marshal(input)
+			require.NoError(t, err)
+			switch mode {
+			case "expired":
+				require.NoError(t, model.DB.Model(&model.AuthFlow{}).Where("purpose = ?", model.AuthFlowPurposeSecurityProof).Update("expires_at", time.Now().Add(-time.Minute)).Error)
+			case "another session":
+				bundle, err := service.CreateLoginSession(operator.Id, "password", "127.0.0.1", "other-browser")
+				require.NoError(t, err)
+				identity, err = service.ParseAccessToken(bundle.AccessToken)
+				require.NoError(t, err)
+			case "enrolled second factor":
+				require.NoError(t, model.DB.Create(&model.TwoFA{UserId: operator.Id, Secret: "JBSWY3DPEHPK3PXP", IsEnabled: true}).Error)
+				requirements, err := service.GetVerificationRequirements(identity, service.VerificationScopeBeaconLedgerPost)
+				require.NoError(t, err)
+				assert.Equal(t, []service.VerificationMethodOption{{Method: service.VerificationMethodTwoFA, Available: true}}, requirements.Methods)
+			case "administrator":
+				require.NoError(t, model.DB.Model(operator).Update("role", common.RoleAdminUser).Error)
+			case "personal token":
+				raw, _ := createScopedAccessToken(t, operator.Id, 0, "user:write")
+				router := newAccessTokenTestRouter()
+				response := accessTokenRequest(router, http.MethodPost, "/api/verify", raw, "", fmt.Sprintf(`{"scope":"beacon.ledger.post","method":"password","password":"enrollment-password","context":%s}`, context))
+				require.Equal(t, http.StatusForbidden, response.Code)
+				router.POST("/api/beacon/ledger", middleware.RootAuth(), PostBeaconLedger)
+				response = accessTokenRequest(router, http.MethodPost, "/api/beacon/ledger", raw, proof, string(body))
+				require.Equal(t, http.StatusForbidden, response.Code)
+				return
+			}
+			response := adminUserRequest(http.MethodPost, "/api/beacon/ledger", string(body), proof, identity, common.RoleRootUser, nil, PostBeaconLedger)
+			assert.Contains(t, []int{http.StatusUnauthorized, http.StatusForbidden}, response.Code, response.Body.String())
+			var count int64
+			require.NoError(t, model.DB.Model(&model.BeaconLedgerEntry{}).Count(&count).Error)
+			assert.Zero(t, count)
+			stored, err := model.GetUserById(target.Id, false)
+			require.NoError(t, err)
+			assert.Zero(t, stored.Quota)
+		})
+	}
+}
+
+func TestBeaconLedgerRoutesRejectAnonymousAndOrdinaryUsers(t *testing.T) {
+	_, rootIdentity, target := setupAdminUserTest(t)
+	require.NoError(t, model.DB.AutoMigrate(&model.BeaconLedgerEntry{}))
+	userBundle, err := service.CreateLoginSession(target.Id, "password", "127.0.0.1", "ledger-test")
+	require.NoError(t, err)
+	rootToken, _, err := service.IssueAccessToken(rootIdentity)
+	require.NoError(t, err)
+	router := gin.New()
+	router.GET("/api/beacon/ledger", middleware.RootAuth(), GetBeaconLedger)
+	router.POST("/api/beacon/ledger", middleware.RootAuth(), PostBeaconLedger)
+	for _, method := range []string{http.MethodGet, http.MethodPost} {
+		for _, token := range []string{"", userBundle.AccessToken} {
+			request := httptest.NewRequest(method, "/api/beacon/ledger", strings.NewReader(`{}`))
+			if token != "" {
+				request.Header.Set("Authorization", "Bearer "+token)
+			}
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			assert.Contains(t, []int{http.StatusUnauthorized, http.StatusForbidden}, response.Code)
+		}
+	}
+	request := httptest.NewRequest(http.MethodGet, "/api/beacon/ledger", nil)
+	request.Header.Set("Authorization", "Bearer "+rootToken)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assert.Equal(t, http.StatusOK, response.Code)
+	assert.Contains(t, response.Body.String(), `"items":[]`)
+	assert.Contains(t, response.Body.String(), `"base_currency":"CNY"`)
+	// A root role on a non-session identity is not sufficient.
+	response = adminUserRequest(http.MethodGet, "/api/beacon/ledger", "", "", service.AuthIdentity{UserID: rootIdentity.UserID}, common.RoleRootUser, nil, GetBeaconLedger)
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	userIdentity, err := service.ParseAccessToken(userBundle.AccessToken)
+	require.NoError(t, err)
+	_, err = service.GetVerificationRequirements(userIdentity, service.VerificationScopeBeaconLedgerPost)
+	require.ErrorIs(t, err, service.ErrVerificationForbidden)
+}
 
 // setupAdminUserTest promotes the enrolled operator to root and creates a
 // managed common user for the administrative endpoints to act on.

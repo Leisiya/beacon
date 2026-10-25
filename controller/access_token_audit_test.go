@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -826,7 +827,7 @@ type releasedAuditLog struct {
 
 func (releasedAuditLog) TableName() string { return "logs" }
 
-// External tests create a new database per case on a loopback-only disposable
+// External tests create a new database per case on a local disposable
 // instance. They never drop databases or tables supplied through an environment variable.
 func newAuditTestDatabase(t *testing.T, kind, dsn string) (*gorm.DB, string) {
 	t.Helper()
@@ -843,10 +844,17 @@ func newAuditTestDatabase(t *testing.T, kind, dsn string) (*gorm.DB, string) {
 	if kind == "mysql" {
 		config, err := sqlmysql.ParseDSN(dsn)
 		require.NoError(t, err)
-		require.Equal(t, "tcp", config.Net)
-		host, _, err := net.SplitHostPort(config.Addr)
-		require.NoError(t, err)
-		require.True(t, net.ParseIP(host).IsLoopback(), "database tests only permit loopback instances")
+		if config.Net == "unix" {
+			require.True(t, filepath.IsAbs(config.Addr), "test socket must be an absolute local path")
+			info, err := os.Stat(config.Addr)
+			require.NoError(t, err)
+			require.NotZero(t, info.Mode()&os.ModeSocket)
+		} else {
+			require.Equal(t, "tcp", config.Net)
+			host, _, err := net.SplitHostPort(config.Addr)
+			require.NoError(t, err)
+			require.True(t, net.ParseIP(host).IsLoopback(), "database tests only permit loopback instances")
+		}
 		original = mysql.Open(dsn)
 		config.DBName = name
 		newDSN = config.FormatDSN()
@@ -854,7 +862,14 @@ func newAuditTestDatabase(t *testing.T, kind, dsn string) (*gorm.DB, string) {
 	} else {
 		parsed, err := url.Parse(dsn)
 		require.NoError(t, err)
-		require.True(t, net.ParseIP(parsed.Hostname()).IsLoopback(), "database tests only permit loopback instances")
+		if kind == "postgres" && parsed.Hostname() == "" && filepath.IsAbs(parsed.Query().Get("host")) {
+			info, err := os.Stat(parsed.Query().Get("host"))
+			require.NoError(t, err)
+			require.True(t, info.IsDir())
+			require.Zero(t, info.Mode().Perm()&0077, "test socket directory must be private")
+		} else {
+			require.True(t, net.ParseIP(parsed.Hostname()).IsLoopback(), "database tests only permit loopback instances")
+		}
 		parsed.Path = "/" + name
 		newDSN = parsed.String()
 		if kind == "clickhouse" {

@@ -1,3 +1,4 @@
+import type { LedgerInput } from '@/features/beacon-ledger/types'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -25,6 +26,7 @@ export type VerificationMethod =
   | 'oauth'
   | 'session'
 export type SecurityProofScope =
+  | 'beacon.ledger.post'
   | 'channel.key.read'
   | 'passkey.register'
   | 'passkey.delete'
@@ -51,6 +53,7 @@ export type SecurityProofScope =
 export type AdminUserManageAction = 'disable' | 'enable' | 'promote' | 'demote'
 
 export type VerificationOperation =
+  | { scope: 'beacon.ledger.post'; context: { entry: LedgerInput } }
   | { scope: 'channel.key.read'; context: { channel_id: number } }
   | {
       scope: 'account.binding.bind'
@@ -91,6 +94,7 @@ export type VerificationOperation =
   | {
       scope: Exclude<
         SecurityProofScope,
+        | 'beacon.ledger.post'
         | 'channel.key.read'
         | 'account.binding.bind'
         | 'account.binding.unbind'
