@@ -142,15 +142,17 @@ func TestBeaconLedgerRoutesRejectAnonymousAndOrdinaryUsers(t *testing.T) {
 	router := gin.New()
 	router.GET("/api/beacon/ledger", middleware.RootAuth(), GetBeaconLedger)
 	router.POST("/api/beacon/ledger", middleware.RootAuth(), PostBeaconLedger)
-	for _, method := range []string{http.MethodGet, http.MethodPost} {
-		for _, token := range []string{"", userBundle.AccessToken} {
-			request := httptest.NewRequest(method, "/api/beacon/ledger", strings.NewReader(`{}`))
-			if token != "" {
-				request.Header.Set("Authorization", "Bearer "+token)
+	for _, path := range []string{"/api/beacon/ledger", "/api/beacon/ledger?view=cash_summary&period=today"} {
+		for _, method := range []string{http.MethodGet, http.MethodPost} {
+			for _, token := range []string{"", userBundle.AccessToken} {
+				request := httptest.NewRequest(method, path, strings.NewReader(`{}`))
+				if token != "" {
+					request.Header.Set("Authorization", "Bearer "+token)
+				}
+				response := httptest.NewRecorder()
+				router.ServeHTTP(response, request)
+				assert.Contains(t, []int{http.StatusUnauthorized, http.StatusForbidden}, response.Code)
 			}
-			response := httptest.NewRecorder()
-			router.ServeHTTP(response, request)
-			assert.Contains(t, []int{http.StatusUnauthorized, http.StatusForbidden}, response.Code)
 		}
 	}
 	request := httptest.NewRequest(http.MethodGet, "/api/beacon/ledger", nil)
@@ -160,6 +162,18 @@ func TestBeaconLedgerRoutesRejectAnonymousAndOrdinaryUsers(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.Code)
 	assert.Contains(t, response.Body.String(), `"items":[]`)
 	assert.Contains(t, response.Body.String(), `"base_currency":"CNY"`)
+	request = httptest.NewRequest(http.MethodGet, "/api/beacon/ledger?view=cash_summary&period=today", nil)
+	request.Header.Set("Authorization", "Bearer "+rootToken)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assert.Equal(t, http.StatusOK, response.Code)
+	assert.Contains(t, response.Body.String(), `"net_minor":"0"`)
+	assert.Contains(t, response.Body.String(), `"business_timezone":"Asia/Shanghai"`)
+	request = httptest.NewRequest(http.MethodGet, "/api/beacon/ledger?view=cash_summary&period=custom&start=invalid&end=2026-01-01", nil)
+	request.Header.Set("Authorization", "Bearer "+rootToken)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assert.Equal(t, http.StatusBadRequest, response.Code)
 	// A root role on a non-session identity is not sufficient.
 	response = adminUserRequest(http.MethodGet, "/api/beacon/ledger", "", "", service.AuthIdentity{UserID: rootIdentity.UserID}, common.RoleRootUser, nil, GetBeaconLedger)
 	assert.Equal(t, http.StatusForbidden, response.Code)

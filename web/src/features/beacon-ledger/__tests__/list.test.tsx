@@ -34,6 +34,7 @@ afterEach(() => {
 })
 
 it('keeps posting and pagination disabled when the ledger is empty in an unsupported quota mode', async () => {
+  const user = userEvent.setup()
   api.defaults.adapter = async (config) => ({
     config,
     status: 200,
@@ -56,6 +57,7 @@ it('keeps posting and pagination disabled when the ledger is empty in an unsuppo
       <BeaconLedger />
     </QueryClientProvider>
   )
+  await user.click(screen.getByRole('tab', { name: 'Ledger entries' }))
   await screen.findByText('No ledger entries')
   expect(
     screen.getByRole('button', { name: 'Record ledger entry' })
@@ -98,6 +100,7 @@ it('recovers from a failed read and applies the customer filter without inventin
       <BeaconLedger />
     </QueryClientProvider>
   )
+  await user.click(screen.getByRole('tab', { name: 'Ledger entries' }))
   await user.click(await screen.findByRole('button', { name: 'Retry' }))
   await screen.findByText('No ledger entries')
   await user.type(screen.getByLabelText('Customer ID (blank for all)'), '42')

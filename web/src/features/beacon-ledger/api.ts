@@ -19,7 +19,24 @@ For commercial licensing, please contact support@quantumnous.com
 import { api } from '@/lib/api'
 import { authRequestOptions, authResult } from '@/lib/secure-verification'
 
-import type { LedgerEntry, LedgerInput, LedgerPage } from './types'
+import type { CashRangeValues } from './lib/cash-range'
+import type {
+  CashSummaryData,
+  LedgerEntry,
+  LedgerInput,
+  LedgerPage,
+} from './types'
+
+export function getCashSummary(
+  range: CashRangeValues
+): Promise<CashSummaryData> {
+  return authResult(
+    api.get('/api/beacon/ledger', {
+      ...authRequestOptions,
+      params: { view: 'cash_summary', ...range },
+    })
+  )
+}
 
 export function getLedger(userId: number, before: number): Promise<LedgerPage> {
   return authResult(

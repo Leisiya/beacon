@@ -86,6 +86,103 @@ func beaconReceiptInput(userID int, key string) BeaconLedgerInput {
 	}
 }
 
+func TestBeaconCashRangeShanghaiBoundaries(t *testing.T) {
+	now := time.Date(2026, 1, 31, 16, 0, 0, 0, time.UTC)
+	for _, period := range []string{"today", "month"} {
+		window, err := ResolveBeaconCashRange(period, "", "", now)
+		require.NoError(t, err)
+		assert.Equal(t, "2026-02-01", window.StartDate)
+		assert.Equal(t, now.Unix(), window.StartAt)
+		assert.Equal(t, now.Unix()+1, window.EndBefore)
+	}
+	window, err := ResolveBeaconCashRange("custom", "2024-02-29", "2024-02-29", now)
+	require.NoError(t, err)
+	assert.Equal(t, int64(86400), window.EndBefore-window.StartAt)
+	assert.Equal(t, "2024-02-28T16:00:00Z", time.Unix(window.StartAt, 0).UTC().Format(time.RFC3339))
+	for _, dates := range [][3]string{
+		{"custom", "2026-02-29", "2026-02-29"}, {"custom", "2026-02-02", "2026-02-02"},
+		{"custom", "2026-01-02", "2026-01-01"}, {"custom", "1999-12-31", "2000-01-01"},
+		{"custom", "2026-1-1", "2026-01-02"}, {"unknown", "", ""},
+	} {
+		_, err := ResolveBeaconCashRange(dates[0], dates[1], dates[2], now)
+		assert.ErrorIs(t, err, ErrBeaconLedgerInput)
+	}
+}
+
+func TestBeaconCashSummarySnapshotsAndCorrections(t *testing.T) {
+	operator, user := setupBeaconLedgerTest(t)
+	ctx := context.Background()
+	now := time.Date(2026, 1, 3, 4, 0, 0, 0, time.UTC)
+	empty, err := GetBeaconCashSummary(ctx, "all", "", "", now)
+	require.NoError(t, err)
+	assert.Equal(t, "0", empty.NetMinor)
+	assert.Zero(t, empty.EntryCount)
+	input := beaconReceiptInput(user.Id, "summary-receipt-0001")
+	input.OccurredAt = time.Date(2026, 1, 1, 16, 0, 0, 0, time.UTC).Unix()
+	first, _, err := PostBeaconLedgerEntry(input, operator.Id)
+	require.NoError(t, err)
+	_, _, err = PostBeaconLedgerEntry(BeaconLedgerInput{
+		IdempotencyKey: "summary-refund-0001", Kind: BeaconRefund, CorrectsID: first.ID,
+		CNYPerUnit: "7.2", FXSource: "refund bank rate", PaymentMethod: "bank", PaymentReference: "refund-001",
+		OccurredAt: input.OccurredAt + 86400, Note: "test refund in next business day",
+	}, operator.Id)
+	require.NoError(t, err)
+	input.IdempotencyKey, input.PaymentReference = "summary-receipt-0002", "summary-receipt-0002"
+	second, _, err := PostBeaconLedgerEntry(input, operator.Id)
+	require.NoError(t, err)
+	_, _, err = PostBeaconLedgerEntry(BeaconLedgerInput{
+		IdempotencyKey: "summary-reversal-001", Kind: BeaconReversal, CorrectsID: second.ID,
+		OccurredAt: input.OccurredAt + 86400, Note: "test correction in next business day",
+	}, operator.Id)
+	require.NoError(t, err)
+	_, _, err = PostBeaconLedgerEntry(BeaconLedgerInput{
+		IdempotencyKey: "summary-gift-000001", Kind: BeaconGift, UserID: user.Id, Quota: 20,
+		OccurredAt: input.OccurredAt + 86400, Note: "test gift, no cash",
+	}, operator.Id)
+	require.NoError(t, err)
+	day, err := GetBeaconCashSummary(ctx, "custom", "2026-01-02", "2026-01-02", now)
+	require.NoError(t, err)
+	assert.Equal(t, "14318", day.ReceiptMinor)
+	assert.Equal(t, "0", day.RefundMinor)
+	assert.Equal(t, "14318", day.NetMinor, "later corrections must not erase the original occurrence day")
+	assert.Equal(t, int64(2), day.EntryCount)
+	today, err := GetBeaconCashSummary(ctx, "today", "", "", now)
+	require.NoError(t, err)
+	assert.Equal(t, "7236", today.RefundMinor)
+	assert.Equal(t, "-7159", today.ReversalMinor)
+	assert.Equal(t, "-14395", today.NetMinor)
+	assert.Equal(t, int64(1), today.GiftCount)
+	all, err := GetBeaconCashSummary(ctx, "all", "", "", now)
+	require.NoError(t, err)
+	assert.Equal(t, "-77", all.NetMinor, "cash FX difference is retained, not labeled profit")
+	assert.Equal(t, int64(5), all.EntryCount)
+	assert.Equal(t, "CNY", all.BaseCurrency)
+	assert.Equal(t, "Asia/Shanghai", all.BusinessTimezone)
+}
+
+func TestBeaconCashSummaryExactLargeTotalsAndCutoff(t *testing.T) {
+	_, user := setupBeaconLedgerTest(t)
+	now := time.Date(2026, 10, 26, 4, 0, 0, 0, time.UTC)
+	// Import fixture: enough individually valid amounts to exceed signed int64.
+	entries := make([]BeaconLedgerEntry, 1025)
+	for i := range entries {
+		entries[i] = BeaconLedgerEntry{IdempotencyKey: fmt.Sprintf("large-summary-%04d", i), Kind: BeaconReceipt,
+			UserID: user.Id, CNYAmountMinor: beaconMaxMoneyMinor, OccurredAt: now.Unix()}
+	}
+	require.NoError(t, DB.CreateInBatches(entries, 50).Error)
+	summary, err := GetBeaconCashSummary(context.Background(), "today", "", "", now)
+	require.NoError(t, err)
+	assert.Equal(t, "9232379236109515775", summary.NetMinor)
+	assert.Equal(t, int64(1025), summary.EntryCount)
+	before, err := GetBeaconCashSummary(context.Background(), "today", "", "", now.Add(-time.Second))
+	require.NoError(t, err)
+	assert.Equal(t, "0", before.NetMinor)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err = GetBeaconCashSummary(ctx, "today", "", "", now)
+	assert.Error(t, err)
+}
+
 func TestBeaconMoneySnapshot(t *testing.T) {
 	for _, tc := range []struct {
 		name, amount, currency, rate, source string

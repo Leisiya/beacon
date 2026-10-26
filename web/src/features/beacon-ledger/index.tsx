@@ -28,8 +28,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { getLedger } from './api'
+import { CashSummary } from './components/cash-summary'
 import { LedgerEntryDialog } from './components/ledger-entry-dialog'
 import { LedgerTable } from './components/ledger-table'
 import type { LedgerEntry, LedgerKind } from './types'
@@ -69,120 +71,136 @@ export function BeaconLedger() {
           </Button>
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
-          <div className='flex min-w-0 flex-col gap-4'>
-            <p className='text-muted-foreground text-sm'>
-              {t(
-                'CNY reporting · Asia/Shanghai. Cash and quota are separate. This ledger includes only entries recorded here, not historical top-ups or usage revenue.'
-              )}
-            </p>
-            {ledger.data && !postingAvailable && (
-              <Alert>
-                <AlertDescription>
+          <Tabs defaultValue='entries'>
+            <TabsList className='mb-4 min-h-12'>
+              <TabsTrigger className='min-h-11 px-4' value='summary'>
+                {t('Cash overview')}
+              </TabsTrigger>
+              <TabsTrigger className='min-h-11 px-4' value='entries'>
+                {t('Ledger entries')}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value='summary'>
+              <CashSummary />
+            </TabsContent>
+            <TabsContent value='entries'>
+              <div className='flex min-w-0 flex-col gap-4'>
+                <p className='text-muted-foreground text-sm'>
                   {t(
-                    'Manual ledger is unavailable while Redis or batch quota updates are enabled.'
+                    'CNY reporting · Asia/Shanghai. Cash and quota are separate. This ledger includes only entries recorded here, not historical top-ups or usage revenue.'
                   )}
-                </AlertDescription>
-              </Alert>
-            )}
-            <form
-              className='flex flex-wrap items-end gap-2'
-              onSubmit={(event) => {
-                event.preventDefault()
-                setUserId(Number(filter))
-                setBefore(0)
-                setCursors([])
-              }}
-            >
-              <Field className='max-w-64'>
-                <FieldLabel htmlFor='ledger-customer-filter'>
-                  {t('Customer ID (blank for all)')}
-                </FieldLabel>
-                <Input
-                  id='ledger-customer-filter'
-                  className='min-h-11'
-                  value={filter}
-                  inputMode='numeric'
-                  pattern='[0-9]*'
-                  onChange={(event) => setFilter(event.target.value)}
-                />
-              </Field>
-              <Button
-                className='min-h-11'
-                variant='outline'
-                type='submit'
-                disabled={
-                  !Number.isSafeInteger(Number(filter)) || Number(filter) < 0
-                }
-              >
-                {t('Filter')}
-              </Button>
-              <Button
-                className='min-h-11'
-                variant='outline'
-                type='button'
-                disabled={ledger.isFetching}
-                onClick={() => {
-                  void ledger.refetch()
-                }}
-              >
-                {t('Refresh')}
-              </Button>
-            </form>
-            {ledger.isPending && <LoadingState />}
-            {ledger.isError && (
-              <ErrorState
-                onRetry={() => {
-                  void ledger.refetch()
-                }}
-              />
-            )}
-            {ledger.isSuccess && ledger.data.items.length === 0 && (
-              <EmptyState
-                title={t('No ledger entries')}
-                description={t(
-                  'Confirmed entries will appear here. No sample amounts are included.'
+                </p>
+                {ledger.data && !postingAvailable && (
+                  <Alert>
+                    <AlertDescription>
+                      {t(
+                        'Manual ledger is unavailable while Redis or batch quota updates are enabled.'
+                      )}
+                    </AlertDescription>
+                  </Alert>
                 )}
-              />
-            )}
-            {ledger.isSuccess && ledger.data.items.length > 0 && (
-              <LedgerTable
-                entries={ledger.data.items}
-                postingAvailable={postingAvailable && !draft}
-                onCorrect={(entry, kind) => startEntry(kind, entry)}
-              />
-            )}
-            <nav
-              className='flex flex-wrap gap-2'
-              aria-label={t('Ledger pagination')}
-            >
-              <Button
-                className='min-h-11'
-                variant='outline'
-                disabled={cursors.length === 0 || ledger.isFetching}
-                onClick={() => {
-                  setBefore(cursors.at(-1) ?? 0)
-                  setCursors(cursors.slice(0, -1))
-                }}
-              >
-                {t('Previous')}
-              </Button>
-              <Button
-                className='min-h-11'
-                variant='outline'
-                disabled={
-                  !ledger.data?.next_before ||
-                  ledger.isFetching ||
-                  ledger.isError
-                }
-                onClick={() => {
-                  setCursors([...cursors, before])
-                  setBefore(ledger.data?.next_before ?? 0)
-                }}
-              >
-                {t('Next')}
-              </Button>
-            </nav>
-          </div>
+                <form
+                  className='flex flex-wrap items-end gap-2'
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    setUserId(Number(filter))
+                    setBefore(0)
+                    setCursors([])
+                  }}
+                >
+                  <Field className='max-w-64'>
+                    <FieldLabel htmlFor='ledger-customer-filter'>
+                      {t('Customer ID (blank for all)')}
+                    </FieldLabel>
+                    <Input
+                      id='ledger-customer-filter'
+                      className='min-h-11'
+                      value={filter}
+                      inputMode='numeric'
+                      pattern='[0-9]*'
+                      onChange={(event) => setFilter(event.target.value)}
+                    />
+                  </Field>
+                  <Button
+                    className='min-h-11'
+                    variant='outline'
+                    type='submit'
+                    disabled={
+                      !Number.isSafeInteger(Number(filter)) ||
+                      Number(filter) < 0
+                    }
+                  >
+                    {t('Filter')}
+                  </Button>
+                  <Button
+                    className='min-h-11'
+                    variant='outline'
+                    type='button'
+                    disabled={ledger.isFetching}
+                    onClick={() => {
+                      void ledger.refetch()
+                    }}
+                  >
+                    {t('Refresh')}
+                  </Button>
+                </form>
+                {ledger.isPending && <LoadingState />}
+                {ledger.isError && (
+                  <ErrorState
+                    onRetry={() => {
+                      void ledger.refetch()
+                    }}
+                  />
+                )}
+                {ledger.isSuccess && ledger.data.items.length === 0 && (
+                  <EmptyState
+                    title={t('No ledger entries')}
+                    description={t(
+                      'Confirmed entries will appear here. No sample amounts are included.'
+                    )}
+                  />
+                )}
+                {ledger.isSuccess && ledger.data.items.length > 0 && (
+                  <LedgerTable
+                    entries={ledger.data.items}
+                    postingAvailable={postingAvailable && !draft}
+                    onCorrect={(entry, kind) => startEntry(kind, entry)}
+                  />
+                )}
+                <nav
+                  className='flex flex-wrap gap-2'
+                  aria-label={t('Ledger pagination')}
+                >
+                  <Button
+                    className='min-h-11'
+                    variant='outline'
+                    disabled={cursors.length === 0 || ledger.isFetching}
+                    onClick={() => {
+                      setBefore(cursors.at(-1) ?? 0)
+                      setCursors(cursors.slice(0, -1))
+                    }}
+                  >
+                    {t('Previous')}
+                  </Button>
+                  <Button
+                    className='min-h-11'
+                    variant='outline'
+                    disabled={
+                      !ledger.data?.next_before ||
+                      ledger.isFetching ||
+                      ledger.isError
+                    }
+                    onClick={() => {
+                      setCursors([...cursors, before])
+                      setBefore(ledger.data?.next_before ?? 0)
+                    }}
+                  >
+                    {t('Next')}
+                  </Button>
+                </nav>
+              </div>
+            </TabsContent>
+          </Tabs>
         </SectionPageLayout.Content>
       </SectionPageLayout>
       {draft && (

@@ -1,9 +1,11 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/middleware"
@@ -52,6 +54,17 @@ func writeBeaconLedgerError(c *gin.Context, err error) {
 
 func GetBeaconLedger(c *gin.Context) {
 	if _, ok := beaconLedgerOperator(c); !ok {
+		return
+	}
+	if c.Query("view") == "cash_summary" {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+		defer cancel()
+		summary, err := model.GetBeaconCashSummary(ctx, c.DefaultQuery("period", "today"), c.Query("start"), c.Query("end"), time.Now())
+		if err != nil {
+			writeBeaconLedgerError(c, err)
+			return
+		}
+		common.ApiSuccess(c, summary)
 		return
 	}
 	userID, userErr := strconv.Atoi(c.DefaultQuery("user_id", "0"))

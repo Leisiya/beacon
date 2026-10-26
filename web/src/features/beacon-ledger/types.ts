@@ -62,3 +62,22 @@ export interface LedgerPage {
   base_currency: 'CNY'
   business_timezone: 'Asia/Shanghai'
 }
+
+export interface CashSummaryData {
+  range: {
+    period: string
+    start_date: string
+    end_date: string
+    start_at: number
+    end_before: number
+    as_of: number
+  }
+  base_currency: 'CNY'
+  business_timezone: 'Asia/Shanghai'
+  receipt_minor: string
+  refund_minor: string
+  reversal_minor: string
+  net_minor: string
+  entry_count: number
+  gift_count: number
+}

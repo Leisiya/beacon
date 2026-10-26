@@ -151,7 +151,7 @@ export function ledgerInput(
 
 // Ledger money is historical integer cents, independent of the site's quota
 // display settings. BigInt preserves every cent at the JSON-safe boundary.
-export function ledgerMoney(cents: number, currency: string): string {
+export function ledgerMoney(cents: number | string, currency: string): string {
   const amount = BigInt(cents)
   const absolute = amount < 0n ? -amount : amount
   return `${currency} ${amount < 0n ? '-' : ''}${String(absolute / 100n)}.${String(absolute % 100n).padStart(2, '0')}`
