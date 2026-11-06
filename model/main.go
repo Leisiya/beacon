@@ -67,29 +67,6 @@ var DB *gorm.DB
 
 var LOG_DB *gorm.DB
 
-func createRootAccountIfNeed() error {
-	var user User
-	//if user.Status != common.UserStatusEnabled {
-	if err := DB.First(&user).Error; err != nil {
-		common.SysLog(common.LogText("no user exists, create a root user for you: username is root, password is 123456"))
-		hashedPassword, err := common.Password2Hash("123456")
-		if err != nil {
-			return err
-		}
-		rootUser := User{
-			Username:    "root",
-			Password:    hashedPassword,
-			Role:        common.RoleRootUser,
-			Status:      common.UserStatusEnabled,
-			DisplayName: "Root User",
-			AccessToken: nil,
-			Quota:       100000000,
-		}
-		DB.Create(&rootUser)
-	}
-	return nil
-}
-
 func CheckSetup() {
 	setup := GetSetup()
 	if setup == nil {
@@ -105,15 +82,15 @@ func CheckSetup() {
 			if err != nil {
 				common.SysLog(common.LogText("failed to create setup record: %s", err.Error()))
 			}
-			constant.Setup = true
+			constant.SetSetupComplete(true)
 		} else {
 			common.SysLog(common.LogText("system is not initialized and no root user exists"))
-			constant.Setup = false
+			constant.SetSetupComplete(false)
 		}
 	} else {
 		// Setup record exists, system is initialized
 		common.SysLog(common.LogText("system is already initialized at: %s", time.Unix(setup.InitializedAt, 0).String()))
-		constant.Setup = true
+		constant.SetSetupComplete(true)
 	}
 }
 

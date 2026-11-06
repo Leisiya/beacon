@@ -160,6 +160,8 @@ def wait_until(predicate, message, timeout=10):
 def exercise(gateway, mock_url, password):
     gateway.ok("/api/setup", "POST", {"username": "mockroot", "password": password, "confirmPassword": password, "SelfUseModeEnabled": False, "DemoSiteEnabled": False})
     root = gateway.login("mockroot", password)
+    root_profile = gateway.ok("/api/user/self", token=root)
+    check(root_profile["role"] == 100 and root_profile["quota"] == 0, "fresh administrator must start with zero quota")
     users = []
     for name in ("mockalice", "mockbob", "mocklimited"):
         gateway.ok("/api/user/register", "POST", {"username": name, "password": password})
