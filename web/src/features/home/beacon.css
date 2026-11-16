@@ -112,9 +112,14 @@ For commercial licensing, please contact support@quantumnous.com
   margin-left: auto;
 }
 .beacon-nav-login {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
   color: var(--beacon-text);
   font-size: 14px;
-  padding: 10px 14px;
+  font-weight: 650;
+  line-height: 1;
+  padding: 0 16px;
   border: 1px solid var(--beacon-note-border);
   border-radius: 6px;
   background-image:
@@ -131,10 +136,25 @@ For commercial licensing, please contact support@quantumnous.com
   font-size: 12px;
   white-space: nowrap;
 }
+.beacon-theme-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.beacon-theme-select svg {
+  position: absolute;
+  right: 12px;
+  color: var(--beacon-muted);
+  pointer-events: none;
+}
 .beacon-theme-label select {
+  appearance: none;
+  -webkit-appearance: none;
   height: 42px;
   min-width: max-content;
-  padding: 0 30px 0 13px;
+  padding: 0 38px 0 14px;
+  cursor: pointer;
+  font-weight: 550;
   border: 1px solid var(--beacon-note-border);
   border-radius: 6px;
   background-color: var(--beacon-surface);
@@ -144,7 +164,7 @@ For commercial licensing, please contact support@quantumnous.com
   background-size: auto, var(--beacon-paper-size);
   box-shadow: var(--beacon-note-shadow);
   color: var(--beacon-text);
-  font-size: 13px;
+  font-size: 14px;
 }
 .beacon-mobile-toggle {
   display: none;

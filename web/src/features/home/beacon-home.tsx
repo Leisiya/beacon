@@ -15,7 +15,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, Layers3, Menu, Route, ShieldCheck, X } from 'lucide-react'
+import {
+  ArrowRight,
+  ChevronDown,
+  Layers3,
+  Menu,
+  Route,
+  ShieldCheck,
+  X,
+} from 'lucide-react'
 import { useState } from 'react'
 
 import { BeaconArtwork } from '@/components/beacon-artwork'
@@ -61,7 +69,7 @@ export function BeaconHeader({
           aria-label='主要导航'
         >
           <Link to='/pricing' onClick={closeMenu}>
-            模型与价格
+            模型广场
           </Link>
           <Link to='/docs' onClick={closeMenu}>
             API 文档
@@ -72,25 +80,30 @@ export function BeaconHeader({
           <div className='beacon-nav-actions'>
             <label className='beacon-theme-label'>
               主题
-              <select
-                aria-label='主题'
-                value={theme}
-                onChange={(event) =>
-                  setTheme(event.target.value as ThemeChoice)
-                }
-              >
-                <option value='system'>跟随系统</option>
-                <option value='light'>浅色</option>
-                <option value='dark'>深色</option>
-              </select>
+              <span className='beacon-theme-select'>
+                <select
+                  aria-label='主题'
+                  value={theme}
+                  onChange={(event) =>
+                    setTheme(event.target.value as ThemeChoice)
+                  }
+                >
+                  <option value='system'>跟随系统</option>
+                  <option value='light'>浅色</option>
+                  <option value='dark'>深色</option>
+                </select>
+                <ChevronDown aria-hidden='true' size={16} strokeWidth={1.8} />
+              </span>
             </label>
-            <Link
-              className='beacon-nav-login'
-              to={isAuthenticated ? '/dashboard' : '/sign-in'}
-              onClick={closeMenu}
-            >
-              {isAuthenticated ? '控制台' : '登录'}
-            </Link>
+            {!isAuthenticated && (
+              <Link
+                className='beacon-nav-login'
+                to='/sign-in'
+                onClick={closeMenu}
+              >
+                登录
+              </Link>
+            )}
             <Link
               className='beacon-button beacon-button-primary beacon-nav-start'
               to={isAuthenticated ? '/dashboard' : '/sign-up'}

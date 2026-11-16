@@ -25,6 +25,8 @@ import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { cn } from '@/lib/utils'
 
+import { defaultTopNavLinks } from '../config/top-nav.config'
+
 interface FooterLink {
   text: string
   href: string
@@ -126,7 +128,7 @@ function LegalLinks(props: { leadingSeparator?: boolean }) {
 function ProjectAttribution(props: { currentYear: number; inline?: boolean }) {
   const { t } = useTranslation()
   const content = (
-    <span className='text-muted-foreground/45'>
+    <span className='text-muted-foreground'>
       &copy; {props.currentYear}{' '}
       <a
         href='https://github.com/QuantumNous/new-api'
@@ -143,7 +145,7 @@ function ProjectAttribution(props: { currentYear: number; inline?: boolean }) {
     return content
   }
   return (
-    <div className='text-muted-foreground/45 text-center text-xs sm:text-right'>
+    <div className='text-muted-foreground text-xs sm:text-right'>
       {content}
     </div>
   )
@@ -151,9 +153,10 @@ function ProjectAttribution(props: { currentYear: number; inline?: boolean }) {
 
 export function Footer(props: FooterProps) {
   const { t } = useTranslation()
-  const { systemName, footerHtml, demoSiteEnabled } = useSystemConfig()
+  const { footerHtml, demoSiteEnabled } = useSystemConfig()
 
-  const displayName = systemName || props.name || 'Beacon'
+  // Match the Beacon public header, which always shows the Beacon brand.
+  const displayName = props.name ?? 'Beacon'
   const isDemoSiteMode = Boolean(demoSiteEnabled)
   const currentYear = new Date().getFullYear()
 
@@ -244,46 +247,55 @@ export function Footer(props: FooterProps) {
     <footer
       className={cn('border-border/40 relative z-10 border-t', props.className)}
     >
-      <div className='mx-auto w-[min(100%_-_36px,1320px)] py-12 md:w-[min(100%_-_64px,1320px)] md:py-16'>
-        <div className='flex flex-col justify-between gap-10 md:flex-row md:gap-16'>
-          {/* Brand column */}
-          <div className='shrink-0'>
-            <Link to='/' className='group flex items-center gap-2.5'>
+      <div className='mx-auto w-[min(100%_-_36px,1320px)] py-8 md:w-[min(100%_-_64px,1320px)] md:py-10'>
+        <div className='flex flex-col gap-6 md:flex-row md:items-center md:justify-between'>
+          <div className='flex flex-col gap-1.5'>
+            <Link to='/' className='flex w-fit items-center gap-2.5'>
               <BeaconMark className='size-7' />
               <span className='text-sm font-semibold tracking-tight'>
                 {displayName}
               </span>
             </Link>
-            <p className='text-muted-foreground/60 mt-3 max-w-[200px] text-xs leading-relaxed'>
+            <p className='text-muted-foreground text-xs'>
               {t('Guide your AI journey.')}
             </p>
           </div>
-
-          {/* Links columns */}
-          {isDemoSiteMode && (
-            <div className='grid grid-cols-3 gap-8 md:gap-16'>
-              {displayColumns.map((column) => (
-                <div key={column.title}>
-                  <p className='text-muted-foreground/50 mb-3 text-xs font-medium tracking-wider uppercase'>
-                    {t(column.title)}
-                  </p>
-                  <ul className='space-y-2.5'>
-                    {column.links.map((link) => (
-                      <li key={link.href}>
-                        <FooterLinkItem link={link} />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
+          <nav
+            aria-label={t('Footer')}
+            className='flex flex-wrap gap-x-6 gap-y-2'
+          >
+            {defaultTopNavLinks.map((link) => (
+              <FooterLinkItem
+                key={link.href}
+                link={{ text: link.title, href: link.href }}
+              />
+            ))}
+          </nav>
         </div>
 
-        {/* Copyright + optional legal links inline on the left, project
-            attribution on the right; wraps on narrow screens. */}
-        <div className='border-border/30 mt-12 flex flex-col items-center justify-between gap-x-3 gap-y-2 border-t pt-6 sm:flex-row'>
-          <div className='text-muted-foreground/40 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:justify-start'>
+        {isDemoSiteMode && (
+          <div className='mt-8 grid grid-cols-3 gap-8 md:gap-16'>
+            {displayColumns.map((column) => (
+              <div key={column.title}>
+                <p className='text-muted-foreground/50 mb-3 text-xs font-medium tracking-wider uppercase'>
+                  {t(column.title)}
+                </p>
+                <ul className='space-y-2.5'>
+                  {column.links.map((link) => (
+                    <li key={link.href}>
+                      <FooterLinkItem link={link} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Site copyright + optional legal links on the left, project
+            attribution on the right; stacks on narrow screens. */}
+        <div className='border-border/40 mt-6 flex flex-col items-start justify-between gap-x-3 gap-y-2 border-t pt-5 sm:flex-row sm:items-center'>
+          <div className='text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs'>
             <span>
               &copy; {currentYear} {displayName}.{' '}
               {props.copyright ?? t('footer.defaultCopyright')}

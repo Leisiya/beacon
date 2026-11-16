@@ -41,7 +41,7 @@ afterEach(() => {
   config.systemName = ''
 })
 
-it('brands the footer as Beacon when no site name is configured and keeps the New API attribution', () => {
+it('brands the footer as Beacon and keeps the New API attribution', () => {
   render(<Footer />)
 
   expect(screen.getByRole('link', { name: 'Beacon' })).toHaveAttribute(
@@ -56,13 +56,21 @@ it('brands the footer as Beacon when no site name is configured and keeps the Ne
   expect(screen.queryByRole('img')).not.toBeInTheDocument()
 })
 
-it('uses the configured site name in the brand and copyright line', () => {
-  config.systemName = 'Lighthouse Lab'
+it('keeps the Beacon brand when the site name setting is still the upstream default', () => {
+  config.systemName = 'New API'
 
   render(<Footer />)
 
-  expect(
-    screen.getByRole('link', { name: 'Lighthouse Lab' })
-  ).toBeInTheDocument()
-  expect(screen.getByText(/Lighthouse Lab\./)).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Beacon' })).toBeInTheDocument()
+  expect(screen.getByText(/© \d{4} Beacon\./)).toBeInTheDocument()
+})
+
+it('links the public Beacon pages from the footer navigation', () => {
+  render(<Footer />)
+
+  const nav = screen.getByRole('navigation', { name: 'Footer' })
+  const hrefs = [...nav.querySelectorAll('a')].map((a) =>
+    a.getAttribute('href')
+  )
+  expect(hrefs).toEqual(['/pricing', '/docs', '/about'])
 })
