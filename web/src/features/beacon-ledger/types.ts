@@ -86,7 +86,7 @@ export interface CashSummaryData {
   usage_quota: string
 }
 
-export interface QuotaMismatch {
+interface QuotaMismatch {
   user_id: number
   username: string
   ledger_quota: number

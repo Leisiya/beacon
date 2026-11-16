@@ -136,15 +136,6 @@ export type ManageUserAction =
   | 'delete'
   | 'add_quota'
 
-export type QuotaAdjustMode = 'add' | 'subtract' | 'override'
-
-export interface ManageUserQuotaPayload {
-  id: number
-  action: 'add_quota'
-  mode: QuotaAdjustMode
-  value: number
-}
-
 // ============================================================================
 // Dialog Types
 // ============================================================================

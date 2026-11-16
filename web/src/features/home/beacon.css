@@ -35,7 +35,7 @@ For commercial licensing, please contact support@quantumnous.com
   background-repeat: repeat;
   color: var(--beacon-text);
   font-family:
-    -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
     sans-serif;
 }
 
@@ -294,7 +294,7 @@ For commercial licensing, please contact support@quantumnous.com
   top: 52%;
   color: var(--beacon-text);
   font-size: clamp(12px, 1.15vw, 17px);
-  font-family: "Bradley Hand", "Segoe Print", "KaiTi", cursive;
+  font-family: 'Bradley Hand', 'Segoe Print', 'KaiTi', cursive;
   font-style: italic;
   letter-spacing: 0.04em;
   line-height: 1.65;
@@ -377,186 +377,6 @@ For commercial licensing, please contact support@quantumnous.com
   background-image: var(--beacon-backdrop-texture);
   background-size: var(--beacon-backdrop-size);
   border-top: 1px solid var(--beacon-border);
-}
-
-.beacon-preview {
-  min-height: 100vh;
-}
-.beacon-preview-banner {
-  padding: 11px 24px;
-  background-color: var(--beacon-soft);
-  background-image: var(--beacon-backdrop-texture);
-  background-size: var(--beacon-backdrop-size);
-  border-bottom: 1px solid var(--beacon-border);
-  color: var(--beacon-muted);
-  font-size: 12px;
-  text-align: center;
-}
-.beacon-preview-shell {
-  width: min(100% - 48px, 1320px);
-  margin: 32px auto 80px;
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 24px;
-}
-.beacon-preview-side,
-.beacon-preview-card {
-  border: 1px solid var(--beacon-border);
-  background-color: var(--beacon-surface);
-  background-image: none;
-  border-radius: 8px;
-}
-.beacon-preview-side {
-  padding: 22px 15px;
-  align-self: start;
-}
-.beacon-preview-side h2 {
-  padding: 0 13px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: var(--beacon-muted);
-}
-.beacon-preview-side a,
-.beacon-preview-side span {
-  display: block;
-  padding: 11px 13px;
-  margin-top: 7px;
-  min-height: 44px;
-  border: 1px solid transparent;
-  color: var(--beacon-muted);
-  font-size: 13px;
-  border-radius: 6px;
-}
-.beacon-preview-side a {
-  border-color: var(--beacon-note-border);
-  background-image:
-    linear-gradient(var(--beacon-note-wash), var(--beacon-note-wash)),
-    var(--beacon-paper-texture);
-  background-size: auto, var(--beacon-paper-size);
-  box-shadow: var(--beacon-note-shadow);
-}
-.beacon-preview-side .active {
-  background-color: var(--beacon-soft);
-  color: var(--beacon-text);
-  font-weight: 700;
-}
-.beacon-preview-side a:hover {
-  color: var(--beacon-text);
-  border-color: var(--beacon-green);
-}
-.beacon-preview-main {
-  min-width: 0;
-}
-.beacon-preview-intro {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 150px;
-  padding: 14px 24px 10px;
-  margin-bottom: 14px;
-  border: 1px solid var(--beacon-border);
-  border-radius: 8px;
-  background-color: var(--beacon-surface);
-  background-image: none;
-  overflow: hidden;
-}
-.beacon-preview-eyebrow {
-  margin: 0 0 8px;
-  color: var(--beacon-green);
-  font:
-    650 10px ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    monospace;
-  letter-spacing: 0.2em;
-}
-.beacon-preview-scene {
-  flex: 0 0 240px;
-  height: 126px;
-  overflow: hidden;
-  opacity: 0.86;
-}
-.beacon-preview-scene .beacon-artwork {
-  width: 240px;
-  margin-top: -24px;
-}
-.beacon-preview-main h1 {
-  font-size: clamp(25px, 3vw, 36px);
-  font-weight: 740;
-  letter-spacing: -0.04em;
-}
-.beacon-preview-subtitle {
-  margin: 8px 0 24px;
-  color: var(--beacon-muted);
-  font-size: 14px;
-}
-.beacon-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-.beacon-preview-card {
-  padding: 20px;
-  min-width: 0;
-  background-image: none;
-}
-.beacon-preview-card h2 {
-  color: var(--beacon-muted);
-  font-size: 13px;
-  font-weight: 550;
-}
-.beacon-preview-value {
-  margin-top: 22px;
-  font-size: 23px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.beacon-preview-value.empty {
-  color: var(--beacon-muted);
-  font-size: 16px;
-}
-.beacon-preview-wide {
-  margin-top: 14px;
-}
-.beacon-preview-wide p {
-  color: var(--beacon-muted);
-  font-size: 14px;
-  line-height: 1.8;
-}
-.beacon-preview-columns {
-  display: grid;
-  grid-template-columns: 1.35fr 0.65fr;
-  gap: 14px;
-}
-.beacon-preview-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  margin-top: 20px;
-  border: 1px dashed var(--beacon-border);
-  border-radius: 6px;
-  color: var(--beacon-muted);
-  font-size: 13px;
-  text-align: center;
-  padding: 24px;
-}
-.beacon-preview-table {
-  width: 100%;
-  margin-top: 20px;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 13px;
-}
-.beacon-preview-table th,
-.beacon-preview-table td {
-  padding: 12px 8px;
-  border-bottom: 1px solid var(--beacon-border);
-}
-.beacon-preview-table th {
-  color: var(--beacon-muted);
-  font-weight: 550;
 }
 
 @media (max-width: 1000px) {
@@ -661,24 +481,6 @@ For commercial licensing, please contact support@quantumnous.com
     right: 4%;
     top: 50%;
   }
-  .beacon-preview-shell {
-    grid-template-columns: 1fr;
-  }
-  .beacon-preview-side {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 10px;
-  }
-  .beacon-preview-side h2 {
-    display: none;
-  }
-  .beacon-preview-side a,
-  .beacon-preview-side span {
-    flex: 0 0 auto;
-    margin-top: 0;
-  }
 }
 @media (max-width: 520px) {
   .beacon-hero {
@@ -724,30 +526,6 @@ For commercial licensing, please contact support@quantumnous.com
   }
   .beacon-text-link {
     margin-top: 18px;
-  }
-  .beacon-preview-shell {
-    width: min(100% - 28px, 1320px);
-    margin-top: 24px;
-  }
-  .beacon-preview-intro {
-    min-height: 132px;
-    padding: 20px;
-  }
-  .beacon-preview-scene {
-    display: none;
-  }
-  .beacon-preview-grid,
-  .beacon-preview-columns {
-    grid-template-columns: 1fr;
-  }
-  .beacon-preview-card {
-    padding: 17px;
-  }
-  .beacon-preview-table-wrap {
-    overflow-x: auto;
-  }
-  .beacon-preview-table {
-    min-width: 420px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

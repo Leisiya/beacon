@@ -29,7 +29,6 @@ import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authenticated/chat2link'
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
-import { Route as BeaconPreviewDashboardRouteImport } from './routes/beacon-preview/dashboard'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
@@ -173,11 +172,6 @@ const AuthenticatedSystemSettingsRouteRoute =
 const AboutIndexRoute = AboutIndexRouteImport.update({
   id: '/about/',
   path: '/about/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BeaconPreviewDashboardRoute = BeaconPreviewDashboardRouteImport.update({
-  id: '/beacon-preview/dashboard',
-  path: '/beacon-preview/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
@@ -459,7 +453,6 @@ export interface FileRoutesByFullPath {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
-  '/beacon-preview/dashboard': typeof BeaconPreviewDashboardRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -524,7 +517,6 @@ export interface FileRoutesByTo {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
-  '/beacon-preview/dashboard': typeof BeaconPreviewDashboardRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
   '/docs': typeof DocsIndexRoute
@@ -593,7 +585,6 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/chat2link': typeof AuthenticatedChat2linkRoute
-  '/beacon-preview/dashboard': typeof BeaconPreviewDashboardRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -661,7 +652,6 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/chat2link'
-    | '/beacon-preview/dashboard'
     | '/oauth/$provider'
     | '/about/'
     | '/docs/'
@@ -726,7 +716,6 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/chat2link'
-    | '/beacon-preview/dashboard'
     | '/oauth/$provider'
     | '/about'
     | '/docs'
@@ -794,7 +783,6 @@ export interface FileRouteTypes {
     | '/(errors)/500'
     | '/(errors)/503'
     | '/_authenticated/chat2link'
-    | '/beacon-preview/dashboard'
     | '/oauth/$provider'
     | '/about/'
     | '/docs/'
@@ -854,7 +842,6 @@ export interface RootRouteChildren {
   errors404Route: typeof errors404Route
   errors500Route: typeof errors500Route
   errors503Route: typeof errors503Route
-  BeaconPreviewDashboardRoute: typeof BeaconPreviewDashboardRoute
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
@@ -1004,13 +991,6 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about/'
       preLoaderRoute: typeof AboutIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/beacon-preview/dashboard': {
-      id: '/beacon-preview/dashboard'
-      path: '/beacon-preview/dashboard'
-      fullPath: '/beacon-preview/dashboard'
-      preLoaderRoute: typeof BeaconPreviewDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/': {
@@ -1488,7 +1468,6 @@ const rootRouteChildren: RootRouteChildren = {
   errors404Route: errors404Route,
   errors500Route: errors500Route,
   errors503Route: errors503Route,
-  BeaconPreviewDashboardRoute: BeaconPreviewDashboardRoute,
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
