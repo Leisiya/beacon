@@ -29,6 +29,7 @@ func setupFreshSetupTest(t *testing.T) {
 	previousDB, previousType := model.DB, common.MainDatabaseType()
 	previousSetup := constant.IsSetupComplete()
 	previousSelf, previousDemo := operation_setting.SelfUseModeEnabled, operation_setting.DemoSiteEnabled
+	previousSystemName := common.SystemName
 	common.OptionMapRWMutex.Lock()
 	previousOptions := maps.Clone(common.OptionMap)
 	common.OptionMap = map[string]string{"SelfUseModeEnabled": "false", "DemoSiteEnabled": "false"}
@@ -61,6 +62,7 @@ func setupFreshSetupTest(t *testing.T) {
 		common.SetMainDatabaseType(previousType)
 		constant.SetSetupComplete(previousSetup)
 		operation_setting.SelfUseModeEnabled, operation_setting.DemoSiteEnabled = previousSelf, previousDemo
+		common.SystemName = previousSystemName
 		common.OptionMapRWMutex.Lock()
 		common.OptionMap = previousOptions
 		common.OptionMapRWMutex.Unlock()
@@ -101,6 +103,10 @@ func TestBeaconFreshSetupZeroBalanceAndReplay(t *testing.T) {
 	assert.True(t, common.ValidatePasswordAndHash("synthetic-setup-password", user.Password))
 	assert.True(t, operation_setting.SelfUseModeEnabled)
 	assert.True(t, operation_setting.DemoSiteEnabled)
+	assert.Equal(t, "Beacon", common.SystemName)
+	var systemName model.Option
+	require.NoError(t, model.DB.Where(&model.Option{Key: "SystemName"}).First(&systemName).Error)
+	assert.Equal(t, "Beacon", systemName.Value)
 	for _, table := range []any{&model.BeaconLedgerEntry{}, &model.Token{}} {
 		var count int64
 		require.NoError(t, model.DB.Model(table).Count(&count).Error)

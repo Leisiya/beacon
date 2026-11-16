@@ -62,8 +62,8 @@ it('keeps posting and pagination disabled when the ledger is empty in an unsuppo
   expect(
     screen.getByRole('button', { name: 'Record ledger entry' })
   ).toBeDisabled()
-  expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
-  expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled()
   expect(screen.getByRole('alert')).toHaveTextContent('Redis')
 })
 

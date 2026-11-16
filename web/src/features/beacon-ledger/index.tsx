@@ -187,7 +187,7 @@ export function BeaconLedger() {
                       setCursors(cursors.slice(0, -1))
                     }}
                   >
-                    {t('Previous')}
+                    {t('Previous page')}
                   </Button>
                   <Button
                     className='min-h-11'
@@ -202,7 +202,7 @@ export function BeaconLedger() {
                       setBefore(ledger.data?.next_before ?? 0)
                     }}
                   >
-                    {t('Next')}
+                    {t('Next page')}
                   </Button>
                 </nav>
               </div>

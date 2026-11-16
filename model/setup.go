@@ -39,6 +39,8 @@ func InitializeSetup(username, passwordHash string, selfUse, demo bool) error {
 	values := []Option{
 		{Key: "SelfUseModeEnabled", Value: strconv.FormatBool(selfUse)},
 		{Key: "DemoSiteEnabled", Value: strconv.FormatBool(demo)},
+		// A fresh Beacon site names itself; administrators can rename it later.
+		{Key: "SystemName", Value: "Beacon"},
 	}
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		var count int64

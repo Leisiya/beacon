@@ -133,7 +133,7 @@ For commercial licensing, please contact support@quantumnous.com
 }
 .beacon-theme-label select {
   height: 42px;
-  max-width: 105px;
+  min-width: max-content;
   padding: 0 30px 0 13px;
   border: 1px solid var(--beacon-note-border);
   border-radius: 6px;

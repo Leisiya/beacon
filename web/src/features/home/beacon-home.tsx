@@ -63,9 +63,6 @@ export function BeaconHeader({
           <Link to='/pricing' onClick={closeMenu}>
             模型与价格
           </Link>
-          <Link to='/beacon-preview/dashboard' onClick={closeMenu}>
-            控制台样板
-          </Link>
           <Link to='/docs' onClick={closeMenu}>
             API 文档
           </Link>

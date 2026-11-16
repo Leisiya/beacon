@@ -522,6 +522,7 @@ body {
 
 .beacon-docs-content {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 22px;
 }
 
@@ -616,7 +617,7 @@ body {
     width: 380px;
   }
   .beacon-docs-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
   }
   .beacon-docs-nav {
