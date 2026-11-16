@@ -15,6 +15,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// Beacon changes customer balances only through the manual ledger, so every
+// credit or debit carries a cash or gift record. Upstream tests re-enable the
+// direct adjustment to keep covering its original behavior.
+var manualQuotaAdjustmentEnabled = false
+
 func beaconLedgerOperator(c *gin.Context) (service.AuthIdentity, bool) {
 	identity, ok := middleware.GetSessionAuthIdentity(c)
 	if !ok || c.GetInt("role") != common.RoleRootUser {
@@ -65,6 +70,17 @@ func GetBeaconLedger(c *gin.Context) {
 			return
 		}
 		common.ApiSuccess(c, summary)
+		return
+	}
+	if c.Query("view") == "reconciliation" {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+		defer cancel()
+		reconciliation, err := model.GetBeaconQuotaReconciliation(ctx, time.Now())
+		if err != nil {
+			writeBeaconLedgerError(c, err)
+			return
+		}
+		common.ApiSuccess(c, reconciliation)
 		return
 	}
 	userID, userErr := strconv.Atoi(c.DefaultQuery("user_id", "0"))

@@ -25,7 +25,6 @@ import { useTranslation } from 'react-i18next'
 import { ErrorState } from '@/components/error-state'
 import { LoadingState } from '@/components/loading-state'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Field,
   FieldError,
@@ -40,7 +39,8 @@ import { formatNumber } from '@/lib/format'
 
 import { getCashSummary } from '../api'
 import { cashRangeSchema, type CashRangeValues } from '../lib/cash-range'
-import { ledgerMoney } from '../lib/form'
+import { ledgerMoney, ledgerQuota } from '../lib/form'
+import { SummaryMetrics } from './summary-metrics'
 
 export function CashSummary() {
   const { t, i18n } = useTranslation()
@@ -63,13 +63,21 @@ export function CashSummary() {
     staleTime: 0,
   })
   const data = summary.data
-  const metrics = data
+  const cashMetrics = data
     ? [
         { label: t('Recorded cash receipts'), value: data.receipt_minor },
         { label: t('Recorded cash refunds'), value: data.refund_minor },
         { label: t('Cash reversal adjustments'), value: data.reversal_minor },
         { label: t('Net recorded cash'), value: data.net_minor },
-      ]
+      ].map((metric) => ({ ...metric, value: ledgerMoney(metric.value, 'CNY') }))
+    : []
+  const quotaMetrics = data
+    ? [
+        { label: t('Purchased quota credited'), value: data.receipt_quota },
+        { label: t('Gift quota credited'), value: data.gift_quota },
+        { label: t('Quota withdrawn by corrections'), value: data.correction_quota },
+        { label: t('Quota used by requests'), value: data.usage_quota },
+      ].map((metric) => ({ ...metric, value: ledgerQuota(metric.value, locale) }))
     : []
   return (
     <TitledCard
@@ -205,20 +213,7 @@ export function CashSummary() {
               (UTC+08:00)
               {summary.isFetching && <span> · {t('Refreshing')}</span>}
             </p>
-            <div className='grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4'>
-              {metrics.map((metric) => (
-                <Card key={metric.label} data-card-hover='false'>
-                  <CardHeader>
-                    <CardTitle>{metric.label}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className='text-xl font-semibold break-all tabular-nums'>
-                      {ledgerMoney(metric.value, 'CNY')}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <SummaryMetrics metrics={cashMetrics} />
             <p className='text-muted-foreground text-sm'>
               {t('Recorded entries')}: {formatNumber(data.entry_count, locale)}{' '}
               · {t('Gift entries (no cash)')}:{' '}
@@ -234,6 +229,13 @@ export function CashSummary() {
             <p className='text-muted-foreground text-sm'>
               {t(
                 'Net recorded cash = receipts − refunds + signed reversal adjustments. Each entry uses its saved CNY exchange-rate snapshot; refunds and reversals belong to their own occurrence dates.'
+              )}
+            </p>
+            <h3 className='pt-2 font-medium'>{t('Quota movement')}</h3>
+            <SummaryMetrics metrics={quotaMetrics} />
+            <p className='text-muted-foreground text-sm'>
+              {t(
+                'Quota credited and withdrawn comes from this ledger. Quota used is request charges minus refunds in the request logs for the same dates.'
               )}
             </p>
           </div>

@@ -35,6 +35,9 @@ func setupManageUserTestDB(t *testing.T) *gorm.DB {
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousRedisEnabled, previousSecret := common.RedisEnabled, common.SessionSecret
 	previousMainDatabaseType, previousLogDatabaseType := common.MainDatabaseType(), common.LogDatabaseType()
+	previousManualQuota := manualQuotaAdjustmentEnabled
+	manualQuotaAdjustmentEnabled = true
+	t.Cleanup(func() { manualQuotaAdjustmentEnabled = previousManualQuota })
 	dialect := os.Getenv("TEST_MANAGE_USER_DIALECT")
 	if dialect == "" {
 		dialect = "sqlite"
@@ -364,6 +367,34 @@ func TestManageUserQuotaFailuresDoNotRecordTopup(t *testing.T) {
 			}
 			assert.Contains(t, string(params), `"failure_reason":"`+reason+`"`)
 			assert.Contains(t, string(params), fmt.Sprintf(`"requested_quota":%d`, tc.value))
+		})
+	}
+}
+
+func TestBeaconManualQuotaAdjustmentRequiresLedger(t *testing.T) {
+	for _, mode := range []string{"add", "subtract", "override"} {
+		t.Run(mode, func(t *testing.T) {
+			db := setupManageUserTestDB(t)
+			manualQuotaAdjustmentEnabled = false
+			createQuotaTestOperator(t, db, common.RoleRootUser)
+			user := model.User{Username: "quota-owner", Role: common.RoleCommonUser, Quota: 1000}
+			require.NoError(t, db.Create(&user).Error)
+
+			recorder := performManageUserRequest(t, fmt.Sprintf(`{"id":%d,"action":"add_quota","mode":%q,"value":500}`, user.Id, mode))
+
+			assert.Contains(t, recorder.Body.String(), `"success":false`)
+			assert.Contains(t, recorder.Body.String(), "Customer balances can only be changed through the manual ledger")
+			require.NoError(t, db.First(&user, user.Id).Error)
+			assert.Equal(t, 1000, user.Quota)
+			var logCount int64
+			require.NoError(t, model.LOG_DB.Model(&model.Log{}).Count(&logCount).Error)
+			assert.Zero(t, logCount)
+			var audit model.AuditLog
+			require.NoError(t, model.LOG_DB.First(&audit).Error)
+			assert.False(t, audit.Success)
+			params, err := common.Marshal(audit.Other.Op.Params)
+			require.NoError(t, err)
+			assert.Contains(t, string(params), `"failure_reason":"manual_ledger_only"`)
 		})
 	}
 }

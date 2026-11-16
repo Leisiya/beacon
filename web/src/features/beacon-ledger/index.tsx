@@ -34,6 +34,7 @@ import { getLedger } from './api'
 import { CashSummary } from './components/cash-summary'
 import { LedgerEntryDialog } from './components/ledger-entry-dialog'
 import { LedgerTable } from './components/ledger-table'
+import { QuotaReconciliation } from './components/quota-reconciliation'
 import type { LedgerEntry, LedgerKind } from './types'
 
 export function BeaconLedger() {
@@ -79,9 +80,15 @@ export function BeaconLedger() {
               <TabsTrigger className='min-h-11 px-4' value='entries'>
                 {t('Ledger entries')}
               </TabsTrigger>
+              <TabsTrigger className='min-h-11 px-4' value='reconciliation'>
+                {t('Balance reconciliation')}
+              </TabsTrigger>
             </TabsList>
             <TabsContent value='summary'>
               <CashSummary />
+            </TabsContent>
+            <TabsContent value='reconciliation'>
+              <QuotaReconciliation />
             </TabsContent>
             <TabsContent value='entries'>
               <div className='flex min-w-0 flex-col gap-4'>

@@ -16,9 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Link } from '@tanstack/react-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { Pencil } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -96,7 +96,6 @@ import {
   transformUserToFormDefaults,
 } from '../lib'
 import type { User } from '../types'
-import { UserQuotaDialog } from './user-quota-dialog'
 import { useUsers } from './users-provider'
 
 type UsersMutateDrawerProps = {
@@ -115,7 +114,6 @@ export function UsersMutateDrawer({
   const { triggerRefresh, requestVerification } = useUsers()
   const currentUser = useAuthStore((s) => s.auth.user)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false)
   // Matrix as loaded from the server; an unchanged matrix is not resubmitted so
   // routine edits of an administrator do not require step-up verification.
   const loadedPermissions = useRef<AdminPermissionMatrix | undefined>(undefined)
@@ -165,7 +163,6 @@ export function UsersMutateDrawer({
   const currencyLabel = getCurrencyLabel()
   const tokensOnly = currencyMeta.kind === 'tokens'
 
-  const currentQuotaRaw = form.watch('quota_dollars') || 0
   const selectedRole = form.watch('role')
   const canEditAdminPermissions = currentUser?.role === ROLE.SUPER_ADMIN
   const targetIsAdmin = (selectedRole ?? currentRow?.role ?? 0) >= ROLE.ADMIN
@@ -258,22 +255,7 @@ export function UsersMutateDrawer({
     }
   }
 
-  const refreshUserData = async () => {
-    if (!currentRow) return
-    try {
-      const result = requireServerSuccess(await getUser(currentRow.id))
-      if (result.success && result.data) {
-        loadedPermissions.current = result.data.admin_permissions
-        form.reset(transformUserToFormDefaults(result.data))
-      }
-      triggerRefresh()
-    } catch (error) {
-      handleServerError(error, t('Failed to load'))
-    }
-  }
-
   return (
-    <>
       <Sheet
         open={open}
         onOpenChange={(v) => {
@@ -463,14 +445,17 @@ export function UsersMutateDrawer({
                           <Button
                             type='button'
                             variant='outline'
-                            onClick={() => setQuotaDialogOpen(true)}
+                            render={<Link to='/beacon-ledger' />}
                           >
-                            <Pencil className='mr-1 h-4 w-4' />
-                            {t('Adjust Quota')}
+                            {t('Open manual ledger')}
                           </Button>
                         </div>
                         <FormDescription>
-                          {formatQuota(parseQuotaFromDollars(field.value || 0))}
+                          {formatQuota(parseQuotaFromDollars(field.value || 0))}{' '}
+                          ·{' '}
+                          {t(
+                            'Balances change only through manual ledger entries.'
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -591,17 +576,5 @@ export function UsersMutateDrawer({
           </SheetFooter>
         </SheetContent>
       </Sheet>
-
-      {/* Adjust Quota Dialog */}
-      {currentRow && (
-        <UserQuotaDialog
-          open={quotaDialogOpen}
-          onOpenChange={setQuotaDialogOpen}
-          userId={currentRow.id}
-          currentQuota={parseQuotaFromDollars(currentQuotaRaw || 0)}
-          onSuccess={refreshUserData}
-        />
-      )}
-    </>
   )
 }

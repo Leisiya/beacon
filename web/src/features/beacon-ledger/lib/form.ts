@@ -156,3 +156,12 @@ export function ledgerMoney(cents: number | string, currency: string): string {
   const absolute = amount < 0n ? -amount : amount
   return `${currency} ${amount < 0n ? '-' : ''}${String(absolute / 100n)}.${String(absolute % 100n).padStart(2, '0')}`
 }
+
+// Whole-site quota totals arrive as decimal strings because they can exceed
+// JavaScript's exact integer range; formatNumber only accepts numbers.
+export function ledgerQuota(
+  value: string,
+  locale: Intl.LocalesArgument
+): string {
+  return Intl.NumberFormat(locale).format(BigInt(value))
+}

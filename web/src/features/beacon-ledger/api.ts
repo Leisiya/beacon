@@ -25,6 +25,7 @@ import type {
   LedgerEntry,
   LedgerInput,
   LedgerPage,
+  QuotaReconciliationData,
 } from './types'
 
 export function getCashSummary(
@@ -34,6 +35,15 @@ export function getCashSummary(
     api.get('/api/beacon/ledger', {
       ...authRequestOptions,
       params: { view: 'cash_summary', ...range },
+    })
+  )
+}
+
+export function getQuotaReconciliation(): Promise<QuotaReconciliationData> {
+  return authResult(
+    api.get('/api/beacon/ledger', {
+      ...authRequestOptions,
+      params: { view: 'reconciliation' },
     })
   )
 }

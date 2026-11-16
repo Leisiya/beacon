@@ -80,4 +80,27 @@ export interface CashSummaryData {
   net_minor: string
   entry_count: number
   gift_count: number
+  receipt_quota: string
+  gift_quota: string
+  correction_quota: string
+  usage_quota: string
+}
+
+export interface QuotaMismatch {
+  user_id: number
+  username: string
+  ledger_quota: number
+  balance_quota: number
+  used_quota: number
+  difference: number
+}
+
+export interface QuotaReconciliationData {
+  as_of: number
+  ledger_quota: string
+  balance_quota: string
+  used_quota: string
+  difference: string
+  mismatch_count: number
+  mismatches: QuotaMismatch[]
 }

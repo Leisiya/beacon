@@ -273,6 +273,16 @@ def exercise(gateway, mock_url, password):
             check(row["quota"] == 30, "new price must apply only to subsequent usage")
     print("PASS: model price change affects new calls while prior debit and pricing snapshots remain unchanged")
 
+    _, adjusted = gateway.request("/api/user/manage", "POST", {"id": bob_id, "action": "add_quota", "mode": "add", "value": 500}, root)
+    check(not adjusted.get("success") and gateway.balance(bob) == 10000, "direct quota adjustment must be refused in favor of the ledger")
+    status, _ = gateway.request("/api/beacon/ledger?view=reconciliation", token=alice)
+    check(status in (401, 403), "ordinary user must not read whole-site reconciliation")
+    recon = gateway.ok("/api/beacon/ledger?view=reconciliation", token=root)
+    check(recon["difference"] == "0" and recon["mismatch_count"] == 0, f"every balance plus usage must equal ledger credits: {recon}")
+    summary = gateway.ok("/api/beacon/ledger?view=cash_summary&period=all", token=root)
+    check(summary["usage_quota"] == recon["used_quota"], "period usage from logs must match accumulated usage")
+    print("PASS: direct quota adjustment refused; balances plus usage reconcile exactly with ledger credits")
+
 
 def main():
     binary = ROOT / ".local/bin/beacon-dev"

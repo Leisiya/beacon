@@ -135,6 +135,7 @@ func TestBeaconLedgerProofRejectsExpiredSessionAndWeakMethod(t *testing.T) {
 func TestBeaconLedgerRoutesRejectAnonymousAndOrdinaryUsers(t *testing.T) {
 	_, rootIdentity, target := setupAdminUserTest(t)
 	require.NoError(t, model.DB.AutoMigrate(&model.BeaconLedgerEntry{}))
+	require.NoError(t, model.LOG_DB.AutoMigrate(&model.Log{}))
 	userBundle, err := service.CreateLoginSession(target.Id, "password", "127.0.0.1", "ledger-test")
 	require.NoError(t, err)
 	rootToken, _, err := service.IssueAccessToken(rootIdentity)
@@ -142,7 +143,7 @@ func TestBeaconLedgerRoutesRejectAnonymousAndOrdinaryUsers(t *testing.T) {
 	router := gin.New()
 	router.GET("/api/beacon/ledger", middleware.RootAuth(), GetBeaconLedger)
 	router.POST("/api/beacon/ledger", middleware.RootAuth(), PostBeaconLedger)
-	for _, path := range []string{"/api/beacon/ledger", "/api/beacon/ledger?view=cash_summary&period=today"} {
+	for _, path := range []string{"/api/beacon/ledger", "/api/beacon/ledger?view=cash_summary&period=today", "/api/beacon/ledger?view=reconciliation"} {
 		for _, method := range []string{http.MethodGet, http.MethodPost} {
 			for _, token := range []string{"", userBundle.AccessToken} {
 				request := httptest.NewRequest(method, path, strings.NewReader(`{}`))
@@ -169,6 +170,12 @@ func TestBeaconLedgerRoutesRejectAnonymousAndOrdinaryUsers(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.Code)
 	assert.Contains(t, response.Body.String(), `"net_minor":"0"`)
 	assert.Contains(t, response.Body.String(), `"business_timezone":"Asia/Shanghai"`)
+	request = httptest.NewRequest(http.MethodGet, "/api/beacon/ledger?view=reconciliation", nil)
+	request.Header.Set("Authorization", "Bearer "+rootToken)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assert.Equal(t, http.StatusOK, response.Code)
+	assert.Contains(t, response.Body.String(), `"difference":"0"`)
 	request = httptest.NewRequest(http.MethodGet, "/api/beacon/ledger?view=cash_summary&period=custom&start=invalid&end=2026-01-01", nil)
 	request.Header.Set("Authorization", "Bearer "+rootToken)
 	response = httptest.NewRecorder()

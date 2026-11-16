@@ -54,6 +54,10 @@ const summary: CashSummaryData = {
   net_minor: '-77',
   entry_count: 5,
   gift_count: 1,
+  receipt_quota: '1000',
+  gift_quota: '20',
+  correction_quota: '-1000',
+  usage_quota: '9007199254740993',
 }
 
 function renderSummary() {
@@ -65,7 +69,7 @@ function renderSummary() {
   )
 }
 
-it('shows exact recorded cash with its coverage and keeps missing profit data explicitly pending', async () => {
+it('shows exact recorded cash and quota movement with its coverage and keeps missing profit data explicitly pending', async () => {
   api.defaults.adapter = async (config) => ({
     config,
     status: 200,
@@ -78,6 +82,9 @@ it('shows exact recorded cash with its coverage and keeps missing profit data ex
   expect(screen.getByText('CNY 143.18')).toBeInTheDocument()
   expect(screen.getByText('CNY 72.36')).toBeInTheDocument()
   expect(screen.getByText('CNY -71.59')).toBeInTheDocument()
+  expect(screen.getByText('1,000')).toBeInTheDocument()
+  expect(screen.getByText('-1,000')).toBeInTheDocument()
+  expect(screen.getByText('9,007,199,254,740,993')).toBeInTheDocument()
   expect(
     screen.getByText(/Usage revenue, unspent purchased balance/)
   ).toHaveTextContent('pending')

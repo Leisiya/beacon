@@ -43,6 +43,11 @@ func manageUserQuota(c *gin.Context, req ManageRequest) {
 		markAuditLogged(c)
 	}()
 
+	if !manualQuotaAdjustmentEnabled {
+		params["failure_reason"] = "manual_ledger_only"
+		common.ApiErrorT(c, "Customer balances can only be changed through the manual ledger")
+		return
+	}
 	adjustment, err := model.AdjustUserQuota(req.Id, c.GetInt("role"), req.Mode, req.Value)
 	if err != nil {
 		switch {

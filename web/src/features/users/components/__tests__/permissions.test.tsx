@@ -28,6 +28,14 @@ import type { User } from '../../types'
 import { UsersMutateDrawer } from '../users-mutate-drawer'
 import { UsersProvider } from '../users-provider'
 
+// The drawer links to the manual ledger; these tests render it without a router.
+vi.mock('@tanstack/react-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tanstack/react-router')>()),
+  Link: (props: { to: string; children?: React.ReactNode }) => (
+    <a href={props.to}>{props.children}</a>
+  ),
+}))
+
 const target: User = {
   id: 2,
   username: 'managed-admin',
@@ -194,4 +202,17 @@ it('admin cannot edit the audit permission even when the catalog is available', 
   renderPermissions(10)
   await screen.findByDisplayValue('Managed admin')
   expect(screen.queryByRole('button', { name: label })).not.toBeInTheDocument()
+})
+
+it('offers the manual ledger instead of a direct quota adjustment when editing a user', async () => {
+  renderPermissions(100)
+
+  const ledger = await screen.findByRole('link', {
+    name: 'Open manual ledger',
+  })
+
+  expect(ledger).toHaveAttribute('href', '/beacon-ledger')
+  expect(
+    screen.queryByRole('button', { name: 'Adjust Quota' })
+  ).not.toBeInTheDocument()
 })

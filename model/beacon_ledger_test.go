@@ -26,7 +26,7 @@ import (
 
 func setupBeaconLedgerTest(t *testing.T) (User, User) {
 	t.Helper()
-	previousDB := DB
+	previousDB, previousLogDB := DB, LOG_DB
 	previousRedis, previousBatch := common.RedisEnabled, common.BatchUpdateEnabled
 	previousType := common.MainDatabaseType()
 	driver := os.Getenv("BEACON_LEDGER_TEST_DRIVER")
@@ -57,19 +57,19 @@ func setupBeaconLedgerTest(t *testing.T) (User, User) {
 	if databaseType != common.DatabaseTypeSQLite {
 		sqlDB.SetMaxOpenConns(4)
 	}
-	DB = db
+	DB, LOG_DB = db, db
 	common.SetMainDatabaseType(databaseType)
 	common.RedisEnabled, common.BatchUpdateEnabled = false, false
 	t.Cleanup(func() {
 		if databaseType != common.DatabaseTypeSQLite {
-			require.NoError(t, db.Migrator().DropTable(&BeaconLedgerEntry{}, &User{}))
+			require.NoError(t, db.Migrator().DropTable(&BeaconLedgerEntry{}, &User{}, &Log{}))
 		}
-		DB = previousDB
+		DB, LOG_DB = previousDB, previousLogDB
 		common.SetMainDatabaseType(previousType)
 		common.RedisEnabled, common.BatchUpdateEnabled = previousRedis, previousBatch
 		require.NoError(t, sqlDB.Close())
 	})
-	require.NoError(t, DB.AutoMigrate(&User{}, &BeaconLedgerEntry{}))
+	require.NoError(t, DB.AutoMigrate(&User{}, &BeaconLedgerEntry{}, &Log{}))
 	operator := User{Username: "ledger-root", Password: "unused", Role: common.RoleRootUser, Status: common.UserStatusEnabled, AffCode: "ledger-root", AuthVersion: 1}
 	user := User{Username: "ledger-customer", Password: "unused", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, AffCode: "ledger-customer", AuthVersion: 1}
 	require.NoError(t, DB.Create(&operator).Error)
@@ -158,6 +158,62 @@ func TestBeaconCashSummarySnapshotsAndCorrections(t *testing.T) {
 	assert.Equal(t, int64(5), all.EntryCount)
 	assert.Equal(t, "CNY", all.BaseCurrency)
 	assert.Equal(t, "Asia/Shanghai", all.BusinessTimezone)
+	assert.Equal(t, "1000", all.ReceiptQuota)
+	assert.Equal(t, "20", all.GiftQuota)
+	assert.Equal(t, "-1000", all.CorrectionQuota)
+	assert.Equal(t, "0", all.UsageQuota)
+}
+
+func TestBeaconCashSummaryUsageNetsRefundLogsInRange(t *testing.T) {
+	_, user := setupBeaconLedgerTest(t)
+	now := time.Date(2026, 1, 3, 4, 0, 0, 0, time.UTC)
+	today := time.Date(2026, 1, 2, 16, 0, 0, 0, time.UTC).Unix()
+	require.NoError(t, LOG_DB.Create([]Log{
+		{UserId: user.Id, Type: LogTypeConsume, Quota: 300, CreatedAt: today},
+		{UserId: user.Id, Type: LogTypeConsume, Quota: 200, CreatedAt: today + 60},
+		{UserId: user.Id, Type: LogTypeRefund, Quota: 50, CreatedAt: today + 120},
+		{UserId: user.Id, Type: LogTypeTopup, Quota: 9000, CreatedAt: today},
+		{UserId: user.Id, Type: LogTypeConsume, Quota: 700, CreatedAt: today - 1},
+	}).Error)
+
+	summary, err := GetBeaconCashSummary(context.Background(), "today", "", "", now)
+
+	require.NoError(t, err)
+	assert.Equal(t, "450", summary.UsageQuota, "consume minus refund, excluding other log types and earlier days")
+}
+
+func TestBeaconQuotaReconciliationFlagsChangesOutsideLedger(t *testing.T) {
+	operator, user := setupBeaconLedgerTest(t)
+	_, _, err := PostBeaconLedgerEntry(beaconReceiptInput(user.Id, "reconcile-receipt-01"), operator.Id)
+	require.NoError(t, err)
+	// Usage moves quota into used_quota without changing the total.
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", user.Id).Updates(map[string]any{"quota": 380, "used_quota": 120}).Error)
+	now := time.Unix(1792857600, 0)
+
+	balanced, err := GetBeaconQuotaReconciliation(context.Background(), now)
+
+	require.NoError(t, err)
+	assert.Equal(t, "500", balanced.LedgerQuota)
+	assert.Equal(t, "380", balanced.BalanceQuota)
+	assert.Equal(t, "120", balanced.UsedQuota)
+	assert.Equal(t, "0", balanced.Difference)
+	assert.Zero(t, balanced.MismatchCount)
+	assert.Empty(t, balanced.Mismatches)
+
+	// A sign-up bonus or direct adjustment adds quota with no ledger record,
+	// and ledger rows for a removed account have nowhere to go.
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", operator.Id).Update("quota", 75).Error)
+	require.NoError(t, DB.Create(&BeaconLedgerEntry{IdempotencyKey: "reconcile-orphan-0001", Kind: BeaconGift, UserID: 424242, QuotaDelta: 30, Currency: "CNY", CNYPerUnit: "1"}).Error)
+
+	drifted, err := GetBeaconQuotaReconciliation(context.Background(), now)
+
+	require.NoError(t, err)
+	assert.Equal(t, "45", drifted.Difference)
+	assert.Equal(t, 2, drifted.MismatchCount)
+	assert.Equal(t, []BeaconQuotaMismatch{
+		{UserID: operator.Id, Username: operator.Username, BalanceQuota: 75, Difference: 75},
+		{UserID: 424242, LedgerQuota: 30, Difference: -30},
+	}, drifted.Mismatches)
 }
 
 func TestBeaconCashSummaryExactLargeTotalsAndCutoff(t *testing.T) {
