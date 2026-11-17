@@ -119,9 +119,7 @@ it('lists each mismatched account with its quota figures when balances drift fro
   expect(
     screen.queryByText('Every account reconciles with the ledger.')
   ).not.toBeInTheDocument()
-  expect(
-    screen.queryByText(/Showing the first/)
-  ).not.toBeInTheDocument()
+  expect(screen.queryByText(/Showing the first/)).not.toBeInTheDocument()
 })
 
 it('tells the operator the list is truncated when more accounts mismatch than are returned', async () => {

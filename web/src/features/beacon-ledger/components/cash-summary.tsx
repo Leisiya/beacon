@@ -69,15 +69,24 @@ export function CashSummary() {
         { label: t('Recorded cash refunds'), value: data.refund_minor },
         { label: t('Cash reversal adjustments'), value: data.reversal_minor },
         { label: t('Net recorded cash'), value: data.net_minor },
-      ].map((metric) => ({ ...metric, value: ledgerMoney(metric.value, 'CNY') }))
+      ].map((metric) => ({
+        ...metric,
+        value: ledgerMoney(metric.value, 'CNY'),
+      }))
     : []
   const quotaMetrics = data
     ? [
         { label: t('Purchased quota credited'), value: data.receipt_quota },
         { label: t('Gift quota credited'), value: data.gift_quota },
-        { label: t('Quota withdrawn by corrections'), value: data.correction_quota },
+        {
+          label: t('Quota withdrawn by corrections'),
+          value: data.correction_quota,
+        },
         { label: t('Quota used by requests'), value: data.usage_quota },
-      ].map((metric) => ({ ...metric, value: ledgerQuota(metric.value, locale) }))
+      ].map((metric) => ({
+        ...metric,
+        value: ledgerQuota(metric.value, locale),
+      }))
     : []
   return (
     <TitledCard

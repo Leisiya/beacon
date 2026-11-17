@@ -33,6 +33,9 @@ import {
   useSecureVerification,
 } from '@/features/auth/secure-verification'
 import { FormNavigationGuard } from '@/features/system-settings/components/form-navigation-guard'
+import { toIntlLocale } from '@/i18n/languages'
+import { formatQuotaWithCurrency } from '@/lib/currency'
+import { formatNumber } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 import { AuthOperationError } from '@/lib/secure-verification'
 
@@ -54,7 +57,8 @@ export function LedgerEntryDialog(props: {
   onOpenChange: (open: boolean) => void
   onComplete: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const client = useQueryClient()
   const verification = useSecureVerification()
   const form = useForm<LedgerFormValues>({
@@ -137,7 +141,7 @@ export function LedgerEntryDialog(props: {
         }}
         title={t('Record ledger entry')}
         description={t(
-          'Record confirmed external payments only. This page does not transfer money. Quota is recorded separately in raw units.'
+          'Record confirmed external payments only. This page does not transfer money.'
         )}
         footer={
           <Button
@@ -215,8 +219,16 @@ export function LedgerEntryDialog(props: {
                     : review.amount || t('Derived from original entry')}
                 </div>
                 <div>
-                  {t('Quota units to add')}:{' '}
-                  {review.quota || t('Derived from original entry')}
+                  {t('Balance to credit')}:{' '}
+                  {review.quota
+                    ? t('{{balance}} ({{quota}} quota units)', {
+                        balance: formatQuotaWithCurrency(review.quota, {
+                          abbreviate: false,
+                          locale,
+                        }),
+                        quota: formatNumber(review.quota, locale),
+                      })
+                    : t('Derived from original entry')}
                 </div>
                 {review.cny_per_unit && (
                   <div>

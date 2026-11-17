@@ -7447,6 +7447,13 @@
     "Zhipu": "智谱",
     "Zhipu GLM": "智谱GLM",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "Balance to credit ({{currency}})": "到账余额（{{currency}}）",
+    "Balance to credit": "到账余额",
+    "Customer balance +{{balance}} ({{quota}} quota units)": "客户余额 +{{balance}}（{{quota}} 额度单位）",
+    "At the top-up price this payment buys {{balance}}; check any discount or bonus.": "按充值价格，这笔付款对应 {{balance}}；如有折扣或赠送请再核对。",
+    "{{balance}} ({{quota}} quota units)": "{{balance}}（{{quota}} 额度单位）",
+    "Enter a balance of at least one quota unit.": "到账余额至少需要 1 个额度单位。",
+    "Record confirmed external payments only. This page does not transfer money.": "仅记录已经确认的外部收付款。本页不会实际转账。"
   }
 }

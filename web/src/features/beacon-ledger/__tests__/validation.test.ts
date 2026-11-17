@@ -16,19 +16,35 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import {
+  DEFAULT_CURRENCY_CONFIG,
+  useSystemConfigStore,
+} from '@/stores/system-config-store'
 
 import {
   ledgerFormSchema,
   ledgerInput,
   ledgerMoney,
   newLedgerForm,
+  receiptFaceQuota,
 } from '../lib/form'
+
+afterEach(() => {
+  useSystemConfigStore.setState(useSystemConfigStore.getInitialState(), true)
+})
+
+function displayCurrency(currency: Partial<typeof DEFAULT_CURRENCY_CONFIG>) {
+  useSystemConfigStore
+    .getState()
+    .setConfig({ currency: { ...DEFAULT_CURRENCY_CONFIG, ...currency } })
+}
 
 const receipt = () => ({
   ...newLedgerForm(),
   user_id: '42',
-  quota: '500000',
+  credit: '1',
   amount: '12.34',
   fx_source: 'bank receipt',
   payment_method: 'bank',
@@ -44,14 +60,40 @@ describe('ledger input validation', () => {
       )
     }
   )
-  it.each(['-1', '0', '1.5', '9007199254740992'])(
-    'rejects unsafe quota %s',
-    (quota) => {
-      expect(ledgerFormSchema.safeParse({ ...receipt(), quota }).success).toBe(
+  it.each(['-1', '0', '1.001', '1e3', ''])(
+    'rejects invalid balance to credit %s',
+    (credit) => {
+      expect(ledgerFormSchema.safeParse({ ...receipt(), credit }).success).toBe(
         false
       )
     }
   )
+  it('rejects a balance that rounds to zero quota units', () => {
+    displayCurrency({ quotaPerUnit: 10 })
+    expect(
+      ledgerFormSchema.safeParse({ ...receipt(), credit: '0.01' }).success
+    ).toBe(false)
+  })
+  it('converts the balance typed in the display currency to quota units', () => {
+    displayCurrency({ quotaDisplayType: 'CNY', usdExchangeRate: 7.3 })
+    const input = ledgerInput(
+      ledgerFormSchema.parse({ ...receipt(), credit: '73' }),
+      'test-request-0001'
+    )
+    expect(input.quota).toBe(5000000)
+  })
+  it.each([
+    ['CNY receipt', '730', '1', 50000000],
+    ['USD receipt converted to CNY', '100', '7.3', 50000000],
+  ])('values a %s at the top-up price', (_name, amount, cnyPerUnit, quota) => {
+    expect(receiptFaceQuota(amount, cnyPerUnit, 7.3)).toBe(quota)
+  })
+  it.each([
+    ['no amount yet', '', 7.3],
+    ['no top-up price loaded', '730', Number.NaN],
+  ])('has no list-price value with %s', (_name, amount, price) => {
+    expect(receiptFaceQuota(amount, '1', price)).toBeNull()
+  })
   it('preserves decimal text and interprets the operator date in Shanghai', () => {
     const values = ledgerFormSchema.parse({
       ...receipt(),

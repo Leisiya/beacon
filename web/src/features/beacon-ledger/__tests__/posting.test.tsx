@@ -43,7 +43,10 @@ afterEach(() => {
   useAuthStore.getState().auth.reset('idle')
 })
 
-function setupDialog(onComplete = vi.fn()): void {
+function setupDialog(
+  onComplete = vi.fn(),
+  kind: 'gift' | 'receipt' = 'gift'
+): void {
   const now = Math.floor(Date.now() / 1000)
   useAuthStore.getState().auth.setBundle({
     access_token: 'test-browser-token',
@@ -68,7 +71,7 @@ function setupDialog(onComplete = vi.fn()): void {
     component: () => (
       <LedgerEntryDialog
         open
-        kind='gift'
+        kind={kind}
         onOpenChange={() => {}}
         onComplete={onComplete}
       />
@@ -89,7 +92,7 @@ async function reviewGift(
   user: ReturnType<typeof userEvent.setup>
 ): Promise<void> {
   await user.type(await screen.findByLabelText('Customer ID'), '42')
-  await user.type(screen.getByLabelText('Quota units to add'), '500')
+  await user.type(screen.getByLabelText('Balance to credit (USD)'), '5')
   await user.type(
     screen.getByLabelText('Reason / evidence'),
     'service recovery gift'
@@ -125,7 +128,9 @@ it('does not send a ledger mutation when the operator cancels security verificat
   await screen.findByLabelText('Password', { selector: 'input' })
   await user.click(screen.getByRole('button', { name: 'Cancel' }))
   await screen.findByRole('alertdialog', { name: 'Confirm ledger entry' })
-  expect(requests).toEqual(['/api/verify/methods'])
+  expect(requests.filter((url) => url !== '/api/status')).toEqual([
+    '/api/verify/methods',
+  ])
 })
 
 it('retries an uncertain submission with the exact same entry and a fresh proof', async () => {
@@ -220,6 +225,41 @@ it('retries an uncertain submission with the exact same entry and a fresh proof'
     'proof-2',
     'proof-3',
   ])
+})
+
+it('prefills a receipt with its top-up price value and keeps a balance the operator types', async () => {
+  api.defaults.adapter = async (config) => ({
+    config,
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    data: {
+      success: true,
+      data: config.url === '/api/status' ? { price: 7.3 } : {},
+    },
+  })
+  const user = userEvent.setup()
+  setupDialog(vi.fn(), 'receipt')
+  const credit = await screen.findByLabelText('Balance to credit (USD)')
+  const amount = screen.getByLabelText('Original currency amount')
+  // The payment is entered before the balance it prefills.
+  expect(
+    amount.compareDocumentPosition(credit) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy()
+
+  await user.type(amount, '73')
+  await waitFor(() => expect(credit).toHaveValue('10'))
+  expect(
+    screen.getByText('Customer balance +$10 (5,000,000 quota units)')
+  ).toBeInTheDocument()
+
+  await user.clear(credit)
+  await user.type(credit, '12')
+  await user.type(amount, '0')
+  expect(credit).toHaveValue('12')
+  expect(
+    screen.getByText(/At the top-up price this payment buys \$100;/)
+  ).toBeInTheDocument()
 })
 
 it('makes corrected records read-only while keeping complete details keyboard-accessible', async () => {

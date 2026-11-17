@@ -7447,6 +7447,13 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "Balance to credit ({{currency}})": "入金する残高（{{currency}}）",
+    "Balance to credit": "入金する残高",
+    "Customer balance +{{balance}} ({{quota}} quota units)": "顧客残高 +{{balance}}（{{quota}} クォータ単位）",
+    "At the top-up price this payment buys {{balance}}; check any discount or bonus.": "チャージ価格では、この支払いは {{balance}} に相当します。割引や特典がないか確認してください。",
+    "{{balance}} ({{quota}} quota units)": "{{balance}}（{{quota}} クォータ単位）",
+    "Enter a balance of at least one quota unit.": "1 クォータ単位以上の残高を入力してください。",
+    "Record confirmed external payments only. This page does not transfer money.": "確認済みの外部入出金のみを記録します。このページで送金は行われません。"
   }
 }

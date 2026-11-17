@@ -7447,6 +7447,13 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Balance to credit ({{currency}})": "Số dư cộng thêm ({{currency}})",
+    "Balance to credit": "Số dư cộng thêm",
+    "Customer balance +{{balance}} ({{quota}} quota units)": "Số dư khách hàng +{{balance}} ({{quota}} đơn vị hạn mức)",
+    "At the top-up price this payment buys {{balance}}; check any discount or bonus.": "Theo giá nạp, khoản thanh toán này tương ứng {{balance}}; hãy kiểm tra giảm giá hoặc khoản tặng thêm.",
+    "{{balance}} ({{quota}} quota units)": "{{balance}} ({{quota}} đơn vị hạn mức)",
+    "Enter a balance of at least one quota unit.": "Nhập số dư tối thiểu một đơn vị hạn mức.",
+    "Record confirmed external payments only. This page does not transfer money.": "Chỉ ghi nhận các khoản thu chi bên ngoài đã xác nhận. Trang này không chuyển tiền."
   }
 }

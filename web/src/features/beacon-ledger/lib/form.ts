@@ -18,6 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { z } from 'zod'
 
+import { getCurrencyDisplay } from '@/lib/currency'
+import { parseQuotaFromDollars } from '@/lib/format'
+
 import type { LedgerInput, LedgerKind } from '../types'
 
 const required = z.string().trim().min(1, 'Required')
@@ -54,7 +57,7 @@ export const ledgerFormSchema = z
     kind: z.enum(['receipt', 'gift', 'refund', 'reversal']),
     user_id: z.string(),
     corrects_id: z.string(),
-    quota: z.string(),
+    credit: z.string(),
     amount: z.string(),
     currency: z.enum(['CNY', 'USD', 'EUR', 'HKD']),
     cny_per_unit: z.string(),
@@ -84,7 +87,18 @@ export const ledgerFormSchema = z
     }
     if (value.kind === 'receipt' || value.kind === 'gift') {
       check('user_id', positiveInteger)
-      check('quota', positiveInteger)
+      check('credit', money)
+      const quota = parseQuotaFromDollars(Number(value.credit))
+      if (
+        money.safeParse(value.credit).success &&
+        (quota < 1 || !Number.isSafeInteger(quota))
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['credit'],
+          message: 'Enter a balance of at least one quota unit.',
+        })
+      }
     } else check('corrects_id', positiveInteger)
     if (value.kind === 'receipt') {
       check('amount', money)
@@ -114,7 +128,7 @@ export function newLedgerForm(
     kind,
     user_id: '',
     corrects_id: sourceId ? String(sourceId) : '',
-    quota: '',
+    credit: '',
     amount: '',
     currency: 'CNY',
     cny_per_unit: '1',
@@ -136,7 +150,7 @@ export function ledgerInput(
     idempotency_key: key,
     kind: values.kind,
     user_id: original ? Number(values.user_id) : 0,
-    quota: original ? Number(values.quota) : 0,
+    quota: original ? parseQuotaFromDollars(Number(values.credit)) : 0,
     corrects_id: original ? 0 : Number(values.corrects_id),
     amount: values.kind === 'receipt' ? values.amount : '',
     currency: values.kind === 'receipt' ? values.currency : '',
@@ -147,6 +161,19 @@ export function ledgerInput(
     occurred_at: Math.floor(Date.parse(`${values.occurred_at}+08:00`) / 1000),
     note: values.note,
   }
+}
+
+// The top-up price setting sells one system USD of balance for `price` CNY,
+// the same rate the pricing page uses, so this is what a receipt buys at list
+// price. Null until the amount and rate describe a payment.
+export function receiptFaceQuota(
+  amount: string,
+  cnyPerUnit: string,
+  price: number
+): number | null {
+  const cny = Number(amount) * Number(cnyPerUnit)
+  if (!(cny > 0) || !(price > 0)) return null
+  return Math.round((cny / price) * getCurrencyDisplay().config.quotaPerUnit)
 }
 
 // Ledger money is historical integer cents, independent of the site's quota

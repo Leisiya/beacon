@@ -16,40 +16,70 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { useStatus } from '@/hooks/use-status'
+import { toIntlLocale } from '@/i18n/languages'
+import { formatQuotaWithCurrency, getCurrencyLabel } from '@/lib/currency'
+import {
+  formatNumber,
+  parseQuotaFromDollars,
+  quotaUnitsToEditableAmount,
+} from '@/lib/format'
 
-import type { LedgerFormValues } from '../lib/form'
+import { receiptFaceQuota, type LedgerFormValues } from '../lib/form'
 
 export function LedgerFormFields(props: {
   locked: boolean
   correction: boolean
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const { status } = useStatus()
   const form = useFormContext<LedgerFormValues>()
   const kind = form.watch('kind')
   const original = kind === 'receipt' || kind === 'gift'
   const cash = kind === 'receipt' || kind === 'refund'
+  const amount = form.watch('amount')
+  const cnyPerUnit = form.watch('cny_per_unit')
+  const credit = form.watch('credit')
+  const faceQuota =
+    kind === 'receipt'
+      ? receiptFaceQuota(amount, cnyPerUnit, Number(status?.price))
+      : null
+  const creditQuota = parseQuotaFromDollars(Number(credit))
+  const balance = (quota: number): string =>
+    formatQuotaWithCurrency(quota, { abbreviate: false, locale })
+
+  // Until the operator types a balance, a receipt credits its list-price value.
+  // Reading dirtyFields during render subscribes the form to it.
+  const creditEdited = !!form.formState.dirtyFields.credit
+  const setValue = form.setValue
+  useEffect(() => {
+    if (faceQuota === null || creditEdited) return
+    setValue('credit', String(quotaUnitsToEditableAmount(faceQuota)))
+  }, [creditEdited, faceQuota, setValue])
+
   const fields: {
     name: keyof LedgerFormValues
     label: string
     type?: string
   }[] = [
-    ...(original
-      ? [
-          { name: 'user_id' as const, label: 'Customer ID' },
-          { name: 'quota' as const, label: 'Quota units to add' },
-        ]
-      : [{ name: 'corrects_id' as const, label: 'Original entry ID' }]),
+    original
+      ? { name: 'user_id' as const, label: 'Customer ID' }
+      : { name: 'corrects_id' as const, label: 'Original entry ID' },
+    // The payment comes first because it prefills the balance to credit.
     ...(kind === 'receipt'
       ? [{ name: 'amount' as const, label: 'Original currency amount' }]
       : []),
@@ -59,6 +89,13 @@ export function LedgerFormFields(props: {
             name: 'cny_per_unit' as const,
             label: 'CNY per original currency unit',
           },
+        ]
+      : []),
+    ...(original
+      ? [{ name: 'credit' as const, label: 'Balance to credit ({{currency}})' }]
+      : []),
+    ...(cash
+      ? [
           { name: 'fx_source' as const, label: 'Exchange rate source' },
           { name: 'payment_method' as const, label: 'Payment method' },
           {
@@ -130,7 +167,7 @@ export function LedgerFormFields(props: {
             data-disabled={props.locked}
           >
             <FieldLabel htmlFor={`ledger-${field.name}`}>
-              {t(field.label)}
+              {t(field.label, { currency: getCurrencyLabel() })}
             </FieldLabel>
             <Input
               className='min-h-11'
@@ -139,10 +176,31 @@ export function LedgerFormFields(props: {
               readOnly={props.locked || field.name === 'corrects_id'}
               aria-invalid={!!error}
               aria-describedby={
-                error ? `ledger-error-${field.name}` : undefined
+                [
+                  error && `ledger-error-${field.name}`,
+                  field.name === 'credit' && 'ledger-credit-preview',
+                ]
+                  .filter(Boolean)
+                  .join(' ') || undefined
               }
               {...form.register(field.name)}
             />
+            {field.name === 'credit' && creditQuota > 0 && (
+              <FieldDescription id='ledger-credit-preview'>
+                {t('Customer balance +{{balance}} ({{quota}} quota units)', {
+                  balance: balance(creditQuota),
+                  quota: formatNumber(creditQuota, locale),
+                })}
+                {faceQuota !== null && faceQuota !== creditQuota && (
+                  <span className='text-foreground block'>
+                    {t(
+                      'At the top-up price this payment buys {{balance}}; check any discount or bonus.',
+                      { balance: balance(faceQuota) }
+                    )}
+                  </span>
+                )}
+              </FieldDescription>
+            )}
             {error && (
               <FieldError id={`ledger-error-${field.name}`}>
                 {t(error)}

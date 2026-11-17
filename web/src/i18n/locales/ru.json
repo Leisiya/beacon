@@ -7447,6 +7447,13 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Balance to credit ({{currency}})": "Зачисляемый баланс ({{currency}})",
+    "Balance to credit": "Зачисляемый баланс",
+    "Customer balance +{{balance}} ({{quota}} quota units)": "Баланс клиента +{{balance}} ({{quota}} ед. квоты)",
+    "At the top-up price this payment buys {{balance}}; check any discount or bonus.": "По цене пополнения этот платёж соответствует {{balance}}; проверьте скидки и бонусы.",
+    "{{balance}} ({{quota}} quota units)": "{{balance}} ({{quota}} ед. квоты)",
+    "Enter a balance of at least one quota unit.": "Введите баланс не менее одной единицы квоты.",
+    "Record confirmed external payments only. This page does not transfer money.": "Записывайте только подтверждённые внешние платежи. Эта страница не переводит деньги."
   }
 }

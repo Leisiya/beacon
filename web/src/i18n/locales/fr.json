@@ -7447,6 +7447,13 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Balance to credit ({{currency}})": "Solde à créditer ({{currency}})",
+    "Balance to credit": "Solde à créditer",
+    "Customer balance +{{balance}} ({{quota}} quota units)": "Solde client +{{balance}} ({{quota}} unités de quota)",
+    "At the top-up price this payment buys {{balance}}; check any discount or bonus.": "Au prix de recharge, ce paiement correspond à {{balance}} ; vérifiez toute remise ou tout bonus.",
+    "{{balance}} ({{quota}} quota units)": "{{balance}} ({{quota}} unités de quota)",
+    "Enter a balance of at least one quota unit.": "Saisissez un solde d’au moins une unité de quota.",
+    "Record confirmed external payments only. This page does not transfer money.": "N’enregistrez que les paiements externes confirmés. Cette page n’effectue aucun virement."
   }
 }

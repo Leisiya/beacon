@@ -90,7 +90,10 @@ export function QuotaReconciliation() {
             </p>
             <SummaryMetrics
               metrics={[
-                { label: t('Quota credited in ledger'), value: data.ledger_quota },
+                {
+                  label: t('Quota credited in ledger'),
+                  value: data.ledger_quota,
+                },
                 { label: t('Remaining balance'), value: data.balance_quota },
                 { label: t('Quota used'), value: data.used_quota },
                 { label: t('Difference'), value: data.difference },
