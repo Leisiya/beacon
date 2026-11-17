@@ -13,6 +13,7 @@ import os
 import pathlib
 import secrets
 import socket
+import sqlite3
 import subprocess
 import tempfile
 import threading
@@ -316,6 +317,12 @@ def main():
                         return True
 
                     wait_until(ready, "isolated gateway startup timeout", 30)
+                    # SQLITE_PATH is a bare file path here, as in .env.beacon.example.
+                    db = sqlite3.connect(folder / "test.db")
+                    try:
+                        check(db.execute("PRAGMA journal_mode").fetchone()[0] == "wal", "bare SQLITE_PATH lost the WAL and busy-timeout parameters")
+                    finally:
+                        db.close()
                     exercise(gateway, f"http://127.0.0.1:{mock.server_port}", "Mock-test-" + secrets.token_hex(20))
                 finally:
                     process.terminate()

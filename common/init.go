@@ -68,8 +68,14 @@ func InitEnv() {
 		log.Fatal(err)
 	}
 	initUserSessionSettings()
-	if os.Getenv("SQLITE_PATH") != "" {
-		SQLitePath = os.Getenv("SQLITE_PATH")
+	if path := os.Getenv("SQLITE_PATH"); path != "" {
+		// A bare file path keeps the concurrency parameters documented on
+		// SQLitePath; a DSN with its own query string is used as given.
+		if !strings.Contains(path, "?") {
+			_, params, _ := strings.Cut(SQLitePath, "?")
+			path += "?" + params
+		}
+		SQLitePath = path
 	}
 	if *LogDir != "" {
 		var err error
