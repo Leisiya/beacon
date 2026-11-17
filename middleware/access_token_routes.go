@@ -57,6 +57,9 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 	"GET /api/oauth/:provider":            accessTokenSessionRule,
 	"GET /api/verify/methods":             accessTokenAnyRule,
 	"POST /api/verify":                    accessTokenAnyRule,
+	// The manual ledger needs a root browser sign-in and a fresh security proof.
+	"GET /api/beacon/ledger":  accessTokenSessionRule,
+	"POST /api/beacon/ledger": accessTokenSessionRule,
 
 	// router/api-router.go: /api/user (self)
 	"GET /api/user/sessions":                       accessTokenSessionRule,

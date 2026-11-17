@@ -6,6 +6,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -43,7 +44,7 @@ func manageUserQuota(c *gin.Context, req ManageRequest) {
 		markAuditLogged(c)
 	}()
 
-	if !manualQuotaAdjustmentEnabled {
+	if operation_setting.BeaconLedgerOnly {
 		params["failure_reason"] = "manual_ledger_only"
 		common.ApiErrorT(c, "Customer balances can only be changed through the manual ledger")
 		return

@@ -20,6 +20,7 @@ import (
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/go-redis/redis/v8"
 
@@ -35,9 +36,9 @@ func setupManageUserTestDB(t *testing.T) *gorm.DB {
 	previousDB, previousLogDB := model.DB, model.LOG_DB
 	previousRedisEnabled, previousSecret := common.RedisEnabled, common.SessionSecret
 	previousMainDatabaseType, previousLogDatabaseType := common.MainDatabaseType(), common.LogDatabaseType()
-	previousManualQuota := manualQuotaAdjustmentEnabled
-	manualQuotaAdjustmentEnabled = true
-	t.Cleanup(func() { manualQuotaAdjustmentEnabled = previousManualQuota })
+	previousLedgerOnly := operation_setting.BeaconLedgerOnly
+	operation_setting.BeaconLedgerOnly = false
+	t.Cleanup(func() { operation_setting.BeaconLedgerOnly = previousLedgerOnly })
 	dialect := os.Getenv("TEST_MANAGE_USER_DIALECT")
 	if dialect == "" {
 		dialect = "sqlite"
@@ -375,7 +376,7 @@ func TestBeaconManualQuotaAdjustmentRequiresLedger(t *testing.T) {
 	for _, mode := range []string{"add", "subtract", "override"} {
 		t.Run(mode, func(t *testing.T) {
 			db := setupManageUserTestDB(t)
-			manualQuotaAdjustmentEnabled = false
+			operation_setting.BeaconLedgerOnly = true
 			createQuotaTestOperator(t, db, common.RoleRootUser)
 			user := model.User{Username: "quota-owner", Role: common.RoleCommonUser, Quota: 1000}
 			require.NoError(t, db.Create(&user).Error)
@@ -395,6 +396,48 @@ func TestBeaconManualQuotaAdjustmentRequiresLedger(t *testing.T) {
 			params, err := common.Marshal(audit.Other.Op.Params)
 			require.NoError(t, err)
 			assert.Contains(t, string(params), `"failure_reason":"manual_ledger_only"`)
+		})
+	}
+}
+
+func TestBeaconLedgerOnlyClosesOtherBalanceSources(t *testing.T) {
+	require.NoError(t, i18n.Init())
+	paymentSetting := operation_setting.GetPaymentSetting()
+	previousLedgerOnly := operation_setting.BeaconLedgerOnly
+	previousConfirmed, previousTerms := paymentSetting.ComplianceConfirmed, paymentSetting.ComplianceTermsVersion
+	t.Cleanup(func() {
+		operation_setting.BeaconLedgerOnly = previousLedgerOnly
+		paymentSetting.ComplianceConfirmed, paymentSetting.ComplianceTermsVersion = previousConfirmed, previousTerms
+	})
+	operation_setting.BeaconLedgerOnly = true
+	// A compliance confirmation stored before Beacon must not reopen payment,
+	// redemption, subscription or invitation rewards.
+	paymentSetting.ComplianceConfirmed = true
+	paymentSetting.ComplianceTermsVersion = operation_setting.CurrentComplianceTermsVersion
+	require.False(t, operation_setting.IsPaymentComplianceConfirmed())
+
+	tests := []struct {
+		name    string
+		handler gin.HandlerFunc
+		body    string
+		message string
+	}{
+		{"sign-up reward", UpdateOption, `{"key":"QuotaForNewUser","value":"500000"}`, "Customer balances can only be changed through the manual ledger"},
+		{"check-in reward", UpdateOption, `{"key":"checkin_setting.enabled","value":true}`, "Customer balances can only be changed through the manual ledger"},
+		{"compliance confirmation", ConfirmPaymentCompliance, `{"confirmed":true}`, "Customer balances can only be changed through the manual ledger"},
+		{"redemption code", TopUp, `{"key":"code"}`, "Payment, redemption, subscription, and invitation reward features are disabled."},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tc.body))
+			ctx.Set("id", 1)
+
+			tc.handler(ctx)
+
+			assert.Contains(t, recorder.Body.String(), `"success":false`)
+			assert.Contains(t, recorder.Body.String(), tc.message)
 		})
 	}
 }

@@ -22,10 +22,13 @@ func confirmPaymentComplianceForTest(t *testing.T) {
 	paymentSetting := operation_setting.GetPaymentSetting()
 	originalConfirmed := paymentSetting.ComplianceConfirmed
 	originalTermsVersion := paymentSetting.ComplianceTermsVersion
+	originalLedgerOnly := operation_setting.BeaconLedgerOnly
 	t.Cleanup(func() {
 		paymentSetting.ComplianceConfirmed = originalConfirmed
 		paymentSetting.ComplianceTermsVersion = originalTermsVersion
+		operation_setting.BeaconLedgerOnly = originalLedgerOnly
 	})
+	operation_setting.BeaconLedgerOnly = false
 	paymentSetting.ComplianceConfirmed = true
 	paymentSetting.ComplianceTermsVersion = operation_setting.CurrentComplianceTermsVersion
 }

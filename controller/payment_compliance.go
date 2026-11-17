@@ -34,6 +34,11 @@ func ConfirmPaymentCompliance(c *gin.Context) {
 		return
 	}
 
+	if operation_setting.BeaconLedgerOnly {
+		common.ApiErrorT(c, "Customer balances can only be changed through the manual ledger")
+		return
+	}
+
 	var req PaymentComplianceRequest
 	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
 		common.ApiErrorT(c, "Invalid parameters")

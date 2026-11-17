@@ -15,6 +15,12 @@ type PaymentSetting struct {
 
 const CurrentComplianceTermsVersion = "v1"
 
+// BeaconLedgerOnly keeps every balance change on the manual ledger: payment,
+// redemption, subscription and invitation rewards stay closed whatever the
+// stored compliance confirmation says. Upstream tests clear it to keep
+// covering those features.
+var BeaconLedgerOnly = true
+
 // 默认配置
 var paymentSetting = PaymentSetting{
 	AmountOptions:  []int{10, 20, 50, 100, 200, 500},
@@ -31,6 +37,7 @@ func GetPaymentSetting() *PaymentSetting {
 }
 
 func IsPaymentComplianceConfirmed() bool {
-	return paymentSetting.ComplianceConfirmed &&
+	return !BeaconLedgerOnly &&
+		paymentSetting.ComplianceConfirmed &&
 		paymentSetting.ComplianceTermsVersion == CurrentComplianceTermsVersion
 }
