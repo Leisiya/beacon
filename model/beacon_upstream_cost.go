@@ -57,8 +57,11 @@ type BeaconUpstreamCharge struct {
 	GroupRatio        string `json:"group_ratio" gorm:"type:varchar(32);not null"`
 	PromptTokens      int    `json:"prompt_tokens" gorm:"not null"`
 	CompletionTokens  int    `json:"completion_tokens" gorm:"not null"`
-	UpstreamQuota     int64  `json:"upstream_quota" gorm:"type:bigint;not null"`
-	QuotaPerUnit      int64  `json:"quota_per_unit" gorm:"type:bigint;not null"`
+	// Cache counts as the upstream log reports them, for later review.
+	CacheTokens         int   `json:"cache_tokens" gorm:"not null;default:0"`
+	CacheCreationTokens int   `json:"cache_creation_tokens" gorm:"not null;default:0"`
+	UpstreamQuota       int64 `json:"upstream_quota" gorm:"type:bigint;not null"`
+	QuotaPerUnit        int64 `json:"quota_per_unit" gorm:"type:bigint;not null"`
 	// CreditMicro is UpstreamQuota in millionths of one upstream credit unit.
 	CreditMicro  int64  `json:"credit_micro" gorm:"type:bigint;not null"`
 	RateID       *int64 `json:"rate_id" gorm:"index"`
@@ -179,17 +182,22 @@ func PriceBeaconPendingCharges(channelID int) error {
 	}
 }
 
-// BeaconUpstreamRecord is one consume entry as reported by the upstream.
+// BeaconUpstreamRecord is one consume entry as reported by the upstream,
+// including the pricing fields of its log so the supplier's price can be
+// reconstructed (see beacon_upstream_price.go).
 type BeaconUpstreamRecord struct {
-	LogID            int64
-	RequestID        string
-	OccurredAt       int64
-	ModelName        string
-	Group            string
-	GroupRatio       string
-	PromptTokens     int
-	CompletionTokens int
-	Quota            int64
+	LogID               int64
+	RequestID           string
+	OccurredAt          int64
+	ModelName           string
+	Group               string
+	GroupRatio          string
+	PromptTokens        int
+	CompletionTokens    int
+	CacheTokens         int
+	CacheCreationTokens int
+	Quota               int64
+	Pricing             BeaconUpstreamPricing
 }
 
 func truncateRunes(value string, limit int) string {
@@ -210,18 +218,39 @@ func StoreBeaconUpstreamCharges(channelID int, keyFingerprint string, quotaPerUn
 	if err != nil {
 		return 0, err
 	}
+	// Each sync re-reads the upstream's latest page; only unseen records may
+	// add to the observed price statistics.
+	seen := map[int64]bool{}
+	for chunk := range slices.Chunk(records, beaconCostBatch) {
+		ids := make([]int64, 0, len(chunk))
+		for _, record := range chunk {
+			ids = append(ids, record.LogID)
+		}
+		var existing []int64
+		if err := DB.Model(&BeaconUpstreamCharge{}).Where("channel_id = ? AND key_fingerprint = ? AND upstream_log_id IN ?", channelID, keyFingerprint, ids).
+			Pluck("upstream_log_id", &existing).Error; err != nil {
+			return 0, err
+		}
+		for _, id := range existing {
+			seen[id] = true
+		}
+	}
 	charges := make([]BeaconUpstreamCharge, 0, len(records))
+	fresh := make([]BeaconUpstreamRecord, 0, len(records))
 	for _, record := range records {
-		if record.LogID <= 0 || record.Quota < 0 || record.Quota > beaconMaxUpstreamQuota || record.OccurredAt <= 0 {
+		if record.LogID <= 0 || record.Quota < 0 || record.Quota > beaconMaxUpstreamQuota || record.OccurredAt <= 0 || seen[record.LogID] {
 			continue
 		}
+		seen[record.LogID] = true
+		fresh = append(fresh, record)
 		credit := decimal.NewFromInt(record.Quota).Shift(6).Div(decimal.NewFromInt(quotaPerUnit)).Round(0).IntPart()
 		charge := BeaconUpstreamCharge{
 			ChannelID: channelID, KeyFingerprint: keyFingerprint, UpstreamLogID: record.LogID,
 			UpstreamRequestID: truncateRunes(record.RequestID, 128), OccurredAt: record.OccurredAt,
 			ModelName: truncateRunes(record.ModelName, 128), UpstreamGroup: truncateRunes(record.Group, 64),
 			GroupRatio: truncateRunes(record.GroupRatio, 32), PromptTokens: max(record.PromptTokens, 0),
-			CompletionTokens: max(record.CompletionTokens, 0), UpstreamQuota: record.Quota,
+			CompletionTokens: max(record.CompletionTokens, 0), CacheTokens: max(record.CacheTokens, 0),
+			CacheCreationTokens: max(record.CacheCreationTokens, 0), UpstreamQuota: record.Quota,
 			QuotaPerUnit: quotaPerUnit, CreditMicro: credit, SyncedAt: now,
 		}
 		if rate := beaconRateAt(rates, record.OccurredAt); rate != nil {
@@ -238,6 +267,9 @@ func StoreBeaconUpstreamCharges(channelID int, keyFingerprint string, quotaPerUn
 			return inserted, result.Error
 		}
 		inserted += int(result.RowsAffected)
+	}
+	if err := recordBeaconUpstreamPrices(channelID, quotaPerUnit, fresh); err != nil {
+		return inserted, err
 	}
 	return inserted, MatchBeaconUpstreamCharges(channelID, now)
 }

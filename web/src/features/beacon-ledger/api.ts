@@ -29,6 +29,9 @@ import type {
   LedgerEntry,
   LedgerInput,
   LedgerPage,
+  PricingReport,
+  PricingRule,
+  PricingRuleInput,
   QuotaReconciliationData,
   UpstreamRate,
   UpstreamRateInput,
@@ -112,5 +115,49 @@ export function postCostSync(): Promise<{
 }> {
   return authResult(
     api.post('/api/beacon/costs/sync', null, authRequestOptions)
+  )
+}
+
+export function getPricingReport(): Promise<PricingReport> {
+  return authResult(api.get('/api/beacon/pricing', authRequestOptions))
+}
+
+export function postPricingRule(
+  rule: PricingRuleInput
+): Promise<{ rule: PricingRule }> {
+  return authResult(
+    api.post('/api/beacon/pricing/rules', rule, authRequestOptions)
+  )
+}
+
+export function deletePricingRule(modelName: string): Promise<unknown> {
+  return authResult(
+    api.delete('/api/beacon/pricing/rules', {
+      ...authRequestOptions,
+      params: { model: modelName },
+    })
+  )
+}
+
+export function postPricingEvaluate(): Promise<{
+  proposed: string[] | null
+  applied: string[] | null
+  failed: string[] | null
+}> {
+  return authResult(
+    api.post('/api/beacon/pricing/evaluate', null, authRequestOptions)
+  )
+}
+
+export function postPriceProposal(
+  id: number,
+  action: 'apply' | 'dismiss'
+): Promise<unknown> {
+  return authResult(
+    api.post(
+      `/api/beacon/pricing/proposals/${id}/${action}`,
+      null,
+      authRequestOptions
+    )
   )
 }

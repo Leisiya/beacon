@@ -168,3 +168,91 @@ export interface CostSource {
   } | null
   sync: CostSyncStatus | null
 }
+
+export type PricingMode = 'cost_plus' | 'fixed'
+
+// Percentages are basis points: 3000 means 30%.
+export interface PricingRule {
+  id: number
+  model_name: string
+  mode: PricingMode
+  markup_bp: number
+  min_markup_bp: number
+  auto_apply: boolean
+  follow_down: boolean
+  max_step_bp: number
+  updated_at: number
+  operator_id: number
+}
+
+export type PricingRuleInput = Omit<
+  PricingRule,
+  'id' | 'updated_at' | 'operator_id'
+>
+
+// CNY per 1M tokens, or per request when kind is "request".
+export interface PriceLine {
+  kind: string
+  context: number
+  cost_cny: number
+  sale_cny: number
+  markup_bp: number | null
+}
+
+export interface ChannelCost {
+  channel_id: number
+  channel_name: string
+  upstream_model: string
+  status: 'ok' | 'no_rate' | 'no_observation' | 'unsupported'
+  cny_per_unit: string
+  upstream_group: string
+  group_ratio: string
+  source: string
+  observed_at: number
+  verified_count: number
+  mismatch_count: number
+  min_markup_bp: number | null
+  lines: PriceLine[]
+}
+
+export interface ModelPricing {
+  model_name: string
+  status: 'ok' | 'legacy_pricing' | 'no_cost' | 'free_sale' | 'unsupported_expr'
+  sale_expr: string
+  rule: PricingRule
+  rule_overridden: boolean
+  channels: ChannelCost[]
+  basis_channel_id: number
+  current_markup_bp: number | null
+  below_minimum: boolean
+  factor: string
+  proposed_expr: string
+}
+
+export interface PriceProposal {
+  id: number
+  model_name: string
+  status: 'pending' | 'applied' | 'dismissed' | 'superseded' | 'failed'
+  created_at: number
+  decided_at: number
+  decider_id: number
+  automatic: boolean
+  basis_channel_id: number
+  factor: string
+  current_markup_bp: number
+  target_markup_bp: number
+  old_expr: string
+  new_expr: string
+  detail: string
+  error: string
+}
+
+export interface PricingReport {
+  reference_cny_per_unit: number
+  default_group_ratio: number
+  default_rule: PricingRule
+  overrides: PricingRule[]
+  models: ModelPricing[]
+  proposals: PriceProposal[]
+  history: PriceProposal[]
+}

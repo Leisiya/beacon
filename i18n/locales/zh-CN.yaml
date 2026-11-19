@@ -90,3 +90,10 @@ channel.upstream_update_added_models: "新增模型示例（展示 {{.Shown}}/{{
 channel.upstream_update_removed_models: "删除模型示例（展示 {{.Shown}}/{{.Total}}）：{{.Models}}"
 channel.upstream_update_failed_channels: "失败渠道 ID（展示 {{.Shown}}/{{.Total}}）：{{.Ids}}"
 channel.upstream_update_more_omitted: "（其余 {{.Count}} 个已省略）"
+
+# Beacon price rule notices
+beacon.pricing_notify_subject: "Beacon 调价提醒"
+beacon.pricing_proposed: "上游成本发生变化，以下模型有待确认的调价建议：{{.Models}}"
+beacon.pricing_applied: "以下模型已按调价规则自动调整售价：{{.Models}}"
+beacon.pricing_failed: "以下模型自动调价失败，请到人工账务 → 调价规则查看：{{.Models}}"
+beacon.pricing_below_minimum: "以下模型的加价率低于设定的最低值：{{.Models}}"

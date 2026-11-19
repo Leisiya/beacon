@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -28,6 +29,7 @@ const (
 	beaconUpstreamBodyLimit   = 16 << 20
 	beaconUpstreamTimeout     = 30 * time.Second
 	beaconUpstreamConsumeType = 2
+	beaconUpstreamExprLimit   = 4096
 )
 
 type BeaconCostSyncStatus struct {
@@ -101,6 +103,11 @@ func SyncBeaconUpstreamCosts(ctx context.Context) map[int]BeaconCostSyncStatus {
 		beaconCostStatuses[id] = status
 		beaconCostStatusLock.Unlock()
 	}
+	if len(ids) > 0 {
+		// New charges can carry a changed supplier price; errors are logged
+		// by EvaluateBeaconPricing and do not fail the sync.
+		_, _ = EvaluateBeaconPricing()
+	}
 	return BeaconCostSyncStatuses()
 }
 
@@ -165,18 +172,40 @@ func syncBeaconChannelCosts(ctx context.Context, channelID int) (int, int, error
 			if entry.Type != beaconUpstreamConsumeType {
 				continue
 			}
-			var other struct {
-				GroupRatio *float64 `json:"group_ratio"`
-			}
-			groupRatio := ""
-			if entry.Other != "" && common.UnmarshalJsonStr(entry.Other, &other) == nil && other.GroupRatio != nil {
-				groupRatio = strconv.FormatFloat(*other.GroupRatio, 'f', -1, 64)
-			}
-			records = append(records, model.BeaconUpstreamRecord{
+			record := model.BeaconUpstreamRecord{
 				LogID: entry.ID, RequestID: entry.RequestID, OccurredAt: entry.CreatedAt,
-				ModelName: entry.ModelName, Group: entry.Group, GroupRatio: groupRatio,
+				ModelName: entry.ModelName, Group: entry.Group,
 				PromptTokens: entry.PromptTokens, CompletionTokens: entry.CompletionTokens, Quota: entry.Quota,
-			})
+			}
+			var other struct {
+				GroupRatio          *float64 `json:"group_ratio"`
+				BillingMode         string   `json:"billing_mode"`
+				ExprB64             string   `json:"expr_b64"`
+				ModelRatio          float64  `json:"model_ratio"`
+				CompletionRatio     float64  `json:"completion_ratio"`
+				CacheRatio          float64  `json:"cache_ratio"`
+				CacheCreationRatio  float64  `json:"cache_creation_ratio"`
+				ModelPrice          float64  `json:"model_price"`
+				CacheTokens         int      `json:"cache_tokens"`
+				CacheCreationTokens int      `json:"cache_creation_tokens"`
+			}
+			if entry.Other != "" && common.UnmarshalJsonStr(entry.Other, &other) == nil {
+				record.CacheTokens, record.CacheCreationTokens = other.CacheTokens, other.CacheCreationTokens
+				record.Pricing = model.BeaconUpstreamPricing{
+					BillingMode: other.BillingMode, ModelRatio: other.ModelRatio, CompletionRatio: other.CompletionRatio,
+					CacheRatio: other.CacheRatio, CacheCreationRatio: other.CacheCreationRatio, ModelPrice: other.ModelPrice,
+				}
+				if other.GroupRatio != nil {
+					record.GroupRatio = strconv.FormatFloat(*other.GroupRatio, 'f', -1, 64)
+					record.Pricing.GroupRatio, record.Pricing.HasGroupRatio = *other.GroupRatio, true
+				}
+				if len(other.ExprB64) <= beaconUpstreamExprLimit {
+					if decoded, err := base64.StdEncoding.DecodeString(other.ExprB64); err == nil {
+						record.Pricing.Expr = string(decoded)
+					}
+				}
+			}
+			records = append(records, record)
 		}
 		fetched += len(records)
 		sum := sha256.Sum256([]byte(key))

@@ -81,6 +81,13 @@ func SetApiRouter(router *gin.Engine) {
 		costRoute.POST("/rates", middleware.CriticalRateLimit(), controller.PostBeaconUpstreamRate)
 		costRoute.POST("/sync", middleware.CriticalRateLimit(), controller.PostBeaconCostSync)
 
+		pricingRoute := apiRouter.Group("/beacon/pricing", middleware.RootAuth(), middleware.DisableCache())
+		pricingRoute.GET("", controller.GetBeaconPricing)
+		pricingRoute.POST("/rules", middleware.CriticalRateLimit(), controller.PostBeaconPricingRule)
+		pricingRoute.DELETE("/rules", middleware.CriticalRateLimit(), controller.DeleteBeaconPricingRule)
+		pricingRoute.POST("/evaluate", middleware.CriticalRateLimit(), controller.PostBeaconPricingEvaluate)
+		pricingRoute.POST("/proposals/:id/:action", middleware.CriticalRateLimit(), controller.PostBeaconPriceProposal)
+
 		userRoute := apiRouter.Group("/user")
 		{
 			userRoute.POST("/auth/refresh", middleware.SessionCookieOriginGuard(), middleware.CriticalRateLimit(), middleware.DisableCache(), controller.RefreshAuth)

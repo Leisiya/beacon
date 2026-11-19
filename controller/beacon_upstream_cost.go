@@ -103,6 +103,8 @@ func PostBeaconUpstreamRate(c *gin.Context) {
 		writeBeaconCostError(c, err)
 		return
 	}
+	// A new rate changes the cost basis of every model the channel serves.
+	_, _ = service.EvaluateBeaconPricing()
 	common.ApiSuccess(c, gin.H{"rate": rate})
 }
 

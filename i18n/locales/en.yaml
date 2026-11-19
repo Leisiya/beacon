@@ -89,3 +89,10 @@ channel.upstream_update_added_models: "Added model examples (showing {{.Shown}}/
 channel.upstream_update_removed_models: "Removed model examples (showing {{.Shown}}/{{.Total}}): {{.Models}}"
 channel.upstream_update_failed_channels: "Failed channel IDs (showing {{.Shown}}/{{.Total}}): {{.Ids}}"
 channel.upstream_update_more_omitted: " ({{.Count}} more omitted)"
+
+# Beacon price rule notices
+beacon.pricing_notify_subject: "Beacon price rule notice"
+beacon.pricing_proposed: "Upstream costs changed; price changes are waiting for confirmation: {{.Models}}"
+beacon.pricing_applied: "Sale prices were changed automatically by the price rules: {{.Models}}"
+beacon.pricing_failed: "Automatic price changes failed; review them under Manual ledger → Price rules: {{.Models}}"
+beacon.pricing_below_minimum: "Markup is below the configured minimum: {{.Models}}"

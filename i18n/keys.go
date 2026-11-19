@@ -113,3 +113,12 @@ const (
 	MsgChannelUpstreamUpdateFailedChannels  = "channel.upstream_update_failed_channels"
 	MsgChannelUpstreamUpdateMoreOmitted     = "channel.upstream_update_more_omitted"
 )
+
+// Beacon price rule notices sent to administrators who receive channel notices
+const (
+	MsgBeaconPricingNotifySubject = "beacon.pricing_notify_subject"
+	MsgBeaconPricingProposed      = "beacon.pricing_proposed"
+	MsgBeaconPricingApplied       = "beacon.pricing_applied"
+	MsgBeaconPricingFailed        = "beacon.pricing_failed"
+	MsgBeaconPricingBelowMinimum  = "beacon.pricing_below_minimum"
+)
