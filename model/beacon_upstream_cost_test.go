@@ -240,8 +240,13 @@ func TestBeaconPricingProposalLifecycle(t *testing.T) {
 		return snapshot.Entries[0].Effective["billing_setting.billing_expr"].(string)
 	}
 	setSalePrice(sonnet)
+	require.NoError(t, DB.Model(&Ability{}).Where("model = ?", name).Update("enabled", false).Error)
+	report, err := AnalyzeBeaconPricing()
+	require.NoError(t, err)
+	assert.Empty(t, report.Models, "only models offered by an enabled channel are compared")
+	require.NoError(t, DB.Model(&Ability{}).Where("model = ?", name).Update("enabled", true).Error)
 	now := time.Now().Unix()
-	_, err := CreateBeaconUpstreamRate(BeaconUpstreamRate{ChannelID: channel.Id, EffectiveAt: now - 3600, CNYPerUnit: "1"}, operator.Id, now)
+	_, err = CreateBeaconUpstreamRate(BeaconUpstreamRate{ChannelID: channel.Id, EffectiveAt: now - 3600, CNYPerUnit: "1"}, operator.Id, now)
 	require.NoError(t, err)
 	logID := int64(0)
 	observe := func(groupRatio float64, at int64) {
@@ -258,7 +263,7 @@ func TestBeaconPricingProposalLifecycle(t *testing.T) {
 
 	// List price ¥21.9 per 1M input against ¥5.4 cost: far above 30%, and the
 	// default rule does not follow prices down.
-	report, err := AnalyzeBeaconPricing()
+	report, err = AnalyzeBeaconPricing()
 	require.NoError(t, err)
 	require.Len(t, report.Models, 1)
 	analysis := report.Models[0]

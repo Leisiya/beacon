@@ -519,9 +519,12 @@ func AnalyzeBeaconPricing() (*BeaconPricingReport, error) {
 		}
 	}
 	names := slices.Sorted(maps.Keys(channelsByModel))
-	snapshot, err := GetModelPricingSnapshot(names)
-	if err != nil {
-		return nil, err
+	// An empty list would ask GetModelPricingSnapshot for every priced model.
+	snapshot := &ModelPricingSnapshot{}
+	if len(names) > 0 {
+		if snapshot, err = GetModelPricingSnapshot(names); err != nil {
+			return nil, err
+		}
 	}
 	saleCNYPerUSD := report.ReferenceCNYPerUnit * report.DefaultGroupRatio
 	now := common.GetTimestamp()
