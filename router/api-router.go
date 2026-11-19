@@ -76,6 +76,11 @@ func SetApiRouter(router *gin.Engine) {
 		ledgerRoute.GET("", controller.GetBeaconLedger)
 		ledgerRoute.POST("", middleware.CriticalRateLimit(), middleware.UserCriticalRateLimit("beacon-ledger"), controller.PostBeaconLedger)
 
+		costRoute := apiRouter.Group("/beacon/costs", middleware.RootAuth(), middleware.DisableCache())
+		costRoute.GET("", controller.GetBeaconCosts)
+		costRoute.POST("/rates", middleware.CriticalRateLimit(), controller.PostBeaconUpstreamRate)
+		costRoute.POST("/sync", middleware.CriticalRateLimit(), controller.PostBeaconCostSync)
+
 		userRoute := apiRouter.Group("/user")
 		{
 			userRoute.POST("/auth/refresh", middleware.SessionCookieOriginGuard(), middleware.CriticalRateLimit(), middleware.DisableCache(), controller.RefreshAuth)

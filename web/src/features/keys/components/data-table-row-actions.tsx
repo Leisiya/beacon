@@ -53,6 +53,7 @@ import { sendToFluent } from '@/features/chat/lib/send-to-fluent'
 import { encodeChannelConnectionInfo } from '@/lib/channel-connection-info'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
 import { handleServerError } from '@/lib/handle-server-error'
+import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
 import { updateApiKeyStatus } from '../api'
 import { API_KEY_STATUS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
@@ -94,7 +95,8 @@ export function DataTableRowActions<TData>({
   const [isTogglingStatus, setIsTogglingStatus] = useState(false)
   const isRealKeyLoading = Boolean(loadingKeys[apiKey.id])
 
-  const hasChatPresets = chatPresets.length > 0
+  const hasChatPresets =
+    chatPresets.length > 0 && isSidebarModuleEnabled('chat', 'chat')
   const toggleLabel = isEnabled ? t('Disable') : t('Enable')
 
   const handleOpenChatPreset = useCallback(

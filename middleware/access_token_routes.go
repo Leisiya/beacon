@@ -60,6 +60,10 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 	// The manual ledger needs a root browser sign-in and a fresh security proof.
 	"GET /api/beacon/ledger":  accessTokenSessionRule,
 	"POST /api/beacon/ledger": accessTokenSessionRule,
+	// Upstream costs and rates are root-only browser views.
+	"GET /api/beacon/costs":        accessTokenSessionRule,
+	"POST /api/beacon/costs/rates": accessTokenSessionRule,
+	"POST /api/beacon/costs/sync":  accessTokenSessionRule,
 
 	// router/api-router.go: /api/user (self)
 	"GET /api/user/sessions":                       accessTokenSessionRule,

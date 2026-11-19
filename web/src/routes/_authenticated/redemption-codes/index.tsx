@@ -21,6 +21,7 @@ import z from 'zod'
 
 import { Redemptions } from '@/features/redemption-codes'
 import { REDEMPTION_FILTER_VALUES } from '@/features/redemption-codes/constants'
+import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -39,6 +40,9 @@ export const Route = createFileRoute('/_authenticated/redemption-codes/')({
       throw redirect({
         to: '/403',
       })
+    }
+    if (!isSidebarModuleEnabled('admin', 'redemption')) {
+      throw redirect({ to: '/dashboard' })
     }
   },
   validateSearch: redemptionsSearchSchema,

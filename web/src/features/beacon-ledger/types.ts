@@ -104,3 +104,67 @@ export interface QuotaReconciliationData {
   mismatch_count: number
   mismatches: QuotaMismatch[]
 }
+
+export type CostGroupBy = 'channel' | 'model' | 'day' | 'user'
+
+// Amounts are decimal strings: credit and CNY in millionths, local quota in
+// quota units.
+export interface CostRow {
+  key: string
+  label: string
+  calls: number
+  pending_calls: number
+  unmatched_calls: number
+  credit_micro: string
+  cost_micro_cny: string
+  local_quota: string
+}
+
+export interface CostSummaryData {
+  range: CashSummaryData['range']
+  group_by: CostGroupBy
+  quota_per_unit: number
+  total: CostRow
+  rows: CostRow[]
+}
+
+export interface UpstreamRate {
+  id: number
+  channel_id: number
+  effective_at: number
+  cny_per_unit: string
+  operator_id: number
+  recorded_at: number
+  note: string
+}
+
+export interface UpstreamRateInput {
+  channel_id: number
+  effective_at: number
+  cny_per_unit: string
+  note: string
+}
+
+export interface CostSyncStatus {
+  channel_id: number
+  last_attempt_at: number
+  last_success_at: number
+  last_error: string
+  fetched: number
+  inserted: number
+}
+
+export interface CostSource {
+  id: number
+  name: string
+  type: number
+  status: number
+  base_url: string
+  rates: UpstreamRate[]
+  observation: {
+    occurred_at: number
+    upstream_group: string
+    group_ratio: string
+  } | null
+  sync: CostSyncStatus | null
+}

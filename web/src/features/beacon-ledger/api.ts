@@ -22,10 +22,16 @@ import { authRequestOptions, authResult } from '@/lib/secure-verification'
 import type { CashRangeValues } from './lib/cash-range'
 import type {
   CashSummaryData,
+  CostGroupBy,
+  CostSource,
+  CostSummaryData,
+  CostSyncStatus,
   LedgerEntry,
   LedgerInput,
   LedgerPage,
   QuotaReconciliationData,
+  UpstreamRate,
+  UpstreamRateInput,
 } from './types'
 
 export function getCashSummary(
@@ -66,5 +72,45 @@ export function postLedger(
       ...authRequestOptions,
       headers: { 'X-Security-Proof': proof },
     })
+  )
+}
+
+export function getCostSummary(
+  range: CashRangeValues,
+  groupBy: CostGroupBy
+): Promise<CostSummaryData> {
+  return authResult(
+    api.get('/api/beacon/costs', {
+      ...authRequestOptions,
+      params: { ...range, group_by: groupBy },
+    })
+  )
+}
+
+export function getCostSources(): Promise<{
+  sources: CostSource[]
+  now: number
+}> {
+  return authResult(
+    api.get('/api/beacon/costs', {
+      ...authRequestOptions,
+      params: { view: 'sources' },
+    })
+  )
+}
+
+export function postUpstreamRate(
+  input: UpstreamRateInput
+): Promise<{ rate: UpstreamRate }> {
+  return authResult(
+    api.post('/api/beacon/costs/rates', input, authRequestOptions)
+  )
+}
+
+export function postCostSync(): Promise<{
+  statuses: Record<string, CostSyncStatus>
+}> {
+  return authResult(
+    api.post('/api/beacon/costs/sync', null, authRequestOptions)
   )
 }

@@ -26,6 +26,7 @@ import { api } from '@/lib/api'
 
 import { CashSummary } from '../components/cash-summary'
 import { cashRangeSchema } from '../lib/cash-range'
+import { formatMicro, fromShanghaiInput, quotaToMicro } from '../lib/cost'
 import { ledgerMoney } from '../lib/form'
 import type { CashSummaryData } from '../types'
 
@@ -190,4 +191,14 @@ it('uses Shanghai dates at UTC month boundaries and preserves cents beyond int64
   expect(ledgerMoney('9232379236109515775', 'CNY')).toBe(
     'CNY 92323792361095157.75'
   )
+})
+
+it('formats upstream cost millionths exactly and converts Shanghai times', () => {
+  expect(formatMicro('23936', 4)).toBe('0.0239')
+  expect(formatMicro('23950', 4)).toBe('0.0240')
+  expect(formatMicro('-1500000', 2)).toBe('-1.50')
+  expect(formatMicro('9232379236109515775', 2)).toBe('9232379236109.52')
+  expect(quotaToMicro('6650', 500000)).toBe('13300')
+  expect(quotaToMicro('6650', 0)).toBe('0')
+  expect(fromShanghaiInput('2026-11-18T00:00')).toBe(1794931200)
 })

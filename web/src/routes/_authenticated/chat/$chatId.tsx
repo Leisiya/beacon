@@ -29,10 +29,14 @@ import {
   chatLinkRequiresApiKey,
   resolveChatUrl,
 } from '@/features/chat/lib/chat-links'
+import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
 export const Route = createFileRoute('/_authenticated/chat/$chatId')({
   loader: async ({ params }) => {
-    if (!Number.isInteger(Number(params.chatId))) {
+    if (
+      !Number.isInteger(Number(params.chatId)) ||
+      !isSidebarModuleEnabled('chat', 'chat')
+    ) {
       throw redirect({ to: '/dashboard' })
     }
   },

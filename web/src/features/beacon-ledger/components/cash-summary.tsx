@@ -16,30 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { ErrorState } from '@/components/error-state'
 import { LoadingState } from '@/components/loading-state'
-import { Button } from '@/components/ui/button'
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { TitledCard } from '@/components/ui/titled-card'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
 
 import { getCashSummary } from '../api'
-import { cashRangeSchema, type CashRangeValues } from '../lib/cash-range'
+import type { CashRangeValues } from '../lib/cash-range'
 import { ledgerMoney, ledgerQuota } from '../lib/form'
+import { RangeForm } from './range-form'
 import { SummaryMetrics } from './summary-metrics'
 
 export function CashSummary() {
@@ -50,11 +40,6 @@ export function CashSummary() {
     start: '',
     end: '',
   })
-  const form = useForm<CashRangeValues>({
-    resolver: zodResolver(cashRangeSchema),
-    defaultValues: range,
-  })
-  const period = form.watch('period')
   const summary = useQuery({
     queryKey: ['beacon-ledger', 'cash-summary', range],
     queryFn: () => getCashSummary(range),
@@ -100,102 +85,16 @@ export function CashSummary() {
             'Only this manual ledger is included. Cash receipts are not usage revenue or profit. Historical top-ups and payment-provider records are excluded.'
           )}
         </p>
-        <form
-          className='flex flex-wrap items-end gap-3'
-          onSubmit={form.handleSubmit((values) => setRange({ ...values }))}
-        >
-          <Field className='w-full sm:w-44'>
-            <FieldLabel htmlFor='cash-period'>
-              {t('Reporting period')}
-            </FieldLabel>
-            <NativeSelect
-              id='cash-period'
-              className='w-full [&_select]:min-h-11'
-              {...form.register('period')}
-            >
-              <NativeSelectOption value='today'>
-                {t('Today')}
-              </NativeSelectOption>
-              <NativeSelectOption value='month'>
-                {t('Month to date')}
-              </NativeSelectOption>
-              <NativeSelectOption value='all'>
-                {t('All time')}
-              </NativeSelectOption>
-              <NativeSelectOption value='custom'>
-                {t('Custom dates')}
-              </NativeSelectOption>
-            </NativeSelect>
-          </Field>
-          {period === 'custom' && (
-            <FieldGroup className='w-full gap-3 sm:w-92 sm:flex-row'>
-              <Field className='min-w-0 sm:w-44'>
-                <FieldLabel htmlFor='cash-start'>
-                  {t('Start date (Shanghai)')}
-                </FieldLabel>
-                <Input
-                  id='cash-start'
-                  type='date'
-                  className='min-h-11'
-                  min='2000-01-01'
-                  aria-invalid={!!form.formState.errors.start}
-                  aria-describedby={
-                    form.formState.errors.start ? 'cash-start-error' : undefined
-                  }
-                  {...form.register('start')}
-                />
-                {form.formState.errors.start && (
-                  <FieldError id='cash-start-error'>
-                    {t(
-                      'Choose valid Shanghai dates, from 2000 through today, with the end on or after the start.'
-                    )}
-                  </FieldError>
-                )}
-              </Field>
-              <Field className='min-w-0 sm:w-44'>
-                <FieldLabel htmlFor='cash-end'>
-                  {t('End date (Shanghai)')}
-                </FieldLabel>
-                <Input
-                  id='cash-end'
-                  type='date'
-                  className='min-h-11'
-                  min='2000-01-01'
-                  aria-invalid={!!form.formState.errors.end}
-                  aria-describedby={
-                    form.formState.errors.end ? 'cash-end-error' : undefined
-                  }
-                  {...form.register('end')}
-                />
-                {form.formState.errors.end && (
-                  <FieldError id='cash-end-error'>
-                    {t(
-                      'Choose valid Shanghai dates, from 2000 through today, with the end on or after the start.'
-                    )}
-                  </FieldError>
-                )}
-              </Field>
-            </FieldGroup>
-          )}
-          <Button
-            className='min-h-11'
-            type='submit'
-            disabled={summary.isFetching}
-          >
-            {t('Apply range')}
-          </Button>
-          <Button
-            className='min-h-11'
-            variant='outline'
-            type='button'
-            disabled={summary.isFetching}
-            onClick={() => {
-              void summary.refetch()
-            }}
-          >
-            {t('Refresh summary')}
-          </Button>
-        </form>
+        <RangeForm
+          idPrefix='cash'
+          initial={range}
+          fetching={summary.isFetching}
+          refreshLabel={t('Refresh summary')}
+          onApply={setRange}
+          onRefresh={() => {
+            void summary.refetch()
+          }}
+        />
         {summary.isPending && <LoadingState />}
         {summary.isError && (
           <ErrorState
@@ -251,7 +150,7 @@ export function CashSummary() {
         )}
         <p className='border-t pt-4 text-sm'>
           {t(
-            'Usage revenue, unspent purchased balance, upstream costs and gross profit: pending reliable usage attribution and cost records.'
+            'Upstream costs are on the Upstream costs tab. Usage revenue, unspent purchased balance and gross profit: pending reliable usage attribution.'
           )}
         </p>
       </div>

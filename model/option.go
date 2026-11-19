@@ -18,6 +18,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const BeaconDefaultSidebarModulesAdmin = `{"chat":{"enabled":false,"playground":false,"chat":false},"admin":{"enabled":true,"channel":true,"models":true,"redemption":false,"user":true,"setting":true,"subscription":false}}`
+
 type Option struct {
 	Key   string `json:"key" gorm:"primaryKey"`
 	Value string `json:"value"`
@@ -33,6 +35,9 @@ func AllOption() ([]*Option, error) {
 func InitOptionMap() {
 	common.OptionMapRWMutex.Lock()
 	common.OptionMap = make(map[string]string)
+	// Beacon hides the playground, chat links, redemption codes and
+	// subscriptions by default; administrators can turn them back on.
+	common.OptionMap["SidebarModulesAdmin"] = BeaconDefaultSidebarModulesAdmin
 
 	// 添加原有的系统配置
 	common.OptionMap["FileUploadPermission"] = strconv.Itoa(common.FileUploadPermission)

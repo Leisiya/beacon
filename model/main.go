@@ -332,6 +332,8 @@ func migrateDB() error {
 		&Midjourney{},
 		&TopUp{},
 		&BeaconLedgerEntry{},
+		&BeaconUpstreamRate{},
+		&BeaconUpstreamCharge{},
 		&QuotaData{},
 		&Task{},
 		&TaskPlugin{},

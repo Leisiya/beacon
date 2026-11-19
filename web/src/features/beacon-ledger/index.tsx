@@ -35,6 +35,8 @@ import { CashSummary } from './components/cash-summary'
 import { LedgerEntryDialog } from './components/ledger-entry-dialog'
 import { LedgerTable } from './components/ledger-table'
 import { QuotaReconciliation } from './components/quota-reconciliation'
+import { UpstreamCostSummary } from './components/upstream-cost-summary'
+import { UpstreamSources } from './components/upstream-sources'
 import type { LedgerEntry, LedgerKind } from './types'
 
 export function BeaconLedger() {
@@ -83,7 +85,16 @@ export function BeaconLedger() {
               <TabsTrigger className='min-h-11 px-4' value='reconciliation'>
                 {t('Balance reconciliation')}
               </TabsTrigger>
+              <TabsTrigger className='min-h-11 px-4' value='costs'>
+                {t('Upstream costs')}
+              </TabsTrigger>
             </TabsList>
+            <TabsContent value='costs'>
+              <div className='flex min-w-0 flex-col gap-4'>
+                <UpstreamSources />
+                <UpstreamCostSummary />
+              </div>
+            </TabsContent>
             <TabsContent value='summary'>
               <CashSummary />
             </TabsContent>
