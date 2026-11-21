@@ -69,6 +69,7 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 	"POST /api/beacon/pricing/rules":                 accessTokenSessionRule,
 	"DELETE /api/beacon/pricing/rules":               accessTokenSessionRule,
 	"POST /api/beacon/pricing/evaluate":              accessTokenSessionRule,
+	"POST /api/beacon/pricing/reference":             accessTokenSessionRule,
 	"POST /api/beacon/pricing/proposals/:id/:action": accessTokenSessionRule,
 
 	// router/api-router.go: /api/user (self)

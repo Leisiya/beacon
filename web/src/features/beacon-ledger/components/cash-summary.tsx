@@ -150,7 +150,7 @@ export function CashSummary() {
         )}
         <p className='border-t pt-4 text-sm'>
           {t(
-            'Upstream costs are on the Upstream costs tab. Usage revenue, unspent purchased balance and gross profit: pending reliable usage attribution.'
+            'Upstream cost and estimated gross profit are under Profit and pricing. Exact revenue per receipt and unspent purchased balance: pending reliable usage attribution.'
           )}
         </p>
       </div>

@@ -33,7 +33,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 
 import { cashRangeSchema, type CashRangeValues } from '../lib/cash-range'
 
-// Shanghai reporting period picker shared by the cash and upstream cost
+// Shanghai reporting period picker shared by the cash and profit
 // summaries. Extra controls (such as a grouping select) go in children.
 export function RangeForm(props: {
   idPrefix: string

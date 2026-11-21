@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,9 +27,10 @@ import { Button } from '@/components/ui/button'
 import { TitledCard } from '@/components/ui/titled-card'
 import { toIntlLocale } from '@/i18n/languages'
 
-import { formatBp } from '../lib/pricing'
-import type { ModelPricing, PriceProposal } from '../types'
+import { formatBp, formatCny } from '../lib/pricing'
+import type { ModelPricing, PriceLine, PriceProposal } from '../types'
 import { ModelPricingDialog } from './model-pricing-dialog'
+import { SalePriceSheet } from './sale-price-sheet'
 
 export function ModelPricingTable(props: {
   models: ModelPricing[]
@@ -36,10 +38,30 @@ export function ModelPricingTable(props: {
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const queryClient = useQueryClient()
   const [selected, setSelected] = useState<string | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
   const pending = new Set(
     props.proposals.map((proposal) => proposal.model_name)
   )
+  // Input and output at standard context, or the per-request price.
+  const priceSummary = (
+    lines: PriceLine[],
+    field: 'sale_cny' | 'cost_cny'
+  ): string => {
+    const at = (kind: string) =>
+      lines.find((line) => line.kind === kind && line.context <= 1000)
+    const request = at('request')
+    if (request) {
+      return t('{{price}} per request', {
+        price: formatCny(request[field], locale),
+      })
+    }
+    const input = at('input')
+    const output = at('output')
+    if (!input || !output) return '—'
+    return `${formatCny(input[field], locale)} / ${formatCny(output[field], locale)}`
+  }
   const statusText: Record<ModelPricing['status'], string> = {
     ok: t('Cost and sale compared'),
     legacy_pricing: t(
@@ -53,7 +75,7 @@ export function ModelPricingTable(props: {
     <TitledCard
       title={<h2>{t('Models: cost and sale')}</h2>}
       description={t(
-        'Lowest markup across usage types against the most expensive enabled supplier.'
+        'Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.'
       )}
       disableHoverEffect
     >
@@ -73,7 +95,7 @@ export function ModelPricingTable(props: {
             'aria-label': t('Models: cost and sale'),
             tabIndex: 0,
           }}
-          tableClassName='min-w-[680px]'
+          tableClassName='min-w-[920px]'
           columns={[
             {
               id: 'model',
@@ -92,14 +114,33 @@ export function ModelPricingTable(props: {
               ),
             },
             {
-              id: 'basis',
-              header: t('Cost basis'),
+              id: 'sale',
+              header: t('Sale per 1M tokens (input / output)'),
+              cell: (model) => (
+                <span className='tabular-nums'>
+                  {priceSummary(model.sale, 'sale_cny')}
+                </span>
+              ),
+            },
+            {
+              id: 'cost',
+              header: t('Cost per 1M tokens (input / output)'),
               cell: (model) => {
                 const basis = model.channels.find(
                   (channel) => channel.channel_id === model.basis_channel_id
                 )
                 if (!basis) return '—'
-                return `#${basis.channel_id} ${basis.channel_name} · ×${basis.group_ratio}`
+                return (
+                  <div className='flex flex-col'>
+                    <span className='tabular-nums'>
+                      {priceSummary(basis.lines, 'cost_cny')}
+                    </span>
+                    <span className='text-muted-foreground text-xs break-all'>
+                      #{basis.channel_id} {basis.channel_name} · ×
+                      {basis.group_ratio}
+                    </span>
+                  </div>
+                )
               },
             },
             {
@@ -132,18 +173,35 @@ export function ModelPricingTable(props: {
               id: 'actions',
               header: t('Actions'),
               cell: (model) => (
-                <Button
-                  className='min-h-11'
-                  variant='outline'
-                  onClick={() => setSelected(model.model_name)}
-                >
-                  {t('Details and rule')}
-                </Button>
+                <div className='flex flex-wrap gap-2'>
+                  <Button
+                    className='min-h-11'
+                    variant='outline'
+                    onClick={() => setEditing(model.model_name)}
+                  >
+                    {t('Edit sale price')}
+                  </Button>
+                  <Button
+                    className='min-h-11'
+                    variant='outline'
+                    onClick={() => setSelected(model.model_name)}
+                  >
+                    {t('Details and rule')}
+                  </Button>
+                </div>
               ),
             },
           ]}
         />
       )}
+      <SalePriceSheet
+        modelName={editing}
+        onOpenChange={(open) => {
+          if (open) return
+          setEditing(null)
+          void queryClient.invalidateQueries({ queryKey: ['beacon-ledger'] })
+        }}
+      />
       <ModelPricingDialog
         model={
           props.models.find((model) => model.model_name === selected) ?? null

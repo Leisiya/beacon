@@ -74,7 +74,7 @@ func GetBeaconCosts(c *gin.Context) {
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-	summary, err := model.GetBeaconCostSummary(ctx, c.DefaultQuery("period", "today"), c.Query("start"), c.Query("end"), c.DefaultQuery("group_by", "channel"), time.Now())
+	summary, err := model.GetBeaconProfitSummary(ctx, c.DefaultQuery("period", "today"), c.Query("start"), c.Query("end"), c.DefaultQuery("group_by", "channel"), time.Now())
 	if err != nil {
 		writeBeaconCostError(c, err)
 		return

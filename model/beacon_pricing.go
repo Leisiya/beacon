@@ -53,6 +53,7 @@ var (
 	ErrBeaconPricingShape     = errors.New("billing expression cannot be scaled automatically")
 	ErrBeaconProposalClosed   = errors.New("price proposal is no longer pending")
 	ErrBeaconProposalOutdated = errors.New("model pricing changed after the proposal was made")
+	ErrBeaconReferencePrice   = errors.New("invalid top-up price")
 
 	beaconPriceVariables = map[string]bool{
 		"p": true, "c": true, "cr": true, "cc": true, "cc1h": true, "img": true,
@@ -142,8 +143,10 @@ type BeaconModelPricing struct {
 	BelowMinimum    bool                `json:"below_minimum"`
 	Factor          string              `json:"factor"`
 	ProposedExpr    string              `json:"proposed_expr"`
-	version         string
-	factor          float64
+	// Sale is the CNY sale price of each usage type at standard context.
+	Sale    []BeaconPriceLine `json:"sale"`
+	version string
+	factor  float64
 }
 
 type BeaconPricingReport struct {
@@ -529,7 +532,7 @@ func AnalyzeBeaconPricing() (*BeaconPricingReport, error) {
 	saleCNYPerUSD := report.ReferenceCNYPerUnit * report.DefaultGroupRatio
 	now := common.GetTimestamp()
 	for _, entry := range snapshot.Entries {
-		analysis := BeaconModelPricing{ModelName: entry.ModelName, Rule: defaultRule, version: entry.Version, Channels: []BeaconChannelCost{}}
+		analysis := BeaconModelPricing{ModelName: entry.ModelName, Rule: defaultRule, version: entry.Version, Channels: []BeaconChannelCost{}, Sale: []BeaconPriceLine{}}
 		if rule, ok := overrides[entry.ModelName]; ok {
 			analysis.Rule, analysis.RuleOverridden = rule, true
 		}
@@ -544,6 +547,21 @@ func AnalyzeBeaconPricing() (*BeaconPricingReport, error) {
 			continue
 		}
 		claude := strings.Contains(strings.ToLower(entry.ModelName), "claude")
+		saleVars := billingexpr.UsedVars(analysis.SaleExpr)
+		for _, usage := range beaconUsageKinds {
+			if usage.variable != "" && !saleVars[usage.variable] {
+				continue
+			}
+			price, request, err := beaconUsagePrice(analysis.SaleExpr, usage.kind, beaconStandardContext, claude)
+			if err != nil {
+				break
+			}
+			if request {
+				analysis.Sale = []BeaconPriceLine{{Kind: "request", Context: beaconStandardContext, SaleCNY: price * saleCNYPerUSD}}
+				break
+			}
+			analysis.Sale = append(analysis.Sale, BeaconPriceLine{Kind: usage.kind, Context: beaconStandardContext, SaleCNY: price * saleCNYPerUSD})
+		}
 		basis := -1
 		for _, channelID := range slices.Sorted(slices.Values(channelsByModel[entry.ModelName])) {
 			channel := channelByID[channelID]
@@ -619,6 +637,19 @@ func AnalyzeBeaconPricing() (*BeaconPricingReport, error) {
 		return nil, err
 	}
 	return report, nil
+}
+
+// SetBeaconReferencePrice saves the top-up price: the CNY a customer pays for
+// $1 of balance. Manual receipts are prefilled with it, and sale prices and
+// customer charges are converted to CNY with it.
+func SetBeaconReferencePrice(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	price, err := decimal.NewFromString(value)
+	if err != nil || !beaconRatePattern.MatchString(value) || !price.IsPositive() {
+		return "", ErrBeaconReferencePrice
+	}
+	value = price.String()
+	return value, UpdateOption("Price", value)
 }
 
 type BeaconPricingOutcome struct {

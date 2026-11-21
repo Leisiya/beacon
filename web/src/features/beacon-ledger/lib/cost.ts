@@ -32,12 +32,14 @@ export function formatMicro(value: string, digits: number): string {
   return digits > 0 ? `${sign}${whole}.${fraction}` : `${sign}${whole}`
 }
 
-// Customer charges are stored in quota units; convert them to millionths of
-// the site's display unit with the server's quota-per-unit.
-export function quotaToMicro(quota: string, quotaPerUnit: number): string {
-  const perUnit = BigInt(Math.round(quotaPerUnit))
-  if (perUnit <= 0n) return '0'
-  return String((BigInt(quota) * 1000000n) / perUnit)
+// Profit can be negative, so the sign goes before the currency symbol.
+export function formatMicroCny(value: string, digits: number): string {
+  const text = formatMicro(value, digits)
+  return text.startsWith('-') ? `-¥${text.slice(1)}` : `¥${text}`
+}
+
+export function addMicro(...values: string[]): string {
+  return String(values.reduce((sum, value) => sum + BigInt(value), 0n))
 }
 
 const shanghaiOffsetMs = 8 * 3600000

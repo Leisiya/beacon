@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -17,6 +18,8 @@ func writeBeaconPricingError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, model.ErrBeaconPricingInput):
 		common.ApiErrorStatus(c, http.StatusBadRequest, common.NewMessage("Check the price rule mode and percentages."))
+	case errors.Is(err, model.ErrBeaconReferencePrice):
+		common.ApiErrorStatus(c, http.StatusBadRequest, common.NewMessage("Enter a top-up price above 0 with up to 8 decimal places."))
 	case errors.Is(err, model.ErrBeaconProposalClosed):
 		common.ApiErrorStatus(c, http.StatusConflict, common.NewMessage("This price change is no longer pending."))
 	case errors.Is(err, model.ErrBeaconProposalOutdated):
@@ -77,6 +80,29 @@ func DeleteBeaconPricingRule(c *gin.Context) {
 	recordManageAuditFor(c, 0, "beacon.pricing.rule_delete", map[string]any{"model_name": name})
 	_, _ = service.EvaluateBeaconPricing()
 	common.ApiSuccess(c, nil)
+}
+
+func PostBeaconReferencePrice(c *gin.Context) {
+	if _, ok := beaconLedgerOperator(c); !ok {
+		return
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1<<10)
+	var input struct {
+		CNYPerUnit string `json:"cny_per_unit"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &input); err != nil {
+		writeBeaconPricingError(c, model.ErrBeaconReferencePrice)
+		return
+	}
+	previous := operation_setting.Price
+	value, err := model.SetBeaconReferencePrice(input.CNYPerUnit)
+	if err != nil {
+		writeBeaconPricingError(c, err)
+		return
+	}
+	recordManageAuditFor(c, 0, "beacon.pricing.reference", map[string]any{"previous": previous, "cny_per_unit": value})
+	_, _ = service.EvaluateBeaconPricing()
+	common.ApiSuccess(c, gin.H{"cny_per_unit": value})
 }
 
 func PostBeaconPricingEvaluate(c *gin.Context) {

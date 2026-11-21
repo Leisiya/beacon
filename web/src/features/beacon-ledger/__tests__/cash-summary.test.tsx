@@ -26,7 +26,12 @@ import { api } from '@/lib/api'
 
 import { CashSummary } from '../components/cash-summary'
 import { cashRangeSchema } from '../lib/cash-range'
-import { formatMicro, fromShanghaiInput, quotaToMicro } from '../lib/cost'
+import {
+  addMicro,
+  formatMicro,
+  formatMicroCny,
+  fromShanghaiInput,
+} from '../lib/cost'
 import { ledgerMoney } from '../lib/form'
 import type { CashSummaryData } from '../types'
 
@@ -86,9 +91,9 @@ it('shows exact recorded cash and quota movement with its coverage and keeps mis
   expect(screen.getByText('1,000')).toBeInTheDocument()
   expect(screen.getByText('-1,000')).toBeInTheDocument()
   expect(screen.getByText('9,007,199,254,740,993')).toBeInTheDocument()
-  expect(
-    screen.getByText(/Usage revenue, unspent purchased balance/)
-  ).toHaveTextContent('pending')
+  expect(screen.getByText(/unspent purchased balance/)).toHaveTextContent(
+    'pending'
+  )
   expect(screen.getByText(/Only this manual ledger/)).toBeInTheDocument()
 })
 
@@ -198,7 +203,8 @@ it('formats upstream cost millionths exactly and converts Shanghai times', () =>
   expect(formatMicro('23950', 4)).toBe('0.0240')
   expect(formatMicro('-1500000', 2)).toBe('-1.50')
   expect(formatMicro('9232379236109515775', 2)).toBe('9232379236109.52')
-  expect(quotaToMicro('6650', 500000)).toBe('13300')
-  expect(quotaToMicro('6650', 0)).toBe('0')
+  expect(formatMicroCny('-21860', 4)).toBe('-¥0.0219')
+  expect(formatMicroCny('-40', 4)).toBe('¥0.0000')
+  expect(addMicro('9232379236109515775', '-1', '2')).toBe('9232379236109515776')
   expect(fromShanghaiInput('2026-11-18T00:00')).toBe(1794931200)
 })

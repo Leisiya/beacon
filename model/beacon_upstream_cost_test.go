@@ -48,16 +48,20 @@ func TestBeaconUpstreamChargesKeepTheirPricedCost(t *testing.T) {
 	start := now - 3600
 	_, err := CreateBeaconUpstreamRate(BeaconUpstreamRate{ChannelID: channel.Id, EffectiveAt: start, CNYPerUnit: "1", Note: "1 CNY per credit"}, operator.Id, now)
 	require.NoError(t, err)
-	require.NoError(t, LOG_DB.Create(&Log{UserId: user.Id, Type: LogTypeConsume, ChannelId: channel.Id, Quota: 221, UpstreamRequestId: "up-1", CreatedAt: start + 10}).Error)
+	// The channel maps the customer's "haiku-alias" to the upstream model.
+	require.NoError(t, LOG_DB.Create(&Log{UserId: user.Id, Type: LogTypeConsume, ChannelId: channel.Id, ModelName: "haiku-alias", Quota: 221, UpstreamRequestId: "up-1", CreatedAt: start + 10}).Error)
 
 	records := []BeaconUpstreamRecord{
 		{LogID: 1, RequestID: "up-1", OccurredAt: start + 10, ModelName: "claude-haiku-4-5", Group: "ccmax", GroupRatio: "1.8", Quota: 397},
 		{LogID: 2, RequestID: "up-2", OccurredAt: start - 100, ModelName: "claude-sonnet-4-6", Quota: 5465},
 		{LogID: 3, RequestID: "up-3", OccurredAt: start + 20, ModelName: "claude-haiku-4-5", Quota: -5},
+		{LogID: 4, RequestID: "up-4", OccurredAt: start - 1000, ModelName: "claude-sonnet-4-6", Quota: 1000},
+		// The upstream logged request up-1 twice; both deductions are costs.
+		{LogID: 5, RequestID: "up-1", OccurredAt: start + 10, ModelName: "claude-haiku-4-5", Group: "ccmax", GroupRatio: "1.8", Quota: 397},
 	}
 	inserted, err := StoreBeaconUpstreamCharges(channel.Id, "key-a", 500000, records, now)
 	require.NoError(t, err)
-	assert.Equal(t, 2, inserted, "negative upstream quota is not stored")
+	assert.Equal(t, 4, inserted, "negative upstream quota is not stored")
 	inserted, err = StoreBeaconUpstreamCharges(channel.Id, "key-a", 500000, records[:1], now)
 	require.NoError(t, err)
 	assert.Equal(t, 0, inserted, "the same upstream log is stored once")
@@ -69,6 +73,7 @@ func TestBeaconUpstreamChargesKeepTheirPricedCost(t *testing.T) {
 	require.NotNil(t, priced.LocalLogID)
 	assert.Equal(t, user.Id, priced.UserID)
 	assert.Equal(t, int64(221), priced.LocalQuota)
+	assert.Equal(t, "haiku-alias", priced.LocalModelName)
 	assert.Equal(t, "1.8", priced.GroupRatio)
 
 	pending := beaconChargeByLogID(t, 2)
@@ -87,29 +92,63 @@ func TestBeaconUpstreamChargesKeepTheirPricedCost(t *testing.T) {
 	assert.Equal(t, int64(21860), pending.CostMicroCNY)
 	assert.Equal(t, int64(794), beaconChargeByLogID(t, 1).CostMicroCNY)
 
-	summary, err := GetBeaconCostSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "model", time.Unix(now, 0))
-	require.NoError(t, err)
-	assert.Equal(t, int64(2), summary.Total.Calls)
-	assert.Equal(t, int64(1), summary.Total.UnmatchedCalls)
-	assert.Equal(t, int64(0), summary.Total.PendingCalls)
-	assert.Equal(t, "22654", summary.Total.CostMicroCNY)
-	assert.Equal(t, "11724", summary.Total.CreditMicro)
-	assert.Equal(t, "221", summary.Total.LocalQuota)
-	require.Len(t, summary.Rows, 2)
-	assert.Equal(t, "claude-haiku-4-5", summary.Rows[0].Key)
-	assert.Equal(t, "794", summary.Rows[0].CostMicroCNY)
+	// A request with no upstream deduction yet, and a refund of part of it.
+	require.NoError(t, LOG_DB.Create(&[]Log{
+		{UserId: user.Id, Type: LogTypeConsume, ChannelId: channel.Id, ModelName: "claude-sonnet-4-6", Quota: 1000, CreatedAt: start + 30},
+		{UserId: user.Id, Type: LogTypeRefund, ChannelId: channel.Id, ModelName: "claude-sonnet-4-6", Quota: 100, CreatedAt: start + 40},
+	}).Error)
+	previousPrice := operation_setting.Price
+	t.Cleanup(func() { operation_setting.Price = previousPrice })
+	// ¥7.3 per $1 of balance is 14.6 millionths of CNY per quota unit.
+	operation_setting.Price = 7.3
+	at := time.Unix(now, 0)
 
-	byChannel, err := GetBeaconCostSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "channel", time.Unix(now, 0))
+	byModel, err := GetBeaconProfitSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "model", at)
+	require.NoError(t, err)
+	assert.Equal(t, 7.3, byModel.ReferenceCNYPerUnit)
+	assert.Equal(t, BeaconProfitRow{
+		Key: "total", Label: "total", Requests: 2, UsageQuota: "1121", UsageMicroCNY: "16367",
+		CostedRequests: 1, CostedMicroCNY: "3227", CostMicroCNY: "1588",
+		UnmatchedRequests: 1, UnmatchedCostMicroCNY: "21860", PendingRequests: 1, ProfitMicroCNY: "-20221",
+	}, byModel.Total)
+	require.Len(t, byModel.Rows, 2)
+	assert.Equal(t, BeaconProfitRow{
+		Key: "claude-sonnet-4-6", Label: "claude-sonnet-4-6", Requests: 1, UsageQuota: "900", UsageMicroCNY: "13140",
+		CostedMicroCNY: "0", CostMicroCNY: "0", UnmatchedRequests: 1, UnmatchedCostMicroCNY: "21860", PendingRequests: 1, ProfitMicroCNY: "-21860",
+	}, byModel.Rows[0], "unmatched and pending deductions keep the upstream model name")
+	assert.Equal(t, BeaconProfitRow{
+		Key: "haiku-alias", Label: "haiku-alias", Requests: 1, UsageQuota: "221", UsageMicroCNY: "3227",
+		CostedRequests: 1, CostedMicroCNY: "3227", CostMicroCNY: "1588", UnmatchedCostMicroCNY: "0", ProfitMicroCNY: "1639",
+	}, byModel.Rows[1], "matched deductions count toward the model the customer asked for, and the request's charge counts once")
+
+	byUser, err := GetBeaconProfitSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "user", at)
+	require.NoError(t, err)
+	require.Len(t, byUser.Rows, 2)
+	assert.Equal(t, "0", byUser.Rows[0].Label, "deductions without a local request have no customer")
+	assert.Equal(t, "-21860", byUser.Rows[0].ProfitMicroCNY)
+	assert.Equal(t, user.Username, byUser.Rows[1].Label)
+	assert.Equal(t, "1121", byUser.Rows[1].UsageQuota)
+	assert.Equal(t, "1639", byUser.Rows[1].ProfitMicroCNY)
+
+	byDay, err := GetBeaconProfitSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "day", at)
+	require.NoError(t, err)
+	require.Len(t, byDay.Rows, 1, "logs and deductions fall on the same Shanghai day")
+	assert.Equal(t, "2026-11-19", byDay.Rows[0].Key)
+	assert.Equal(t, int64(2), byDay.Rows[0].Requests)
+	assert.Equal(t, "-20221", byDay.Rows[0].ProfitMicroCNY)
+
+	byChannel, err := GetBeaconProfitSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "channel", at)
 	require.NoError(t, err)
 	require.Len(t, byChannel.Rows, 1)
 	assert.Equal(t, "supplier-a", byChannel.Rows[0].Label)
+	assert.Equal(t, "1121", byChannel.Rows[0].UsageQuota)
 
 	observation, err := LatestBeaconChannelObservation(channel.Id)
 	require.NoError(t, err)
 	require.NotNil(t, observation)
 	assert.Equal(t, "1.8", observation.GroupRatio)
 
-	_, err = GetBeaconCostSummary(context.Background(), "today", "", "", "token", time.Unix(now, 0))
+	_, err = GetBeaconProfitSummary(context.Background(), "today", "", "", "token", at)
 	assert.ErrorIs(t, err, ErrBeaconCostInput)
 }
 
@@ -273,6 +312,14 @@ func TestBeaconPricingProposalLifecycle(t *testing.T) {
 	assert.Empty(t, analysis.ProposedExpr)
 	require.Len(t, analysis.Channels, 1)
 	assert.Equal(t, int64(1), analysis.Channels[0].VerifiedCount, "the price point reproduces the deducted quota")
+	require.Len(t, analysis.Sale, 5)
+	for i, want := range []struct {
+		kind string
+		cny  float64
+	}{{"input", 21.9}, {"output", 109.5}, {"cache_read", 2.19}, {"cache_write", 27.375}, {"cache_write_1h", 43.8}} {
+		assert.Equal(t, want.kind, analysis.Sale[i].Kind)
+		assert.InDelta(t, want.cny, analysis.Sale[i].SaleCNY, 1e-9, want.kind)
+	}
 
 	rule := DefaultBeaconPricingRule()
 	rule.FollowDown = true
@@ -365,4 +412,20 @@ func TestBeaconPricingProposalLifecycle(t *testing.T) {
 	require.NoError(t, DB.Where("id = ?", proposal.ID).First(&proposal).Error)
 	assert.Equal(t, BeaconProposalSuperseded, proposal.Status)
 	assert.Equal(t, `tier("base", p * 2 + c * 10 + cr * 0.2 + cc * 2.5 + cc1h * 4)`, salePrice())
+
+	// The top-up price converts sale prices to CNY; a lower one lowers the
+	// sale side of every comparison.
+	for _, value := range []string{"0", "-1", "1e3", "abc", "", "1.123456789"} {
+		_, err := SetBeaconReferencePrice(value)
+		assert.ErrorIs(t, err, ErrBeaconReferencePrice, value)
+	}
+	assert.Equal(t, 7.3, operation_setting.Price, "a rejected value leaves the price unchanged")
+	saved, err := SetBeaconReferencePrice(" 3.650 ")
+	require.NoError(t, err)
+	assert.Equal(t, "3.65", saved)
+	assert.Equal(t, 3.65, operation_setting.Price)
+	report, err = AnalyzeBeaconPricing()
+	require.NoError(t, err)
+	assert.Equal(t, 3.65, report.ReferenceCNYPerUnit)
+	assert.InDelta(t, 7.3, report.Models[0].Sale[0].SaleCNY, 1e-9, "$2 per 1M input at ¥3.65")
 }

@@ -28,49 +28,76 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { TitledCard } from '@/components/ui/titled-card'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
-import { getCostSummary } from '../api'
+import { getProfitSummary } from '../api'
 import type { CashRangeValues } from '../lib/cash-range'
-import { formatMicro, quotaToMicro } from '../lib/cost'
-import type { CostGroupBy, CostRow } from '../types'
+import { addMicro, formatMicroCny } from '../lib/cost'
+import type { CostGroupBy, ProfitRow } from '../types'
 import { RangeForm } from './range-form'
 import { SummaryMetrics } from './summary-metrics'
 
-export function UpstreamCostSummary() {
+// Profit covers only requests whose upstream deduction is synced and priced;
+// deductions with no local request are subtracted as a cost.
+export function ProfitSummary() {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const [range, setRange] = useState<CashRangeValues>({
-    period: 'today',
+    period: 'month',
     start: '',
     end: '',
   })
-  const [groupBy, setGroupBy] = useState<CostGroupBy>('channel')
-  const [draftGroupBy, setDraftGroupBy] = useState<CostGroupBy>('channel')
+  const [groupBy, setGroupBy] = useState<CostGroupBy>('model')
+  const [draftGroupBy, setDraftGroupBy] = useState<CostGroupBy>('model')
   const summary = useQuery({
-    queryKey: ['beacon-ledger', 'cost-summary', range, groupBy],
-    queryFn: () => getCostSummary(range, groupBy),
+    queryKey: ['beacon-ledger', 'profit-summary', range, groupBy],
+    queryFn: () => getProfitSummary(range, groupBy),
     retry: false,
     staleTime: 0,
   })
   const data = summary.data
-  const cny = (row: CostRow) => `¥${formatMicro(row.cost_micro_cny, 4)}`
-  const listPrice = (row: CostRow) =>
-    `$${formatMicro(quotaToMicro(row.local_quota, data?.quota_per_unit ?? 0), 4)}`
+  const cny = (micro: string) => formatMicroCny(micro, 4)
+  const cost = (row: ProfitRow) =>
+    addMicro(row.cost_micro_cny, row.unmatched_cost_micro_cny)
+  const margin = (row: ProfitRow) => {
+    const costed = Number(row.costed_micro_cny)
+    if (!(costed > 0)) return '—'
+    const percent = (Number(row.profit_micro_cny) / costed) * 100
+    return `${Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(percent)}%`
+  }
+  const profit = (row: ProfitRow) => (
+    <span
+      className={cn(
+        'tabular-nums',
+        BigInt(row.profit_micro_cny) < 0n && 'text-destructive'
+      )}
+    >
+      {cny(row.profit_micro_cny)}
+    </span>
+  )
   const groupLabels: Record<CostGroupBy, string> = {
-    channel: t('Channel'),
     model: t('Model'),
-    day: t('Date (Shanghai)'),
     user: t('Customer'),
+    channel: t('Channel'),
+    day: t('Date (Shanghai)'),
+  }
+  const rowLabel = (row: ProfitRow) => {
+    if (data?.group_by === 'user' && row.key === '0') {
+      return t('No request on this site')
+    }
+    return row.label || '—'
   }
   return (
     <TitledCard
-      title={<h2>{t('Upstream cost summary')}</h2>}
-      description={t('Actual supplier deductions · CNY · Asia/Shanghai')}
+      title={<h2>{t('Profit')}</h2>}
+      description={t(
+        'Customer usage against supplier cost · CNY · Asia/Shanghai'
+      )}
       disableHoverEffect
     >
       <div className='flex min-w-0 flex-col gap-5'>
         <RangeForm
-          idPrefix='cost'
+          idPrefix='profit'
           initial={range}
           fetching={summary.isFetching}
           refreshLabel={t('Refresh summary')}
@@ -83,9 +110,9 @@ export function UpstreamCostSummary() {
           }}
         >
           <Field className='w-full sm:w-44'>
-            <FieldLabel htmlFor='cost-group-by'>{t('Group by')}</FieldLabel>
+            <FieldLabel htmlFor='profit-group-by'>{t('Group by')}</FieldLabel>
             <NativeSelect
-              id='cost-group-by'
+              id='profit-group-by'
               className='w-full [&_select]:min-h-11'
               value={draftGroupBy}
               onChange={(event) =>
@@ -120,34 +147,45 @@ export function UpstreamCostSummary() {
             </p>
             <SummaryMetrics
               metrics={[
-                { label: t('Upstream cost (CNY)'), value: cny(data.total) },
                 {
-                  label: t('Upstream credit deducted'),
-                  value: formatMicro(data.total.credit_micro, 4),
+                  label: t('Customer usage (CNY)'),
+                  value: cny(data.total.usage_micro_cny),
                 },
                 {
-                  label: t('Customer charges at list price'),
-                  value: listPrice(data.total),
+                  label: t('Upstream cost (CNY)'),
+                  value: cny(cost(data.total)),
                 },
                 {
-                  label: t('Upstream requests'),
-                  value: formatNumber(data.total.calls, locale),
+                  label: t('Estimated gross profit'),
+                  value: cny(data.total.profit_micro_cny),
                 },
+                { label: t('Gross margin'), value: margin(data.total) },
               ]}
             />
-            {data.total.pending_calls > 0 && (
+            {data.total.requests > data.total.costed_requests && (
               <p className='text-sm'>
                 {t(
-                  '{{count}} requests have no CNY rate yet and are not included in the CNY cost. Add a rate that covers their time.',
-                  { count: data.total.pending_calls }
+                  '{{count}} requests have no upstream cost yet and are left out of the profit: the channel has no purchase price, the upstream is not built on New API, or the next sync has not run.',
+                  { count: data.total.requests - data.total.costed_requests }
                 )}
               </p>
             )}
-            {data.total.unmatched_calls > 0 && (
+            {data.total.unmatched_requests > 0 && (
               <p className='text-sm'>
                 {t(
-                  '{{count}} upstream deductions have no matching request in this site’s logs: failed or retried requests, other keys on the same upstream account, or logs that were cleaned up.',
-                  { count: data.total.unmatched_calls }
+                  '{{count}} upstream deductions ({{amount}}) have no matching request on this site and are subtracted from the profit: failed or retried requests, or other keys on the same upstream account.',
+                  {
+                    count: data.total.unmatched_requests,
+                    amount: cny(data.total.unmatched_cost_micro_cny),
+                  }
+                )}
+              </p>
+            )}
+            {data.total.pending_requests > 0 && (
+              <p className='text-sm'>
+                {t(
+                  '{{count}} upstream deductions have no purchase price for their time, so their cost is unknown and left out. Set a purchase price that covers them.',
+                  { count: data.total.pending_requests }
                 )}
               </p>
             )}
@@ -158,7 +196,7 @@ export function UpstreamCostSummary() {
               getRowKey={(row) => row.key}
               containerProps={{
                 role: 'region',
-                'aria-label': t('Upstream cost summary'),
+                'aria-label': t('Profit'),
                 tabIndex: 0,
               }}
               tableClassName='min-w-[680px]'
@@ -166,35 +204,34 @@ export function UpstreamCostSummary() {
                 {
                   id: 'label',
                   header: groupLabels[data.group_by],
-                  cell: (row) => row.label || '—',
+                  cell: (row) => (
+                    <span className='break-all'>{rowLabel(row)}</span>
+                  ),
                 },
                 {
-                  id: 'calls',
-                  header: t('Requests'),
-                  cell: (row) => formatNumber(row.calls, locale),
-                },
-                {
-                  id: 'credit',
-                  header: t('Upstream credit'),
-                  cell: (row) => formatMicro(row.credit_micro, 4),
-                },
-                { id: 'cost', header: t('Cost (CNY)'), cell: cny },
-                {
-                  id: 'list',
-                  header: t('Customer charges at list price'),
-                  cell: listPrice,
-                },
-                {
-                  id: 'flags',
-                  header: t('Pending / unmatched'),
+                  id: 'requests',
+                  header: t('Requests with cost / all'),
                   cell: (row) =>
-                    `${formatNumber(row.pending_calls, locale)} / ${formatNumber(row.unmatched_calls, locale)}`,
+                    `${formatNumber(row.costed_requests, locale)} / ${formatNumber(row.requests, locale)}`,
                 },
+                {
+                  id: 'usage',
+                  header: t('Customer usage'),
+                  cell: (row) => cny(row.usage_micro_cny),
+                },
+                {
+                  id: 'cost',
+                  header: t('Upstream cost'),
+                  cell: (row) => cny(cost(row)),
+                },
+                { id: 'profit', header: t('Gross profit'), cell: profit },
+                { id: 'margin', header: t('Gross margin'), cell: margin },
               ]}
             />
             <p className='text-muted-foreground text-sm'>
               {t(
-                'Costs use the rate in effect when each request happened and are not recalculated when a rate changes. Customer charges at list price are quota deducted from customers, not revenue: gifts and receipt discounts are not separated yet.'
+                'Customer usage is balance deducted from customers, valued at the top-up price of ¥{{price}} per $1. It is not revenue: gifts and receipt discounts are not separated yet. Profit counts only requests with a known upstream cost; each cost uses the purchase price in effect when the request happened.',
+                { price: data.reference_cny_per_unit }
               )}
             </p>
           </div>

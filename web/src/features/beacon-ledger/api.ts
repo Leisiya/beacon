@@ -24,7 +24,6 @@ import type {
   CashSummaryData,
   CostGroupBy,
   CostSource,
-  CostSummaryData,
   CostSyncStatus,
   LedgerEntry,
   LedgerInput,
@@ -32,6 +31,7 @@ import type {
   PricingReport,
   PricingRule,
   PricingRuleInput,
+  ProfitSummaryData,
   QuotaReconciliationData,
   UpstreamRate,
   UpstreamRateInput,
@@ -78,10 +78,10 @@ export function postLedger(
   )
 }
 
-export function getCostSummary(
+export function getProfitSummary(
   range: CashRangeValues,
   groupBy: CostGroupBy
-): Promise<CostSummaryData> {
+): Promise<ProfitSummaryData> {
   return authResult(
     api.get('/api/beacon/costs', {
       ...authRequestOptions,
@@ -146,6 +146,18 @@ export function postPricingEvaluate(): Promise<{
 }> {
   return authResult(
     api.post('/api/beacon/pricing/evaluate', null, authRequestOptions)
+  )
+}
+
+export function postReferencePrice(
+  cnyPerUnit: string
+): Promise<{ cny_per_unit: string }> {
+  return authResult(
+    api.post(
+      '/api/beacon/pricing/reference',
+      { cny_per_unit: cnyPerUnit },
+      authRequestOptions
+    )
   )
 }
 

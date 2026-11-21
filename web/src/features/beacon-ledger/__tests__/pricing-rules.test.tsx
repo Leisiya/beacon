@@ -68,6 +68,13 @@ const basis = {
       sale_cny: 9,
       markup_bp: 2500,
     },
+    {
+      kind: 'output',
+      context: 1000,
+      cost_cny: 36,
+      sale_cny: 45,
+      markup_bp: 2500,
+    },
   ],
 }
 
@@ -89,6 +96,22 @@ const report: PricingReport = {
       below_minimum: false,
       factor: '1.04',
       proposed_expr: 'tier("base", p * 1.283)',
+      sale: [
+        {
+          kind: 'input',
+          context: 1000,
+          cost_cny: 0,
+          sale_cny: 9,
+          markup_bp: null,
+        },
+        {
+          kind: 'output',
+          context: 1000,
+          cost_cny: 0,
+          sale_cny: 45,
+          markup_bp: null,
+        },
+      ],
     },
   ],
   proposals: [
@@ -113,16 +136,23 @@ const report: PricingReport = {
   history: [],
 }
 
-it('applies a suggested price only after confirming that every customer is affected', async () => {
-  const posts: string[] = []
+function renderPricingRules(
+  posts: { url: string; data: unknown }[],
+  data: PricingReport = report
+) {
   api.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
-    if (config.method === 'post') posts.push(config.url ?? '')
+    if (config.method === 'post') {
+      posts.push({
+        url: config.url ?? '',
+        data: config.data ? JSON.parse(config.data) : null,
+      })
+    }
     return {
       config,
       status: 200,
       statusText: 'OK',
       headers: {},
-      data: { success: true, data: config.method === 'get' ? report : null },
+      data: { success: true, data: config.method === 'get' ? data : null },
     }
   }
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -131,6 +161,11 @@ it('applies a suggested price only after confirming that every customer is affec
       <PricingRules />
     </QueryClientProvider>
   )
+}
+
+it('applies a suggested price only after confirming that every customer is affected', async () => {
+  const posts: { url: string; data: unknown }[] = []
+  renderPricingRules(posts)
   expect(await screen.findByText('Raise 4%')).toBeInTheDocument()
   expect(screen.getByText('¥7.2')).toBeInTheDocument()
   expect(screen.getByText('¥9.36')).toBeInTheDocument()
@@ -145,6 +180,54 @@ it('applies a suggested price only after confirming that every customer is affec
   if (!confirm) throw new Error('missing confirm button')
   await userEvent.click(confirm)
   await waitFor(() =>
-    expect(posts).toEqual(['/api/beacon/pricing/proposals/9/apply'])
+    expect(posts.map((post) => post.url)).toEqual([
+      '/api/beacon/pricing/proposals/9/apply',
+    ])
+  )
+})
+
+it('shows each model’s CNY sale and cost prices next to its markup', async () => {
+  renderPricingRules([])
+  expect(await screen.findByText('¥9 / ¥45')).toBeInTheDocument()
+  expect(screen.getByText('¥7.2 / ¥36')).toBeInTheDocument()
+  expect(screen.getByText('#3 novaris · ×2.4')).toBeInTheDocument()
+  expect(
+    screen.getByRole('button', { name: 'Edit sale price' })
+  ).toBeInTheDocument()
+})
+
+it('hides the pending changes card when nothing awaits confirmation', async () => {
+  renderPricingRules([], { ...report, proposals: [] })
+  expect(await screen.findByText('¥9 / ¥45')).toBeInTheDocument()
+  expect(
+    screen.queryByRole('heading', {
+      name: 'Price changes awaiting confirmation',
+    })
+  ).not.toBeInTheDocument()
+  expect(screen.queryByText('Price change pending')).not.toBeInTheDocument()
+})
+
+it('saves a new top-up price only when it is a positive number', async () => {
+  const posts: { url: string; data: unknown }[] = []
+  renderPricingRules(posts)
+  const user = userEvent.setup()
+  expect(await screen.findByText('¥7.3 = $1 of balance')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Change top-up price' }))
+  const input = screen.getByLabelText('CNY for $1 of balance')
+  await user.clear(input)
+  await user.type(input, '0')
+  await user.click(screen.getByRole('button', { name: 'Save top-up price' }))
+  expect(input).toHaveAttribute('aria-invalid', 'true')
+  expect(posts).toEqual([])
+  await user.clear(input)
+  await user.type(input, '3.65')
+  await user.click(screen.getByRole('button', { name: 'Save top-up price' }))
+  await waitFor(() =>
+    expect(posts).toEqual([
+      {
+        url: '/api/beacon/pricing/reference',
+        data: { cny_per_unit: '3.65' },
+      },
+    ])
   )
 })

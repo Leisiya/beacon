@@ -86,6 +86,7 @@ func SetApiRouter(router *gin.Engine) {
 		pricingRoute.POST("/rules", middleware.CriticalRateLimit(), controller.PostBeaconPricingRule)
 		pricingRoute.DELETE("/rules", middleware.CriticalRateLimit(), controller.DeleteBeaconPricingRule)
 		pricingRoute.POST("/evaluate", middleware.CriticalRateLimit(), controller.PostBeaconPricingEvaluate)
+		pricingRoute.POST("/reference", middleware.CriticalRateLimit(), controller.PostBeaconReferencePrice)
 		pricingRoute.POST("/proposals/:id/:action", middleware.CriticalRateLimit(), controller.PostBeaconPriceProposal)
 
 		userRoute := apiRouter.Group("/user")

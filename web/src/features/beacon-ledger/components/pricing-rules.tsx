@@ -33,6 +33,7 @@ import type { PriceProposal, PricingRuleInput } from '../types'
 import { ModelPricingTable } from './model-pricing-table'
 import { PriceProposals } from './price-proposals'
 import { PriceRuleForm } from './price-rule-form'
+import { ReferencePriceCard } from './reference-price-card'
 
 export function PricingRules() {
   const { t, i18n } = useTranslation()
@@ -82,14 +83,17 @@ export function PricingRules() {
   const data = report.data
   return (
     <div className='flex min-w-0 flex-col gap-4'>
+      <ReferencePriceCard cnyPerUnit={data.reference_cny_per_unit} />
+      {/* Pending changes also show as a badge in the model table. */}
+      {data.proposals.length > 0 && (
+        <PriceProposals proposals={data.proposals} />
+      )}
+      <ModelPricingTable models={data.models} proposals={data.proposals} />
       <TitledCard
         title={<h2>{t('Default price rule')}</h2>}
         description={t(
-          'Sale prices are compared in CNY at ¥{{price}} per $1 top-up and default group ratio {{ratio}}.',
-          {
-            price: data.reference_cny_per_unit,
-            ratio: data.default_group_ratio,
-          }
+          'How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.',
+          { ratio: data.default_group_ratio }
         )}
         action={
           <Button
@@ -119,8 +123,6 @@ export function PricingRules() {
           />
         </div>
       </TitledCard>
-      <PriceProposals proposals={data.proposals} />
-      <ModelPricingTable models={data.models} proposals={data.proposals} />
       {data.history.length > 0 && (
         <TitledCard
           title={<h2>{t('Price change history')}</h2>}

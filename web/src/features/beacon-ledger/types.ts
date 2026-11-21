@@ -107,25 +107,29 @@ export interface QuotaReconciliationData {
 
 export type CostGroupBy = 'channel' | 'model' | 'day' | 'user'
 
-// Amounts are decimal strings: credit and CNY in millionths, local quota in
-// quota units.
-export interface CostRow {
+// Quota is in quota units and money in millionths of CNY, both as decimal
+// strings. Customer charges are valued at the top-up price.
+export interface ProfitRow {
   key: string
   label: string
-  calls: number
-  pending_calls: number
-  unmatched_calls: number
-  credit_micro: string
+  requests: number
+  usage_quota: string
+  usage_micro_cny: string
+  costed_requests: number
+  costed_micro_cny: string
   cost_micro_cny: string
-  local_quota: string
+  unmatched_requests: number
+  unmatched_cost_micro_cny: string
+  pending_requests: number
+  profit_micro_cny: string
 }
 
-export interface CostSummaryData {
+export interface ProfitSummaryData {
   range: CashSummaryData['range']
   group_by: CostGroupBy
-  quota_per_unit: number
-  total: CostRow
-  rows: CostRow[]
+  reference_cny_per_unit: number
+  total: ProfitRow
+  rows: ProfitRow[]
 }
 
 export interface UpstreamRate {
@@ -227,6 +231,8 @@ export interface ModelPricing {
   below_minimum: boolean
   factor: string
   proposed_expr: string
+  // CNY sale price per usage type at standard context.
+  sale: PriceLine[]
 }
 
 export interface PriceProposal {

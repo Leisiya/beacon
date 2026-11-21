@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"maps"
+	"math"
 	"math/big"
 	"slices"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -70,6 +72,9 @@ type BeaconUpstreamCharge struct {
 	UserID       int    `json:"user_id" gorm:"not null;index"`
 	LocalQuota   int64  `json:"local_quota" gorm:"type:bigint;not null"`
 	SyncedAt     int64  `json:"synced_at" gorm:"not null"`
+	// LocalModelName is the model the customer asked for, which differs from
+	// ModelName when the channel maps model names.
+	LocalModelName string `json:"local_model_name" gorm:"type:varchar(128);not null;default:''"`
 }
 
 func NormalizeBeaconUpstreamRate(rate BeaconUpstreamRate, now int64) (BeaconUpstreamRate, error) {
@@ -294,7 +299,7 @@ func MatchBeaconUpstreamCharges(channelID int, now int64) error {
 			ids = append(ids, charge.UpstreamRequestID)
 		}
 		var logs []Log
-		if err := LOG_DB.Select("id", "user_id", "quota", "upstream_request_id").
+		if err := LOG_DB.Select("id", "user_id", "quota", "model_name", "upstream_request_id").
 			Where("type = ? AND channel_id = ? AND upstream_request_id IN ?", LogTypeConsume, channelID, ids).
 			Find(&logs).Error; err != nil {
 			return err
@@ -309,81 +314,169 @@ func MatchBeaconUpstreamCharges(channelID int, now int64) error {
 				continue
 			}
 			if err := DB.Model(&BeaconUpstreamCharge{}).Where("id = ? AND local_log_id IS NULL", charge.ID).
-				Updates(map[string]any{"local_log_id": log.Id, "user_id": log.UserId, "local_quota": int64(log.Quota)}).Error; err != nil {
+				Updates(map[string]any{"local_log_id": log.Id, "user_id": log.UserId, "local_quota": int64(log.Quota), "local_model_name": truncateRunes(log.ModelName, 128)}).Error; err != nil {
 				return err
 			}
 		}
 	}
 }
 
-type BeaconCostRow struct {
-	Key            string `json:"key"`
-	Label          string `json:"label"`
-	Calls          int64  `json:"calls"`
-	PendingCalls   int64  `json:"pending_calls"`
-	UnmatchedCalls int64  `json:"unmatched_calls"`
-	CreditMicro    string `json:"credit_micro"`
+// BeaconProfitRow sets what customers were charged against what suppliers
+// deducted for the same requests. Quota is in quota units and money in
+// millionths of CNY, both as decimal strings so totals stay exact.
+type BeaconProfitRow struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	// Local consume logs; refunds are subtracted from the quota.
+	Requests      int64  `json:"requests"`
+	UsageQuota    string `json:"usage_quota"`
+	UsageMicroCNY string `json:"usage_micro_cny"`
+	// Requests whose upstream deduction is synced and priced.
+	CostedRequests int64  `json:"costed_requests"`
+	CostedMicroCNY string `json:"costed_micro_cny"`
 	CostMicroCNY   string `json:"cost_micro_cny"`
-	LocalQuota     string `json:"local_quota"`
+	// Priced upstream deductions with no request in the local logs.
+	UnmatchedRequests     int64  `json:"unmatched_requests"`
+	UnmatchedCostMicroCNY string `json:"unmatched_cost_micro_cny"`
+	// Upstream deductions without a CNY rate yet; their cost is unknown.
+	PendingRequests int64 `json:"pending_requests"`
+	// Costed customer charges minus their cost and the unmatched cost.
+	ProfitMicroCNY string `json:"profit_micro_cny"`
 }
 
-// BeaconCostSummary totals synced upstream charges. Amounts are decimal
-// strings: CNY and upstream credit in millionths, local quota in quota units.
-// Local quota is what customers were charged at list price, not revenue.
-type BeaconCostSummary struct {
-	Range        BeaconCashRange `json:"range"`
-	GroupBy      string          `json:"group_by"`
-	QuotaPerUnit float64         `json:"quota_per_unit"`
-	Total        BeaconCostRow   `json:"total"`
-	Rows         []BeaconCostRow `json:"rows"`
+// BeaconProfitSummary values customer charges at the top-up price, so it is
+// an estimate: gifts and receipt discounts are not separated.
+type BeaconProfitSummary struct {
+	Range               BeaconCashRange   `json:"range"`
+	GroupBy             string            `json:"group_by"`
+	ReferenceCNYPerUnit float64           `json:"reference_cny_per_unit"`
+	Total               BeaconProfitRow   `json:"total"`
+	Rows                []BeaconProfitRow `json:"rows"`
 }
 
-type beaconCostAccumulator struct {
-	row                 BeaconCostRow
-	credit, cost, local big.Int
+type beaconProfitAccumulator struct {
+	row                                     BeaconProfitRow
+	usage, costedQuota, cost, unmatchedCost big.Int
 }
 
-func (acc *beaconCostAccumulator) add(charge *BeaconUpstreamCharge) {
-	acc.row.Calls++
-	if charge.RateID == nil {
-		acc.row.PendingCalls++
+func (acc *beaconProfitAccumulator) addUsage(logType int, requests, quota int64) {
+	if logType == LogTypeRefund {
+		acc.usage.Sub(&acc.usage, big.NewInt(quota))
+		return
 	}
-	if charge.LocalLogID == nil {
-		acc.row.UnmatchedCalls++
-	}
-	acc.credit.Add(&acc.credit, big.NewInt(charge.CreditMicro))
-	acc.cost.Add(&acc.cost, big.NewInt(charge.CostMicroCNY))
-	acc.local.Add(&acc.local, big.NewInt(charge.LocalQuota))
+	acc.row.Requests += requests
+	acc.usage.Add(&acc.usage, big.NewInt(quota))
 }
 
-func (acc *beaconCostAccumulator) result() BeaconCostRow {
+// addCharge counts a matched request's customer charge only with the first
+// deduction matched to it; every deduction still adds its cost.
+func (acc *beaconProfitAccumulator) addCharge(charge *BeaconUpstreamCharge, firstForRequest bool) {
+	switch {
+	case charge.RateID == nil:
+		acc.row.PendingRequests++
+	case charge.LocalLogID == nil:
+		acc.row.UnmatchedRequests++
+		acc.unmatchedCost.Add(&acc.unmatchedCost, big.NewInt(charge.CostMicroCNY))
+	default:
+		acc.cost.Add(&acc.cost, big.NewInt(charge.CostMicroCNY))
+		if firstForRequest {
+			acc.row.CostedRequests++
+			acc.costedQuota.Add(&acc.costedQuota, big.NewInt(charge.LocalQuota))
+		}
+	}
+}
+
+// result converts quota with microCNYPerQuota, the top-up price in millionths
+// of CNY per quota unit.
+func (acc *beaconProfitAccumulator) result(microCNYPerQuota decimal.Decimal) BeaconProfitRow {
 	row := acc.row
-	row.CreditMicro, row.CostMicroCNY, row.LocalQuota = acc.credit.String(), acc.cost.String(), acc.local.String()
+	usage := decimal.NewFromBigInt(&acc.usage, 0).Mul(microCNYPerQuota).Round(0).BigInt()
+	costed := decimal.NewFromBigInt(&acc.costedQuota, 0).Mul(microCNYPerQuota).Round(0).BigInt()
+	profit := new(big.Int).Sub(costed, &acc.cost)
+	profit.Sub(profit, &acc.unmatchedCost)
+	row.UsageQuota, row.UsageMicroCNY = acc.usage.String(), usage.String()
+	row.CostedMicroCNY, row.CostMicroCNY = costed.String(), acc.cost.String()
+	row.UnmatchedCostMicroCNY, row.ProfitMicroCNY = acc.unmatchedCost.String(), profit.String()
 	return row
 }
 
-func GetBeaconCostSummary(ctx context.Context, period, startDate, endDate, groupBy string, now time.Time) (*BeaconCostSummary, error) {
+// beaconUsageGroupColumns groups local consume logs; a day starts at
+// midnight Asia/Shanghai.
+var beaconUsageGroupColumns = map[string]string{
+	"channel": "channel_id",
+	"model":   "model_name",
+	"user":    "user_id",
+	"day":     "created_at - (created_at + 28800) % 86400",
+}
+
+// GetBeaconProfitSummary joins local consume logs with synced upstream
+// charges. A charge counts toward the model the customer asked for, and an
+// unmatched charge counts toward user 0.
+func GetBeaconProfitSummary(ctx context.Context, period, startDate, endDate, groupBy string, now time.Time) (*BeaconProfitSummary, error) {
 	window, err := ResolveBeaconCashRange(period, startDate, endDate, now)
 	if err != nil {
 		return nil, err
 	}
-	if !slices.Contains([]string{"channel", "model", "day", "user"}, groupBy) {
+	keyColumn, ok := beaconUsageGroupColumns[groupBy]
+	if !ok {
 		return nil, ErrBeaconCostInput
 	}
+	zone := time.FixedZone("Asia/Shanghai", 8*60*60)
+	var total beaconProfitAccumulator
+	groups := map[string]*beaconProfitAccumulator{}
+	group := func(key string) *beaconProfitAccumulator {
+		acc := groups[key]
+		if acc == nil {
+			acc = &beaconProfitAccumulator{row: BeaconProfitRow{Key: key, Label: key}}
+			groups[key] = acc
+		}
+		return acc
+	}
+
+	var usage []struct {
+		GroupKey string
+		Type     int
+		Requests int64
+		Quota    int64
+	}
+	if err := LOG_DB.WithContext(ctx).Model(&Log{}).
+		Select(keyColumn+" AS group_key, type, COUNT(*) AS requests, COALESCE(SUM(quota), 0) AS quota").
+		Where("type IN ? AND created_at >= ? AND created_at < ?", []int{LogTypeConsume, LogTypeRefund}, window.StartAt, window.EndBefore).
+		Group(keyColumn + ", type").Scan(&usage).Error; err != nil {
+		return nil, err
+	}
+	for _, row := range usage {
+		key := row.GroupKey
+		if groupBy == "day" {
+			dayStart, err := strconv.ParseInt(key, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			key = time.Unix(dayStart, 0).In(zone).Format(time.DateOnly)
+		}
+		group(key).addUsage(row.Type, row.Requests, row.Quota)
+		total.addUsage(row.Type, row.Requests, row.Quota)
+	}
+
 	rows, err := DB.WithContext(ctx).Model(&BeaconUpstreamCharge{}).
-		Select("channel_id", "model_name", "occurred_at", "user_id", "credit_micro", "rate_id", "cost_micro_cny", "local_log_id", "local_quota").
+		Select("channel_id", "model_name", "local_model_name", "occurred_at", "user_id", "rate_id", "cost_micro_cny", "local_log_id", "local_quota").
 		Where("occurred_at >= ? AND occurred_at < ?", window.StartAt, window.EndBefore).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	zone := time.FixedZone("Asia/Shanghai", 8*60*60)
-	var total beaconCostAccumulator
-	groups := map[string]*beaconCostAccumulator{}
+	// An upstream can log one request more than once; each local request's
+	// customer charge is counted once.
+	costedLogs := map[int]bool{}
 	for rows.Next() {
 		var charge BeaconUpstreamCharge
 		if err := DB.ScanRows(rows, &charge); err != nil {
 			return nil, err
+		}
+		firstForRequest := false
+		if charge.RateID != nil && charge.LocalLogID != nil {
+			firstForRequest = !costedLogs[*charge.LocalLogID]
+			costedLogs[*charge.LocalLogID] = true
 		}
 		var key string
 		switch groupBy {
@@ -391,35 +484,39 @@ func GetBeaconCostSummary(ctx context.Context, period, startDate, endDate, group
 			key = strconv.Itoa(charge.ChannelID)
 		case "model":
 			key = charge.ModelName
+			if charge.LocalLogID != nil && charge.LocalModelName != "" {
+				key = charge.LocalModelName
+			}
 		case "day":
 			key = time.Unix(charge.OccurredAt, 0).In(zone).Format(time.DateOnly)
 		case "user":
 			key = strconv.Itoa(charge.UserID)
 		}
-		acc := groups[key]
-		if acc == nil {
-			acc = &beaconCostAccumulator{row: BeaconCostRow{Key: key, Label: key}}
-			groups[key] = acc
-		}
-		acc.add(&charge)
-		total.add(&charge)
+		group(key).addCharge(&charge, firstForRequest)
+		total.addCharge(&charge, firstForRequest)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	summary := &BeaconCostSummary{Range: window, GroupBy: groupBy, QuotaPerUnit: common.QuotaPerUnit, Rows: []BeaconCostRow{}}
-	for _, key := range slices.Sorted(maps.Keys(groups)) {
-		summary.Rows = append(summary.Rows, groups[key].result())
+
+	price := operation_setting.Price
+	if math.IsNaN(price) || math.IsInf(price, 0) || price < 0 {
+		price = 0
 	}
-	if err := labelBeaconCostRows(ctx, groupBy, summary.Rows); err != nil {
+	microCNYPerQuota := decimal.NewFromFloat(price).Mul(decimal.NewFromInt(1_000_000)).Div(decimal.NewFromFloat(common.QuotaPerUnit))
+	summary := &BeaconProfitSummary{Range: window, GroupBy: groupBy, ReferenceCNYPerUnit: price, Rows: []BeaconProfitRow{}}
+	for _, key := range slices.Sorted(maps.Keys(groups)) {
+		summary.Rows = append(summary.Rows, groups[key].result(microCNYPerQuota))
+	}
+	if err := labelBeaconProfitRows(ctx, groupBy, summary.Rows); err != nil {
 		return nil, err
 	}
-	summary.Total = total.result()
+	summary.Total = total.result(microCNYPerQuota)
 	summary.Total.Key, summary.Total.Label = "total", "total"
 	return summary, nil
 }
 
-func labelBeaconCostRows(ctx context.Context, groupBy string, rows []BeaconCostRow) error {
+func labelBeaconProfitRows(ctx context.Context, groupBy string, rows []BeaconProfitRow) error {
 	if groupBy != "channel" && groupBy != "user" {
 		return nil
 	}

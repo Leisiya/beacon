@@ -33,6 +33,7 @@ import {
   Settings,
   ShieldCheck,
   Ticket,
+  TrendingUp,
   User,
   Users,
   Wallet,
@@ -151,6 +152,12 @@ export function useSidebarData(): SidebarData {
             title: t('Manual ledger'),
             url: '/beacon-ledger',
             icon: ClipboardList,
+            requiredRole: ROLE.SUPER_ADMIN,
+          },
+          {
+            title: t('Profit and pricing'),
+            url: '/beacon-profit',
+            icon: TrendingUp,
             requiredRole: ROLE.SUPER_ADMIN,
           },
           {
