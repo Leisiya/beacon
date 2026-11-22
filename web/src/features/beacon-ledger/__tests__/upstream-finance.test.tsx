@@ -174,3 +174,35 @@ it('reverses a payment only with a reason', async () => {
     note: 'entered twice',
   })
 })
+
+it('records a payment on a plain-HTTP page where crypto.randomUUID is missing', async () => {
+  // Browsers expose randomUUID only on HTTPS or localhost; production is
+  // served over plain HTTP.
+  const randomUUID = crypto.randomUUID
+  Object.defineProperty(crypto, 'randomUUID', {
+    value: undefined,
+    configurable: true,
+  })
+  try {
+    const posts: unknown[] = []
+    renderUpstreams(posts)
+    const user = userEvent.setup()
+    await user.click(
+      await screen.findByRole('button', { name: 'Payments to novaris' })
+    )
+    const dialog = await screen.findByRole('dialog')
+    await user.type(within(dialog).getByLabelText('CNY paid'), '10')
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Record payment' })
+    )
+    await waitFor(() => expect(posts).toHaveLength(1))
+    expect((posts[0] as { request_key: string }).request_key).toMatch(
+      /^[a-z0-9][a-z0-9_-]{15,63}$/
+    )
+  } finally {
+    Object.defineProperty(crypto, 'randomUUID', {
+      value: randomUUID,
+      configurable: true,
+    })
+  }
+})

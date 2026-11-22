@@ -45,6 +45,7 @@ import {
   ledgerInput,
   ledgerMoney,
   newLedgerForm,
+  newRequestKey,
   type LedgerFormValues,
 } from '../lib/form'
 import type { LedgerEntry, LedgerInput, LedgerKind } from '../types'
@@ -158,7 +159,7 @@ export function LedgerEntryDialog(props: {
           <form
             id='ledger-entry-form'
             onSubmit={form.handleSubmit((values) =>
-              setReview(pending ?? ledgerInput(values, crypto.randomUUID()))
+              setReview(pending ?? ledgerInput(values, newRequestKey()))
             )}
           >
             <LedgerFormFields locked={!!pending} correction={!!props.source} />

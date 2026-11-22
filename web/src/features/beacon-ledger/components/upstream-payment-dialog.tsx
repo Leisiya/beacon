@@ -43,6 +43,7 @@ import {
   fromShanghaiInput,
   toShanghaiInput,
 } from '../lib/cost'
+import { newRequestKey } from '../lib/form'
 import type { UpstreamFinanceRow, UpstreamPayment } from '../types'
 
 const paymentSchema = z.object({
@@ -88,7 +89,7 @@ export function UpstreamPaymentDialog(props: {
   const queryClient = useQueryClient()
   const channelId = props.row?.channel_id ?? 0
   const rate = Number(props.row?.cny_per_unit)
-  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID())
+  const [requestKey, setRequestKey] = useState(newRequestKey)
   const [reversing, setReversing] = useState<UpstreamPayment | null>(null)
   const [reason, setReason] = useState('')
   const form = useForm<PaymentValues>({
@@ -115,7 +116,7 @@ export function UpstreamPaymentDialog(props: {
     onSuccess: () => {
       toast.success(t('Payment recorded'))
       form.reset(emptyPayment())
-      setRequestKey(crypto.randomUUID())
+      setRequestKey(newRequestKey())
       void queryClient.invalidateQueries({ queryKey: ['beacon-ledger'] })
     },
     onError: (error) => handleServerError(error),
@@ -123,7 +124,7 @@ export function UpstreamPaymentDialog(props: {
   const reverse = useMutation({
     mutationFn: (payment: UpstreamPayment) =>
       postUpstreamPayment({
-        request_key: crypto.randomUUID(),
+        request_key: newRequestKey(),
         channel_id: 0,
         amount: '',
         credit: '',

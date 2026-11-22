@@ -178,6 +178,17 @@ export function receiptFaceQuota(
 
 // Ledger money is historical integer cents, independent of the site's quota
 // display settings. BigInt preserves every cent at the JSON-safe boundary.
+// Request keys make a resubmitted ledger or payment post safe to repeat.
+// crypto.randomUUID exists only on HTTPS or localhost; the site may be served
+// over plain HTTP, where getRandomValues still works.
+export function newRequestKey(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(
+    ''
+  )
+}
+
 export function ledgerMoney(cents: number | string, currency: string): string {
   const amount = BigInt(cents)
   const absolute = amount < 0n ? -amount : amount
