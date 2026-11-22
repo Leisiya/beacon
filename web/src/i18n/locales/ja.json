@@ -7574,7 +7574,7 @@
     "No request on this site": "本サイトにリクエストなし",
     "Top-up price saved": "チャージ価格を保存しました",
     "Top-up price": "チャージ価格",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices and profit are shown in CNY through it.": "顧客が残高 $1 に支払う金額です。手動入金の残高はこの値で事前入力され、販売価格と利益もこの値で CNY に換算されます。",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "顧客が残高 $1 に支払う金額です。手動入金の残高はこの値で事前入力され、販売価格もこの値で CNY に換算されます。利益は各顧客が実際に支払った額で計算します。",
     "Change top-up price": "チャージ価格を変更",
     "¥{{price}} = $1 of balance": "¥{{price}} = 残高 $1",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "入金済みの残高はそのままです。モデルの USD 価格は変わりませんが、CNY 換算の価格は変わります。",

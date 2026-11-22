@@ -69,7 +69,7 @@ export function ReferencePriceCard(props: { cnyPerUnit: number }) {
     <TitledCard
       title={<h2>{t('Top-up price')}</h2>}
       description={t(
-        'What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices and profit are shown in CNY through it.'
+        'What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.'
       )}
       action={
         <Button

@@ -7574,7 +7574,7 @@
     "No request on this site": "Không có yêu cầu trên trang này",
     "Top-up price saved": "Đã lưu giá nạp",
     "Top-up price": "Giá nạp",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices and profit are shown in CNY through it.": "Số tiền khách trả cho $1 số dư. Khoản thu thủ công được điền sẵn theo giá này, giá bán và lợi nhuận cũng quy đổi sang CNY theo nó.",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "Số tiền khách trả cho $1 số dư. Khoản thu thủ công được điền sẵn theo giá này, giá bán cũng quy đổi sang CNY theo nó. Lợi nhuận tính theo số tiền mỗi khách thực trả.",
     "Change top-up price": "Đổi giá nạp",
     "¥{{price}} = $1 of balance": "¥{{price}} = $1 số dư",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "Số dư đã cộng giữ nguyên. Giá mô hình bằng USD không đổi, nhưng giá trị quy đổi sang CNY sẽ đổi.",

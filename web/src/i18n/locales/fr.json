@@ -7574,7 +7574,7 @@
     "No request on this site": "Aucune requête sur ce site",
     "Top-up price saved": "Prix de recharge enregistré",
     "Top-up price": "Prix de recharge",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices and profit are shown in CNY through it.": "Ce qu’un client paie pour 1 $ de solde. Les encaissements manuels sont préremplis avec, et les prix de vente et le bénéfice sont affichés en CNY grâce à lui.",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "Ce qu’un client paie pour 1 $ de solde. Les encaissements manuels sont préremplis avec, et les prix de vente sont affichés en CNY grâce à lui. Le bénéfice utilise ce que chaque client a réellement payé.",
     "Change top-up price": "Modifier le prix de recharge",
     "¥{{price}} = $1 of balance": "¥{{price}} = 1 $ de solde",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "Les soldes déjà crédités ne changent pas. Les prix des modèles en USD restent les mêmes, mais leur valeur en CNY change.",

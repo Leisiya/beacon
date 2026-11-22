@@ -7574,7 +7574,7 @@
     "No request on this site": "无本地记录",
     "Top-up price saved": "充值价格已保存",
     "Top-up price": "充值价格",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices and profit are shown in CNY through it.": "客户付多少人民币得到 $1 余额。人工收款时按它预填到账余额，售价和利润也按它折算成人民币。",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "客户付多少人民币得到 $1 余额。人工收款时按它预填到账余额，售价也按它折算成人民币。利润按每个客户实际付的钱计算，不受它影响。",
     "Change top-up price": "修改充值价格",
     "¥{{price}} = $1 of balance": "¥{{price}} = $1 余额",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "已经到账的余额不变。模型的美元价格不变，但折算成人民币的售价会变。",
