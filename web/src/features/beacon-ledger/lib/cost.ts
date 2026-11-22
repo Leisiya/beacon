@@ -38,6 +38,27 @@ export function formatMicroCny(value: string, digits: number): string {
   return text.startsWith('-') ? `-¥${text.slice(1)}` : `¥${text}`
 }
 
+// Finance amounts: thousands separators and two decimals, or four under one
+// unit so small test traffic does not read as zero.
+function formatMicroAmount(value: string, symbol: string): string {
+  const micro = BigInt(value)
+  const absolute = micro < 0n ? -micro : micro
+  const digits = absolute > 0n && absolute < 1_000_000n ? 4 : 2
+  const text = formatMicro(String(absolute), digits).replace(/^\d+/, (whole) =>
+    whole.replaceAll(/\B(?=(\d{3})+(?!\d))/g, ',')
+  )
+  return `${micro < 0n && /[1-9]/.test(text) ? '-' : ''}${symbol}${text}`
+}
+
+export function formatCny(value: string): string {
+  return formatMicroAmount(value, '¥')
+}
+
+// Upstream credit is in millionths of the upstream's $1.
+export function formatCredit(value: string | number): string {
+  return formatMicroAmount(String(value), '$')
+}
+
 export function addMicro(...values: string[]): string {
   return String(values.reduce((sum, value) => sum + BigInt(value), 0n))
 }

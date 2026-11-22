@@ -34,7 +34,6 @@ afterEach(() => {
 })
 
 it('keeps posting and pagination disabled when the ledger is empty in an unsupported quota mode', async () => {
-  const user = userEvent.setup()
   api.defaults.adapter = async (config) => ({
     config,
     status: 200,
@@ -54,10 +53,9 @@ it('keeps posting and pagination disabled when the ledger is empty in an unsuppo
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <BeaconLedger />
+      <BeaconLedger tab='entries' onTabChange={() => {}} />
     </QueryClientProvider>
   )
-  await user.click(screen.getByRole('tab', { name: 'Ledger entries' }))
   await screen.findByText('No ledger entries')
   expect(
     screen.getByRole('button', { name: 'Record ledger entry' })
@@ -97,14 +95,57 @@ it('recovers from a failed read and applies the customer filter without inventin
   const user = userEvent.setup()
   render(
     <QueryClientProvider client={client}>
-      <BeaconLedger />
+      <BeaconLedger tab='entries' onTabChange={() => {}} />
     </QueryClientProvider>
   )
-  await user.click(screen.getByRole('tab', { name: 'Ledger entries' }))
   await user.click(await screen.findByRole('button', { name: 'Retry' }))
   await screen.findByText('No ledger entries')
   await user.type(screen.getByLabelText('Customer ID (blank for all)'), '42')
   await user.click(screen.getByRole('button', { name: 'Filter' }))
   await screen.findByText('No ledger entries')
   expect(filters).toEqual([0, 42])
+})
+
+it('offers a new receipt only on customer money tabs and reports tab changes', async () => {
+  // Finance reports stay loading; only the ledger page answers.
+  api.defaults.adapter = (config) =>
+    config.url === '/api/beacon/ledger'
+      ? Promise.resolve({
+          config,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          data: {
+            success: true,
+            data: {
+              items: [],
+              next_before: 0,
+              posting_available: true,
+              base_currency: 'CNY',
+              business_timezone: 'Asia/Shanghai',
+            },
+          },
+        })
+      : new Promise(() => {})
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const user = userEvent.setup()
+  const tabs: string[] = []
+  const view = render(
+    <QueryClientProvider client={client}>
+      <BeaconLedger tab='upstreams' onTabChange={(tab) => tabs.push(tab)} />
+    </QueryClientProvider>
+  )
+  expect(
+    screen.queryByRole('button', { name: 'Record ledger entry' })
+  ).not.toBeInTheDocument()
+  await user.click(screen.getByRole('tab', { name: 'Customers' }))
+  expect(tabs).toEqual(['customers'])
+  view.rerender(
+    <QueryClientProvider client={client}>
+      <BeaconLedger tab='customers' onTabChange={(tab) => tabs.push(tab)} />
+    </QueryClientProvider>
+  )
+  expect(
+    await screen.findByRole('button', { name: 'Record ledger entry' })
+  ).toBeEnabled()
 })

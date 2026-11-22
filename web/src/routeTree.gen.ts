@@ -36,7 +36,7 @@ import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
 import { Route as AuthenticatedBeaconLedgerIndexRouteImport } from './routes/_authenticated/beacon-ledger/index'
-import { Route as AuthenticatedBeaconProfitIndexRouteImport } from './routes/_authenticated/beacon-profit/index'
+import { Route as AuthenticatedBeaconPricingIndexRouteImport } from './routes/_authenticated/beacon-pricing/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authenticated/chat/$chatId'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
@@ -211,10 +211,10 @@ const AuthenticatedBeaconLedgerIndexRoute =
     path: '/beacon-ledger/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedBeaconProfitIndexRoute =
-  AuthenticatedBeaconProfitIndexRouteImport.update({
-    id: '/beacon-profit/',
-    path: '/beacon-profit/',
+const AuthenticatedBeaconPricingIndexRoute =
+  AuthenticatedBeaconPricingIndexRouteImport.update({
+    id: '/beacon-pricing/',
+    path: '/beacon-pricing/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedChannelsIndexRoute =
@@ -474,7 +474,7 @@ export interface FileRoutesByFullPath {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/beacon-ledger/': typeof AuthenticatedBeaconLedgerIndexRoute
-  '/beacon-profit/': typeof AuthenticatedBeaconProfitIndexRoute
+  '/beacon-pricing/': typeof AuthenticatedBeaconPricingIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
@@ -539,7 +539,7 @@ export interface FileRoutesByTo {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/beacon-ledger': typeof AuthenticatedBeaconLedgerIndexRoute
-  '/beacon-profit': typeof AuthenticatedBeaconProfitIndexRoute
+  '/beacon-pricing': typeof AuthenticatedBeaconPricingIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
@@ -608,7 +608,7 @@ export interface FileRoutesById {
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/_authenticated/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/_authenticated/beacon-ledger/': typeof AuthenticatedBeaconLedgerIndexRoute
-  '/_authenticated/beacon-profit/': typeof AuthenticatedBeaconProfitIndexRoute
+  '/_authenticated/beacon-pricing/': typeof AuthenticatedBeaconPricingIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
@@ -676,7 +676,7 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/usage-logs/audit'
     | '/beacon-ledger/'
-    | '/beacon-profit/'
+    | '/beacon-pricing/'
     | '/channels/'
     | '/dashboard/'
     | '/keys/'
@@ -741,7 +741,7 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/usage-logs/audit'
     | '/beacon-ledger'
-    | '/beacon-profit'
+    | '/beacon-pricing'
     | '/channels'
     | '/dashboard'
     | '/keys'
@@ -809,7 +809,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usage-logs/$section'
     | '/_authenticated/usage-logs/audit'
     | '/_authenticated/beacon-ledger/'
-    | '/_authenticated/beacon-profit/'
+    | '/_authenticated/beacon-pricing/'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/keys/'
@@ -1055,11 +1055,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBeaconLedgerIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/beacon-profit/': {
-      id: '/_authenticated/beacon-profit/'
-      path: '/beacon-profit'
-      fullPath: '/beacon-profit/'
-      preLoaderRoute: typeof AuthenticatedBeaconProfitIndexRouteImport
+    '/_authenticated/beacon-pricing/': {
+      id: '/_authenticated/beacon-pricing/'
+      path: '/beacon-pricing'
+      fullPath: '/beacon-pricing/'
+      preLoaderRoute: typeof AuthenticatedBeaconPricingIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/channels/': {
@@ -1430,7 +1430,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedUsageLogsAuditRoute: typeof AuthenticatedUsageLogsAuditRoute
   AuthenticatedBeaconLedgerIndexRoute: typeof AuthenticatedBeaconLedgerIndexRoute
-  AuthenticatedBeaconProfitIndexRoute: typeof AuthenticatedBeaconProfitIndexRoute
+  AuthenticatedBeaconPricingIndexRoute: typeof AuthenticatedBeaconPricingIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
@@ -1458,7 +1458,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedUsageLogsAuditRoute: AuthenticatedUsageLogsAuditRoute,
   AuthenticatedBeaconLedgerIndexRoute: AuthenticatedBeaconLedgerIndexRoute,
-  AuthenticatedBeaconProfitIndexRoute: AuthenticatedBeaconProfitIndexRoute,
+  AuthenticatedBeaconPricingIndexRoute: AuthenticatedBeaconPricingIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,

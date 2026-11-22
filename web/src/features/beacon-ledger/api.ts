@@ -21,32 +21,25 @@ import { authRequestOptions, authResult } from '@/lib/secure-verification'
 
 import type { CashRangeValues } from './lib/cash-range'
 import type {
-  CashSummaryData,
-  CostGroupBy,
   CostSource,
   CostSyncStatus,
+  CustomerFinanceData,
+  FinanceOverview,
   LedgerEntry,
   LedgerInput,
   LedgerPage,
   PricingReport,
   PricingRule,
   PricingRuleInput,
+  ProfitGroupBy,
   ProfitSummaryData,
   QuotaReconciliationData,
+  UpstreamFinanceData,
+  UpstreamPayment,
+  UpstreamPaymentInput,
   UpstreamRate,
   UpstreamRateInput,
 } from './types'
-
-export function getCashSummary(
-  range: CashRangeValues
-): Promise<CashSummaryData> {
-  return authResult(
-    api.get('/api/beacon/ledger', {
-      ...authRequestOptions,
-      params: { view: 'cash_summary', ...range },
-    })
-  )
-}
 
 export function getQuotaReconciliation(): Promise<QuotaReconciliationData> {
   return authResult(
@@ -78,15 +71,65 @@ export function postLedger(
   )
 }
 
+export function getFinanceOverview(): Promise<FinanceOverview> {
+  return authResult(
+    api.get('/api/beacon/finance', {
+      ...authRequestOptions,
+      params: { view: 'overview' },
+    })
+  )
+}
+
 export function getProfitSummary(
   range: CashRangeValues,
-  groupBy: CostGroupBy
+  groupBy: ProfitGroupBy
 ): Promise<ProfitSummaryData> {
   return authResult(
-    api.get('/api/beacon/costs', {
+    api.get('/api/beacon/finance', {
       ...authRequestOptions,
-      params: { ...range, group_by: groupBy },
+      params: { view: 'profit', ...range, group_by: groupBy },
     })
+  )
+}
+
+export function getCustomerFinance(
+  range: CashRangeValues
+): Promise<CustomerFinanceData> {
+  return authResult(
+    api.get('/api/beacon/finance', {
+      ...authRequestOptions,
+      params: { view: 'customers', ...range },
+    })
+  )
+}
+
+export function getUpstreamFinance(
+  range: CashRangeValues
+): Promise<UpstreamFinanceData> {
+  return authResult(
+    api.get('/api/beacon/finance', {
+      ...authRequestOptions,
+      params: { view: 'upstreams', ...range },
+    })
+  )
+}
+
+export function getUpstreamPayments(
+  channelId: number
+): Promise<{ items: UpstreamPayment[] }> {
+  return authResult(
+    api.get('/api/beacon/finance', {
+      ...authRequestOptions,
+      params: { view: 'payments', channel_id: channelId },
+    })
+  )
+}
+
+export function postUpstreamPayment(
+  input: UpstreamPaymentInput
+): Promise<{ payment: UpstreamPayment; created: boolean }> {
+  return authResult(
+    api.post('/api/beacon/finance/payments', input, authRequestOptions)
   )
 }
 
@@ -94,12 +137,7 @@ export function getCostSources(): Promise<{
   sources: CostSource[]
   now: number
 }> {
-  return authResult(
-    api.get('/api/beacon/costs', {
-      ...authRequestOptions,
-      params: { view: 'sources' },
-    })
-  )
+  return authResult(api.get('/api/beacon/costs', authRequestOptions))
 }
 
 export function postUpstreamRate(

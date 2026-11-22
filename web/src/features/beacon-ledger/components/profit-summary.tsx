@@ -27,18 +27,16 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { TitledCard } from '@/components/ui/titled-card'
 import { toIntlLocale } from '@/i18n/languages'
-import { formatNumber } from '@/lib/format'
+import { formatNumber, formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { getProfitSummary } from '../api'
 import type { CashRangeValues } from '../lib/cash-range'
-import { addMicro, formatMicroCny } from '../lib/cost'
-import type { CostGroupBy, ProfitRow } from '../types'
+import { formatCny } from '../lib/cost'
+import type { ProfitGroupBy, ProfitRow } from '../types'
 import { RangeForm } from './range-form'
 import { SummaryMetrics } from './summary-metrics'
 
-// Profit covers only requests whose upstream deduction is synced and priced;
-// deductions with no local request are subtracted as a cost.
 export function ProfitSummary() {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -47,8 +45,8 @@ export function ProfitSummary() {
     start: '',
     end: '',
   })
-  const [groupBy, setGroupBy] = useState<CostGroupBy>('model')
-  const [draftGroupBy, setDraftGroupBy] = useState<CostGroupBy>('model')
+  const [groupBy, setGroupBy] = useState<ProfitGroupBy>('day')
+  const [draftGroupBy, setDraftGroupBy] = useState<ProfitGroupBy>('day')
   const summary = useQuery({
     queryKey: ['beacon-ledger', 'profit-summary', range, groupBy],
     queryFn: () => getProfitSummary(range, groupBy),
@@ -56,13 +54,10 @@ export function ProfitSummary() {
     staleTime: 0,
   })
   const data = summary.data
-  const cny = (micro: string) => formatMicroCny(micro, 4)
-  const cost = (row: ProfitRow) =>
-    addMicro(row.cost_micro_cny, row.unmatched_cost_micro_cny)
   const margin = (row: ProfitRow) => {
-    const costed = Number(row.costed_micro_cny)
-    if (!(costed > 0)) return '—'
-    const percent = (Number(row.profit_micro_cny) / costed) * 100
+    const revenue = Number(row.revenue_micro_cny)
+    if (!(revenue > 0)) return '—'
+    const percent = (Number(row.profit_micro_cny) / revenue) * 100
     return `${Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(percent)}%`
   }
   const profit = (row: ProfitRow) => (
@@ -72,18 +67,21 @@ export function ProfitSummary() {
         BigInt(row.profit_micro_cny) < 0n && 'text-destructive'
       )}
     >
-      {cny(row.profit_micro_cny)}
+      {formatCny(row.profit_micro_cny)}
     </span>
   )
-  const groupLabels: Record<CostGroupBy, string> = {
-    model: t('Model'),
-    user: t('Customer'),
-    channel: t('Channel'),
+  const groupLabels: Record<ProfitGroupBy, string> = {
     day: t('Date (Shanghai)'),
+    user: t('Customer'),
+    model: t('Model'),
+    channel: t('Channel'),
   }
   const rowLabel = (row: ProfitRow) => {
     if (data?.group_by === 'user' && row.key === '0') {
       return t('No request on this site')
+    }
+    if (row.key === 'adjustment' && data?.group_by !== 'user') {
+      return t('Refund adjustments')
     }
     return row.label || '—'
   }
@@ -91,7 +89,7 @@ export function ProfitSummary() {
     <TitledCard
       title={<h2>{t('Profit')}</h2>}
       description={t(
-        'Customer usage against supplier cost · CNY · Asia/Shanghai'
+        'What customers used against what upstreams charged · CNY'
       )}
       disableHoverEffect
     >
@@ -116,10 +114,10 @@ export function ProfitSummary() {
               className='w-full [&_select]:min-h-11'
               value={draftGroupBy}
               onChange={(event) =>
-                setDraftGroupBy(event.target.value as CostGroupBy)
+                setDraftGroupBy(event.target.value as ProfitGroupBy)
               }
             >
-              {(Object.keys(groupLabels) as CostGroupBy[]).map((key) => (
+              {(Object.keys(groupLabels) as ProfitGroupBy[]).map((key) => (
                 <NativeSelectOption key={key} value={key}>
                   {groupLabels[key]}
                 </NativeSelectOption>
@@ -148,44 +146,49 @@ export function ProfitSummary() {
             <SummaryMetrics
               metrics={[
                 {
-                  label: t('Customer usage (CNY)'),
-                  value: cny(data.total.usage_micro_cny),
+                  label: t('Used by customers'),
+                  value: formatCny(data.total.revenue_micro_cny),
                 },
                 {
-                  label: t('Upstream cost (CNY)'),
-                  value: cny(cost(data.total)),
+                  label: t('Charged by upstreams'),
+                  value: formatCny(data.total.cost_micro_cny),
                 },
                 {
-                  label: t('Estimated gross profit'),
-                  value: cny(data.total.profit_micro_cny),
+                  label: t('Profit'),
+                  value: formatCny(data.total.profit_micro_cny),
                 },
-                { label: t('Gross margin'), value: margin(data.total) },
+                { label: t('Profit margin'), value: margin(data.total) },
               ]}
             />
-            {data.total.requests > data.total.costed_requests && (
+            {BigInt(data.gift_quota) > 0n && (
               <p className='text-sm'>
                 {t(
-                  '{{count}} requests have no upstream cost yet and are left out of the profit: the channel has no purchase price, the upstream is not built on New API, or the next sync has not run.',
-                  { count: data.total.requests - data.total.costed_requests }
+                  '{{amount}} of gifted balance was used. Gifts earn nothing.',
+                  { amount: formatQuota(Number(data.gift_quota)) }
                 )}
               </p>
             )}
-            {data.total.unmatched_requests > 0 && (
+            {BigInt(data.unpaid_quota) > 0n && (
               <p className='text-sm'>
                 {t(
-                  '{{count}} upstream deductions ({{amount}}) have no matching request on this site and are subtracted from the profit: failed or retried requests, or other keys on the same upstream account.',
-                  {
-                    count: data.total.unmatched_requests,
-                    amount: cny(data.total.unmatched_cost_micro_cny),
-                  }
+                  '{{amount}} was used with no recorded payment behind it, such as test accounts or balance added outside the ledger. It earns nothing.',
+                  { amount: formatQuota(Number(data.unpaid_quota)) }
                 )}
               </p>
             )}
-            {data.total.pending_requests > 0 && (
+            {data.pending_charges > 0 && (
               <p className='text-sm'>
                 {t(
-                  '{{count}} upstream deductions have no purchase price for their time, so their cost is unknown and left out. Set a purchase price that covers them.',
-                  { count: data.total.pending_requests }
+                  '{{count}} upstream deductions have no purchase price yet, so their cost is missing. Set it under Purchase and sale prices.',
+                  { count: data.pending_charges }
+                )}
+              </p>
+            )}
+            {data.uncosted_requests > 0 && (
+              <p className='text-sm'>
+                {t(
+                  '{{count}} requests went through channels with no purchase price, so their cost is missing and the profit is too high.',
+                  { count: data.uncosted_requests }
                 )}
               </p>
             )}
@@ -199,7 +202,7 @@ export function ProfitSummary() {
                 'aria-label': t('Profit'),
                 tabIndex: 0,
               }}
-              tableClassName='min-w-[680px]'
+              tableClassName='min-w-[640px]'
               columns={[
                 {
                   id: 'label',
@@ -210,28 +213,26 @@ export function ProfitSummary() {
                 },
                 {
                   id: 'requests',
-                  header: t('Requests with cost / all'),
-                  cell: (row) =>
-                    `${formatNumber(row.costed_requests, locale)} / ${formatNumber(row.requests, locale)}`,
+                  header: t('Requests'),
+                  cell: (row) => formatNumber(row.requests, locale),
                 },
                 {
-                  id: 'usage',
-                  header: t('Customer usage'),
-                  cell: (row) => cny(row.usage_micro_cny),
+                  id: 'revenue',
+                  header: t('Used by customers'),
+                  cell: (row) => formatCny(row.revenue_micro_cny),
                 },
                 {
                   id: 'cost',
-                  header: t('Upstream cost'),
-                  cell: (row) => cny(cost(row)),
+                  header: t('Charged by upstreams'),
+                  cell: (row) => formatCny(row.cost_micro_cny),
                 },
-                { id: 'profit', header: t('Gross profit'), cell: profit },
-                { id: 'margin', header: t('Gross margin'), cell: margin },
+                { id: 'profit', header: t('Profit'), cell: profit },
+                { id: 'margin', header: t('Profit margin'), cell: margin },
               ]}
             />
             <p className='text-muted-foreground text-sm'>
               {t(
-                'Customer usage is balance deducted from customers, valued at the top-up price of ¥{{price}} per $1. It is not revenue: gifts and receipt discounts are not separated yet. Profit counts only requests with a known upstream cost; each cost uses the purchase price in effect when the request happened.',
-                { price: data.reference_cny_per_unit }
+                'Profit = what customers used − what upstreams charged for it. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time.'
               )}
             </p>
           </div>

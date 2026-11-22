@@ -65,6 +65,9 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 	"POST /api/beacon/costs/rates": accessTokenSessionRule,
 	"POST /api/beacon/costs/sync":  accessTokenSessionRule,
 	// Price rules change every customer's price: root browser sessions only.
+	"GET /api/beacon/finance":           accessTokenSessionRule,
+	"POST /api/beacon/finance/payments": accessTokenSessionRule,
+
 	"GET /api/beacon/pricing":                        accessTokenSessionRule,
 	"POST /api/beacon/pricing/rules":                 accessTokenSessionRule,
 	"DELETE /api/beacon/pricing/rules":               accessTokenSessionRule,

@@ -43,21 +43,14 @@ const range: ProfitSummaryData['range'] = {
   as_of: 1795276800,
 }
 
-// One costed request, one request with no cost yet, one deduction with no
-// local request and one deduction without a purchase price.
 const total: ProfitRow = {
   key: 'total',
   label: 'total',
-  requests: 2,
-  usage_quota: '1121',
-  usage_micro_cny: '16367',
-  costed_requests: 1,
-  costed_micro_cny: '3227',
-  cost_micro_cny: '794',
-  unmatched_requests: 1,
-  unmatched_cost_micro_cny: '21860',
-  pending_requests: 1,
-  profit_micro_cny: '-19427',
+  requests: 4,
+  usage_quota: '650000',
+  revenue_micro_cny: '35000000',
+  cost_micro_cny: '8000000',
+  profit_micro_cny: '27000000',
 }
 
 function summary(groupBy: ProfitSummaryData['group_by']): ProfitSummaryData {
@@ -65,39 +58,55 @@ function summary(groupBy: ProfitSummaryData['group_by']): ProfitSummaryData {
     groupBy === 'user'
       ? [
           {
-            ...total,
             key: '0',
             label: '0',
             requests: 0,
             usage_quota: '0',
-            usage_micro_cny: '0',
-            costed_requests: 0,
-            costed_micro_cny: '0',
-            cost_micro_cny: '0',
-            profit_micro_cny: '-21860',
+            revenue_micro_cny: '0',
+            cost_micro_cny: '1000000',
+            profit_micro_cny: '-1000000',
           },
           {
             ...total,
             key: '7',
             label: 'alice',
-            unmatched_requests: 0,
-            unmatched_cost_micro_cny: '0',
-            pending_requests: 0,
-            profit_micro_cny: '2433',
+            cost_micro_cny: '7000000',
+            profit_micro_cny: '28000000',
           },
         ]
-      : [{ ...total, key: 'claude-sonnet-4-6', label: 'claude-sonnet-4-6' }]
+      : [
+          {
+            ...total,
+            key: '2026-11-19',
+            label: '2026-11-19',
+            requests: 3,
+            revenue_micro_cny: '20000000',
+            cost_micro_cny: '4000000',
+            profit_micro_cny: '16000000',
+          },
+          {
+            ...total,
+            key: '2026-11-18',
+            label: '2026-11-18',
+            requests: 1,
+            revenue_micro_cny: '15000000',
+            cost_micro_cny: '4000000',
+            profit_micro_cny: '11000000',
+          },
+        ]
   return {
     range,
     group_by: groupBy,
-    reference_cny_per_unit: 7.3,
     total,
     rows,
+    gift_quota: '250000',
+    unpaid_quota: '50000',
+    pending_charges: 1,
+    uncosted_requests: 2,
   }
 }
 
-it('shows estimated profit from costed requests and explains what is left out', async () => {
-  const requests: Record<string, string>[] = []
+function renderProfit(requests: Record<string, string>[]) {
   api.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
     requests.push(config.params)
     return {
@@ -109,31 +118,47 @@ it('shows estimated profit from costed requests and explains what is left out', 
     }
   }
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const user = userEvent.setup()
   render(
     <QueryClientProvider client={client}>
       <ProfitSummary />
     </QueryClientProvider>
   )
-  expect((await screen.findAllByText('¥0.0164'))[0]).toBeInTheDocument()
-  expect(screen.getAllByText('-¥0.0194')[0]).toBeInTheDocument()
-  expect(screen.getAllByText('-602%')[0]).toBeInTheDocument()
+}
+
+it('shows this month’s profit by day and says what earns nothing or lacks a cost', async () => {
+  const requests: Record<string, string>[] = []
+  renderProfit(requests)
+  expect((await screen.findAllByText('¥35.00'))[0]).toBeInTheDocument()
+  expect(screen.getAllByText('¥27.00')[0]).toBeInTheDocument()
+  expect(screen.getAllByText('77.1%')[0]).toBeInTheDocument()
+  expect(screen.getByText('2026-11-19')).toBeInTheDocument()
+  expect(screen.getByText('¥16.00')).toBeInTheDocument()
+  expect(screen.getByText(/of gifted balance was used/)).toBeInTheDocument()
   expect(
-    screen.getByText(/1 requests have no upstream cost yet/)
-  ).toBeInTheDocument()
-  expect(
-    screen.getByText(/\(¥0\.0219\) have no matching request/)
+    screen.getByText(/was used with no recorded payment/)
   ).toBeInTheDocument()
   expect(
     screen.getByText(/1 upstream deductions have no purchase price/)
   ).toBeInTheDocument()
-  expect(screen.getByText(/top-up price of ¥7.3 per \$1/)).toBeInTheDocument()
-  expect(requests[0]).toMatchObject({ period: 'month', group_by: 'model' })
+  expect(
+    screen.getByText(/2 requests went through channels with no purchase price/)
+  ).toBeInTheDocument()
+  expect(requests[0]).toMatchObject({
+    view: 'profit',
+    period: 'month',
+    group_by: 'day',
+  })
+})
 
+it('labels deductions with no request on this site and marks a loss', async () => {
+  const requests: Record<string, string>[] = []
+  renderProfit(requests)
+  const user = userEvent.setup()
+  await screen.findByText('2026-11-19')
   await user.selectOptions(screen.getByLabelText('Group by'), 'user')
   await user.click(screen.getByRole('button', { name: 'Apply range' }))
   expect(await screen.findByText('No request on this site')).toBeInTheDocument()
   expect(screen.getByText('alice')).toBeInTheDocument()
-  expect(screen.getByText('-¥0.0219')).toHaveClass('text-destructive')
+  expect(screen.getByText('-¥1.00')).toHaveClass('text-destructive')
   expect(requests.at(-1)).toMatchObject({ group_by: 'user' })
 })

@@ -17,16 +17,45 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { z } from 'zod'
 
 import { BeaconLedger } from '@/features/beacon-ledger'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
+const financeSearchSchema = z.object({
+  tab: z
+    .enum([
+      'overview',
+      'profit',
+      'customers',
+      'upstreams',
+      'entries',
+      'reconciliation',
+    ])
+    .optional()
+    .catch(undefined),
+})
+
 export const Route = createFileRoute('/_authenticated/beacon-ledger/')({
+  validateSearch: financeSearchSchema,
   beforeLoad: () => {
     if (useAuthStore.getState().auth.user?.role !== ROLE.SUPER_ADMIN) {
       throw redirect({ to: '/403' })
     }
   },
-  component: BeaconLedger,
+  component: RouteComponent,
 })
+
+function RouteComponent() {
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+  return (
+    <BeaconLedger
+      tab={search.tab ?? 'overview'}
+      onTabChange={(tab) => {
+        void navigate({ search: { tab }, replace: true })
+      }}
+    />
+  )
+}

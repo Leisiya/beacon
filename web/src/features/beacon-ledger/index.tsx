@@ -31,13 +31,22 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { getLedger } from './api'
-import { CashSummary } from './components/cash-summary'
+import { CustomerFinance } from './components/customer-finance'
+import { FinanceOverview } from './components/finance-overview'
 import { LedgerEntryDialog } from './components/ledger-entry-dialog'
 import { LedgerTable } from './components/ledger-table'
+import { ProfitSummary } from './components/profit-summary'
 import { QuotaReconciliation } from './components/quota-reconciliation'
-import type { LedgerEntry, LedgerKind } from './types'
+import { UpstreamFinance } from './components/upstream-finance'
+import type { FinanceTab, LedgerEntry, LedgerKind } from './types'
 
-export function BeaconLedger() {
+// Receipts are recorded from the tabs about customer money.
+const receiptTabs = new Set<FinanceTab>(['overview', 'customers', 'entries'])
+
+export function BeaconLedger(props: {
+  tab: FinanceTab
+  onTabChange: (tab: FinanceTab) => void
+}) {
   const { t } = useTranslation()
   const [filter, setFilter] = useState('')
   const [userId, setUserId] = useState(0)
@@ -61,31 +70,57 @@ export function BeaconLedger() {
   return (
     <>
       <SectionPageLayout stackActionsOnMobile>
-        <SectionPageLayout.Title>{t('Manual ledger')}</SectionPageLayout.Title>
-        <SectionPageLayout.Actions>
-          <Button
-            className='min-h-11'
-            disabled={!postingAvailable}
-            onClick={() => startEntry('receipt')}
-          >
-            {draft ? t('Continue draft') : t('Record ledger entry')}
-          </Button>
-        </SectionPageLayout.Actions>
+        <SectionPageLayout.Title>{t('Finance books')}</SectionPageLayout.Title>
+        {receiptTabs.has(props.tab) && (
+          <SectionPageLayout.Actions>
+            <Button
+              className='min-h-11'
+              disabled={!postingAvailable}
+              onClick={() => startEntry('receipt')}
+            >
+              {draft ? t('Continue draft') : t('Record ledger entry')}
+            </Button>
+          </SectionPageLayout.Actions>
+        )}
         <SectionPageLayout.Content>
-          <Tabs defaultValue='entries'>
-            <TabsList className='mb-4 min-h-12'>
-              <TabsTrigger className='min-h-11 px-4' value='summary'>
-                {t('Cash overview')}
-              </TabsTrigger>
-              <TabsTrigger className='min-h-11 px-4' value='entries'>
-                {t('Ledger entries')}
-              </TabsTrigger>
-              <TabsTrigger className='min-h-11 px-4' value='reconciliation'>
-                {t('Balance reconciliation')}
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value='summary'>
-              <CashSummary />
+          <Tabs
+            value={props.tab}
+            onValueChange={(value) => props.onTabChange(value as FinanceTab)}
+          >
+            {/* Six tabs do not fit a phone; the list scrolls instead of the page. */}
+            <div className='mb-4 max-w-full overflow-x-auto'>
+              <TabsList className='min-h-12'>
+                <TabsTrigger className='min-h-11 px-4' value='overview'>
+                  {t('Overview')}
+                </TabsTrigger>
+                <TabsTrigger className='min-h-11 px-4' value='profit'>
+                  {t('Profit')}
+                </TabsTrigger>
+                <TabsTrigger className='min-h-11 px-4' value='customers'>
+                  {t('Customers')}
+                </TabsTrigger>
+                <TabsTrigger className='min-h-11 px-4' value='upstreams'>
+                  {t('Upstreams')}
+                </TabsTrigger>
+                <TabsTrigger className='min-h-11 px-4' value='entries'>
+                  {t('Ledger entries')}
+                </TabsTrigger>
+                <TabsTrigger className='min-h-11 px-4' value='reconciliation'>
+                  {t('Balance reconciliation')}
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent value='overview'>
+              <FinanceOverview onOpen={props.onTabChange} />
+            </TabsContent>
+            <TabsContent value='profit'>
+              <ProfitSummary />
+            </TabsContent>
+            <TabsContent value='customers'>
+              <CustomerFinance />
+            </TabsContent>
+            <TabsContent value='upstreams'>
+              <UpstreamFinance />
             </TabsContent>
             <TabsContent value='reconciliation'>
               <QuotaReconciliation />

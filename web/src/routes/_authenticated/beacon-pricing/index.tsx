@@ -19,16 +19,16 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 
-import { BeaconProfitPricing } from '@/features/beacon-ledger/profit-pricing'
+import { BeaconPricing } from '@/features/beacon-ledger/pricing'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
-const profitSearchSchema = z.object({
-  tab: z.enum(['profit', 'costs', 'pricing']).optional().catch(undefined),
+const pricingSearchSchema = z.object({
+  tab: z.enum(['costs', 'pricing']).optional().catch(undefined),
 })
 
-export const Route = createFileRoute('/_authenticated/beacon-profit/')({
-  validateSearch: profitSearchSchema,
+export const Route = createFileRoute('/_authenticated/beacon-pricing/')({
+  validateSearch: pricingSearchSchema,
   beforeLoad: () => {
     if (useAuthStore.getState().auth.user?.role !== ROLE.SUPER_ADMIN) {
       throw redirect({ to: '/403' })
@@ -41,8 +41,8 @@ function RouteComponent() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   return (
-    <BeaconProfitPricing
-      tab={search.tab ?? 'profit'}
+    <BeaconPricing
+      tab={search.tab ?? 'pricing'}
       onTabChange={(tab) => {
         void navigate({ search: { tab }, replace: true })
       }}

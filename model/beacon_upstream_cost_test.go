@@ -1,7 +1,6 @@
 package model
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func setupBeaconCostTest(t *testing.T) (User, User, Channel) {
@@ -23,10 +23,10 @@ func setupBeaconCostTest(t *testing.T) (User, User, Channel) {
 	t.Cleanup(initCol)
 	operator, user := setupBeaconLedgerTest(t)
 	initCol()
-	require.NoError(t, DB.AutoMigrate(&Channel{}, &BeaconUpstreamRate{}, &BeaconUpstreamCharge{}))
+	require.NoError(t, DB.AutoMigrate(&Channel{}, &BeaconUpstreamRate{}, &BeaconUpstreamCharge{}, &BeaconUpstreamPayment{}))
 	t.Cleanup(func() {
 		if !common.UsingMainDatabase(common.DatabaseTypeSQLite) {
-			require.NoError(t, DB.Migrator().DropTable(&Channel{}, &BeaconUpstreamRate{}, &BeaconUpstreamCharge{}))
+			require.NoError(t, DB.Migrator().DropTable(&Channel{}, &BeaconUpstreamRate{}, &BeaconUpstreamCharge{}, &BeaconUpstreamPayment{}))
 		}
 	})
 	baseURL := "https://upstream.example"
@@ -35,10 +35,10 @@ func setupBeaconCostTest(t *testing.T) (User, User, Channel) {
 	return operator, user, channel
 }
 
-func beaconChargeByLogID(t *testing.T, logID int64) BeaconUpstreamCharge {
+func beaconChargeByRequest(t *testing.T, requestID string) BeaconUpstreamCharge {
 	t.Helper()
 	var charge BeaconUpstreamCharge
-	require.NoError(t, DB.Where("upstream_log_id = ?", logID).First(&charge).Error)
+	require.NoError(t, DB.Where("upstream_request_id = ?", requestID).First(&charge).Error)
 	return charge
 }
 
@@ -49,24 +49,42 @@ func TestBeaconUpstreamChargesKeepTheirPricedCost(t *testing.T) {
 	_, err := CreateBeaconUpstreamRate(BeaconUpstreamRate{ChannelID: channel.Id, EffectiveAt: start, CNYPerUnit: "1", Note: "1 CNY per credit"}, operator.Id, now)
 	require.NoError(t, err)
 	// The channel maps the customer's "haiku-alias" to the upstream model.
-	require.NoError(t, LOG_DB.Create(&Log{UserId: user.Id, Type: LogTypeConsume, ChannelId: channel.Id, ModelName: "haiku-alias", Quota: 221, UpstreamRequestId: "up-1", CreatedAt: start + 10}).Error)
+	require.NoError(t, LOG_DB.Create(&[]Log{
+		{UserId: user.Id, Type: LogTypeConsume, ChannelId: channel.Id, ModelName: "haiku-alias", Quota: 221, UpstreamRequestId: "up-1", CreatedAt: start + 10},
+		{UserId: user.Id, Type: LogTypeConsume, ChannelId: channel.Id, ModelName: "claude-haiku-4-5", Quota: 50, UpstreamRequestId: "up-5", CreatedAt: start + 50},
+	}).Error)
 
+	// New API numbers its token log list by position, newest first.
 	records := []BeaconUpstreamRecord{
 		{LogID: 1, RequestID: "up-1", OccurredAt: start + 10, ModelName: "claude-haiku-4-5", Group: "ccmax", GroupRatio: "1.8", Quota: 397},
-		{LogID: 2, RequestID: "up-2", OccurredAt: start - 100, ModelName: "claude-sonnet-4-6", Quota: 5465},
-		{LogID: 3, RequestID: "up-3", OccurredAt: start + 20, ModelName: "claude-haiku-4-5", Quota: -5},
+		{LogID: 2, RequestID: "up-3", OccurredAt: start + 5, ModelName: "claude-haiku-4-5", Quota: -5},
+		{LogID: 3, RequestID: "up-2", OccurredAt: start - 100, ModelName: "claude-sonnet-4-6", Quota: 5465},
 		{LogID: 4, RequestID: "up-4", OccurredAt: start - 1000, ModelName: "claude-sonnet-4-6", Quota: 1000},
-		// The upstream logged request up-1 twice; both deductions are costs.
-		{LogID: 5, RequestID: "up-1", OccurredAt: start + 10, ModelName: "claude-haiku-4-5", Group: "ccmax", GroupRatio: "1.8", Quota: 397},
 	}
 	inserted, err := StoreBeaconUpstreamCharges(channel.Id, "key-a", 500000, records, now)
 	require.NoError(t, err)
-	assert.Equal(t, 4, inserted, "negative upstream quota is not stored")
+	assert.Equal(t, 3, inserted, "negative upstream quota is not stored")
 	inserted, err = StoreBeaconUpstreamCharges(channel.Id, "key-a", 500000, records[:1], now)
 	require.NoError(t, err)
-	assert.Equal(t, 0, inserted, "the same upstream log is stored once")
+	assert.Equal(t, 0, inserted, "the same upstream record is stored once")
 
-	priced := beaconChargeByLogID(t, 1)
+	// A newer request takes position 1 and every older record moves down one.
+	shifted := []BeaconUpstreamRecord{{LogID: 1, RequestID: "up-5", OccurredAt: start + 50, ModelName: "claude-haiku-4-5", Group: "ccmax", GroupRatio: "1.8", Quota: 100}}
+	for _, record := range records {
+		record.LogID++
+		shifted = append(shifted, record)
+	}
+	inserted, err = StoreBeaconUpstreamCharges(channel.Id, "key-a", 500000, shifted, now+300)
+	require.NoError(t, err)
+	assert.Equal(t, 1, inserted, "only the new record is stored after the list shifts")
+	var stored int64
+	require.NoError(t, DB.Model(&BeaconUpstreamCharge{}).Count(&stored).Error)
+	assert.Equal(t, int64(4), stored)
+	fresh := beaconChargeByRequest(t, "up-5")
+	require.NotNil(t, fresh.LocalLogID, "the record at a position seen before is matched, not skipped")
+	assert.Equal(t, int64(200), fresh.CostMicroCNY)
+
+	priced := beaconChargeByRequest(t, "up-1")
 	require.NotNil(t, priced.RateID)
 	assert.Equal(t, int64(794), priced.CreditMicro)
 	assert.Equal(t, int64(794), priced.CostMicroCNY)
@@ -76,7 +94,7 @@ func TestBeaconUpstreamChargesKeepTheirPricedCost(t *testing.T) {
 	assert.Equal(t, "haiku-alias", priced.LocalModelName)
 	assert.Equal(t, "1.8", priced.GroupRatio)
 
-	pending := beaconChargeByLogID(t, 2)
+	pending := beaconChargeByRequest(t, "up-2")
 	assert.Nil(t, pending.RateID, "a charge before the first rate stays pending")
 	assert.Nil(t, pending.LocalLogID)
 
@@ -86,70 +104,56 @@ func TestBeaconUpstreamChargesKeepTheirPricedCost(t *testing.T) {
 	require.NoError(t, err)
 	_, err = CreateBeaconUpstreamRate(BeaconUpstreamRate{ChannelID: channel.Id, EffectiveAt: start + 5, CNYPerUnit: "3", Note: "price rise"}, operator.Id, now)
 	require.NoError(t, err)
-	pending = beaconChargeByLogID(t, 2)
+	pending = beaconChargeByRequest(t, "up-2")
 	require.NotNil(t, pending.RateID)
 	assert.Equal(t, int64(10930), pending.CreditMicro)
 	assert.Equal(t, int64(21860), pending.CostMicroCNY)
-	assert.Equal(t, int64(794), beaconChargeByLogID(t, 1).CostMicroCNY)
-
-	// A request with no upstream deduction yet, and a refund of part of it.
-	require.NoError(t, LOG_DB.Create(&[]Log{
-		{UserId: user.Id, Type: LogTypeConsume, ChannelId: channel.Id, ModelName: "claude-sonnet-4-6", Quota: 1000, CreatedAt: start + 30},
-		{UserId: user.Id, Type: LogTypeRefund, ChannelId: channel.Id, ModelName: "claude-sonnet-4-6", Quota: 100, CreatedAt: start + 40},
-	}).Error)
-	previousPrice := operation_setting.Price
-	t.Cleanup(func() { operation_setting.Price = previousPrice })
-	// ¥7.3 per $1 of balance is 14.6 millionths of CNY per quota unit.
-	operation_setting.Price = 7.3
-	at := time.Unix(now, 0)
-
-	byModel, err := GetBeaconProfitSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "model", at)
-	require.NoError(t, err)
-	assert.Equal(t, 7.3, byModel.ReferenceCNYPerUnit)
-	assert.Equal(t, BeaconProfitRow{
-		Key: "total", Label: "total", Requests: 2, UsageQuota: "1121", UsageMicroCNY: "16367",
-		CostedRequests: 1, CostedMicroCNY: "3227", CostMicroCNY: "1588",
-		UnmatchedRequests: 1, UnmatchedCostMicroCNY: "21860", PendingRequests: 1, ProfitMicroCNY: "-20221",
-	}, byModel.Total)
-	require.Len(t, byModel.Rows, 2)
-	assert.Equal(t, BeaconProfitRow{
-		Key: "claude-sonnet-4-6", Label: "claude-sonnet-4-6", Requests: 1, UsageQuota: "900", UsageMicroCNY: "13140",
-		CostedMicroCNY: "0", CostMicroCNY: "0", UnmatchedRequests: 1, UnmatchedCostMicroCNY: "21860", PendingRequests: 1, ProfitMicroCNY: "-21860",
-	}, byModel.Rows[0], "unmatched and pending deductions keep the upstream model name")
-	assert.Equal(t, BeaconProfitRow{
-		Key: "haiku-alias", Label: "haiku-alias", Requests: 1, UsageQuota: "221", UsageMicroCNY: "3227",
-		CostedRequests: 1, CostedMicroCNY: "3227", CostMicroCNY: "1588", UnmatchedCostMicroCNY: "0", ProfitMicroCNY: "1639",
-	}, byModel.Rows[1], "matched deductions count toward the model the customer asked for, and the request's charge counts once")
-
-	byUser, err := GetBeaconProfitSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "user", at)
-	require.NoError(t, err)
-	require.Len(t, byUser.Rows, 2)
-	assert.Equal(t, "0", byUser.Rows[0].Label, "deductions without a local request have no customer")
-	assert.Equal(t, "-21860", byUser.Rows[0].ProfitMicroCNY)
-	assert.Equal(t, user.Username, byUser.Rows[1].Label)
-	assert.Equal(t, "1121", byUser.Rows[1].UsageQuota)
-	assert.Equal(t, "1639", byUser.Rows[1].ProfitMicroCNY)
-
-	byDay, err := GetBeaconProfitSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "day", at)
-	require.NoError(t, err)
-	require.Len(t, byDay.Rows, 1, "logs and deductions fall on the same Shanghai day")
-	assert.Equal(t, "2026-11-19", byDay.Rows[0].Key)
-	assert.Equal(t, int64(2), byDay.Rows[0].Requests)
-	assert.Equal(t, "-20221", byDay.Rows[0].ProfitMicroCNY)
-
-	byChannel, err := GetBeaconProfitSummary(context.Background(), "custom", "2026-11-19", "2026-11-19", "channel", at)
-	require.NoError(t, err)
-	require.Len(t, byChannel.Rows, 1)
-	assert.Equal(t, "supplier-a", byChannel.Rows[0].Label)
-	assert.Equal(t, "1121", byChannel.Rows[0].UsageQuota)
+	assert.Equal(t, int64(794), beaconChargeByRequest(t, "up-1").CostMicroCNY)
+	assert.Nil(t, beaconChargeByRequest(t, "up-4").RateID, "a charge before every rate stays pending")
 
 	observation, err := LatestBeaconChannelObservation(channel.Id)
 	require.NoError(t, err)
 	require.NotNil(t, observation)
 	assert.Equal(t, "1.8", observation.GroupRatio)
+}
 
-	_, err = GetBeaconProfitSummary(context.Background(), "today", "", "", "token", at)
-	assert.ErrorIs(t, err, ErrBeaconCostInput)
+func TestMigrateBeaconChargeSourceKeyRemovesShiftedCopies(t *testing.T) {
+	_, _, channel := setupBeaconCostTest(t)
+	migrator := DB.Migrator()
+	statement := &gorm.Statement{DB: DB}
+	require.NoError(t, statement.Parse(&BeaconUpstreamCharge{}))
+	table := statement.Schema.Table
+	// Recreate the earlier identity: unique by upstream list position.
+	require.NoError(t, migrator.DropIndex(&BeaconUpstreamCharge{}, "idx_beacon_charge_record"))
+	require.NoError(t, DB.Exec("CREATE UNIQUE INDEX idx_beacon_charge_source ON "+table+" (channel_id, key_fingerprint, upstream_log_id)").Error)
+	base := BeaconUpstreamCharge{ChannelID: channel.Id, KeyFingerprint: "key-a", OccurredAt: 1795000000, ModelName: "claude-haiku-4-5", QuotaPerUnit: 500000}
+	rows := []BeaconUpstreamCharge{base, base, base, base}
+	rows[0].UpstreamLogID, rows[0].UpstreamRequestID, rows[0].UpstreamQuota = 1, "up-1", 70
+	rows[1].UpstreamLogID, rows[1].UpstreamRequestID, rows[1].UpstreamQuota = 2, "up-2", 66
+	// The same two records stored again after the list shifted by two.
+	rows[2].UpstreamLogID, rows[2].UpstreamRequestID, rows[2].UpstreamQuota = 3, "up-1", 70
+	rows[3].UpstreamLogID, rows[3].UpstreamRequestID, rows[3].UpstreamQuota = 4, "up-2", 66
+	require.NoError(t, DB.Create(&rows).Error)
+
+	for range 2 {
+		require.NoError(t, migrateBeaconChargeSourceKey(DB))
+		require.NoError(t, DB.AutoMigrate(&BeaconUpstreamCharge{}))
+	}
+
+	var kept []BeaconUpstreamCharge
+	require.NoError(t, DB.Order("id").Find(&kept).Error)
+	require.Len(t, kept, 2)
+	assert.Equal(t, []int64{rows[0].ID, rows[1].ID}, []int64{kept[0].ID, kept[1].ID}, "the first copy of each record is kept")
+	assert.Equal(t, beaconChargeSourceKey(&kept[0]), kept[0].SourceKey)
+	assert.NotEqual(t, kept[0].SourceKey, kept[1].SourceKey)
+	assert.False(t, migrator.HasIndex(&BeaconUpstreamCharge{}, "idx_beacon_charge_source"))
+	assert.True(t, migrator.HasIndex(&BeaconUpstreamCharge{}, "idx_beacon_charge_record"))
+	inserted, err := StoreBeaconUpstreamCharges(channel.Id, "key-a", 500000, []BeaconUpstreamRecord{
+		{LogID: 1, RequestID: "up-3", OccurredAt: 1795000100, ModelName: "claude-haiku-4-5", Quota: 80},
+		{LogID: 2, RequestID: "up-1", OccurredAt: 1795000000, ModelName: "claude-haiku-4-5", Quota: 70},
+	}, 1795000200)
+	require.NoError(t, err)
+	assert.Equal(t, 1, inserted, "a migrated record is recognised at its new position")
 }
 
 func TestBeaconUpstreamRateRejectsUnsafeInput(t *testing.T) {

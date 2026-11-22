@@ -63,27 +63,14 @@ export interface LedgerPage {
   business_timezone: 'Asia/Shanghai'
 }
 
-export interface CashSummaryData {
-  range: {
-    period: string
-    start_date: string
-    end_date: string
-    start_at: number
-    end_before: number
-    as_of: number
-  }
-  base_currency: 'CNY'
-  business_timezone: 'Asia/Shanghai'
-  receipt_minor: string
-  refund_minor: string
-  reversal_minor: string
-  net_minor: string
-  entry_count: number
-  gift_count: number
-  receipt_quota: string
-  gift_quota: string
-  correction_quota: string
-  usage_quota: string
+// Asia/Shanghai calendar dates covered by a report.
+export interface ReportRange {
+  period: string
+  start_date: string
+  end_date: string
+  start_at: number
+  end_before: number
+  as_of: number
 }
 
 interface QuotaMismatch {
@@ -105,31 +92,126 @@ export interface QuotaReconciliationData {
   mismatches: QuotaMismatch[]
 }
 
-export type CostGroupBy = 'channel' | 'model' | 'day' | 'user'
+export type FinanceTab =
+  | 'overview'
+  | 'profit'
+  | 'customers'
+  | 'upstreams'
+  | 'entries'
+  | 'reconciliation'
 
-// Quota is in quota units and money in millionths of CNY, both as decimal
-// strings. Customer charges are valued at the top-up price.
+export type ProfitGroupBy = 'day' | 'user' | 'model' | 'channel'
+
+// Money is in millionths of CNY and quota in quota units, both as decimal
+// strings so totals stay exact.
 export interface ProfitRow {
   key: string
   label: string
   requests: number
   usage_quota: string
-  usage_micro_cny: string
-  costed_requests: number
-  costed_micro_cny: string
+  revenue_micro_cny: string
   cost_micro_cny: string
-  unmatched_requests: number
-  unmatched_cost_micro_cny: string
-  pending_requests: number
   profit_micro_cny: string
 }
 
 export interface ProfitSummaryData {
-  range: CashSummaryData['range']
-  group_by: CostGroupBy
-  reference_cny_per_unit: number
+  range: ReportRange
+  group_by: ProfitGroupBy
   total: ProfitRow
   rows: ProfitRow[]
+  // Used from gifted balance, which earns nothing.
+  gift_quota: string
+  // Used with no recorded payment behind it.
+  unpaid_quota: string
+  pending_charges: number
+  uncosted_requests: number
+}
+
+export interface ProfitTotals {
+  revenue_micro_cny: string
+  cost_micro_cny: string
+  profit_micro_cny: string
+}
+
+// Customer and supplier totals are all time.
+export interface FinanceOverview {
+  as_of: number
+  today: ProfitTotals
+  month: ProfitTotals
+  all: ProfitTotals
+  customer_paid_micro_cny: string
+  customer_used_micro_cny: string
+  customer_remaining_micro_cny: string
+  upstream_paid_micro_cny: string
+  upstream_used_micro_cny: string
+  upstream_remaining_micro_cny: string
+  cash_micro_cny: string
+  pending_charges: number
+}
+
+// Paid and used cover the period; remaining and balance are now.
+export interface CustomerFinanceRow {
+  user_id: number
+  username: string
+  paid_micro_cny: string
+  used_micro_cny: string
+  usage_quota: string
+  gift_quota: string
+  unpaid_quota: string
+  remaining_micro_cny: string
+  balance_quota: string
+}
+
+export interface CustomerFinanceData {
+  range: ReportRange
+  total: CustomerFinanceRow
+  rows: CustomerFinanceRow[]
+}
+
+// Credit is in millionths of the upstream's $1. Remaining is all time.
+export interface UpstreamFinanceRow {
+  channel_id: number
+  name: string
+  paid_micro_cny: string
+  paid_credit_micro: string
+  used_micro_cny: string
+  used_credit_micro: string
+  pending_charges: number
+  remaining_micro_cny: string
+  remaining_credit_micro: string
+  cny_per_unit: string
+  reported_balance: number
+  reported_at: number
+}
+
+export interface UpstreamFinanceData {
+  range: ReportRange
+  total: UpstreamFinanceRow
+  rows: UpstreamFinanceRow[]
+}
+
+export interface UpstreamPayment {
+  id: number
+  kind: 'payment' | 'reversal'
+  channel_id: number
+  cny_amount_minor: number
+  credit_micro: number
+  corrects_id: number | null
+  occurred_at: number
+  operator_id: number
+  recorded_at: number
+  note: string
+  reversal_id: number | null
+}
+
+export interface UpstreamPaymentInput {
+  request_key: string
+  channel_id: number
+  amount: string
+  credit: string
+  corrects_id: number
+  occurred_at: number
+  note: string
 }
 
 export interface UpstreamRate {

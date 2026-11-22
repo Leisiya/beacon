@@ -25,32 +25,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TitledCard } from '@/components/ui/titled-card'
 
 import { PricingRules } from './components/pricing-rules'
-import { ProfitSummary } from './components/profit-summary'
 import { UpstreamSources } from './components/upstream-sources'
 
-export type ProfitPricingTab = 'profit' | 'costs' | 'pricing'
+export type PricingTab = 'costs' | 'pricing'
 
-export function BeaconProfitPricing(props: {
-  tab: ProfitPricingTab
-  onTabChange: (tab: ProfitPricingTab) => void
+export function BeaconPricing(props: {
+  tab: PricingTab
+  onTabChange: (tab: PricingTab) => void
 }) {
   const { t } = useTranslation()
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>
-        {t('Profit and pricing')}
+        {t('Purchase and sale prices')}
       </SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <Tabs
           value={props.tab}
-          onValueChange={(value) =>
-            props.onTabChange(value as ProfitPricingTab)
-          }
+          onValueChange={(value) => props.onTabChange(value as PricingTab)}
         >
           <TabsList className='mb-4 min-h-12'>
-            <TabsTrigger className='min-h-11 px-4' value='profit'>
-              {t('Profit')}
-            </TabsTrigger>
             <TabsTrigger className='min-h-11 px-4' value='costs'>
               {t('Purchase prices')}
             </TabsTrigger>
@@ -58,9 +52,6 @@ export function BeaconProfitPricing(props: {
               {t('Sale prices')}
             </TabsTrigger>
           </TabsList>
-          <TabsContent value='profit'>
-            <ProfitSummary />
-          </TabsContent>
           <TabsContent value='costs'>
             <div className='flex min-w-0 flex-col gap-4'>
               <TitledCard

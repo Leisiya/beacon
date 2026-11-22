@@ -23,7 +23,7 @@ type beaconCostSource struct {
 func writeBeaconCostError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, model.ErrBeaconCostInput), errors.Is(err, model.ErrBeaconLedgerInput):
-		common.ApiErrorStatus(c, http.StatusBadRequest, common.NewMessage("Check the channel, rate, effective time, period and grouping."))
+		common.ApiErrorStatus(c, http.StatusBadRequest, common.NewMessage("Check the channel, rate and effective time."))
 	case errors.Is(err, gorm.ErrRecordNotFound):
 		common.ApiErrorStatus(c, http.StatusNotFound, common.NewMessage("The channel was not found."))
 	default:
@@ -32,54 +32,44 @@ func writeBeaconCostError(c *gin.Context, err error) {
 	}
 }
 
+// GetBeaconCosts lists channels with their purchase prices and sync state.
 func GetBeaconCosts(c *gin.Context) {
 	if _, ok := beaconLedgerOperator(c); !ok {
 		return
 	}
-	if c.Query("view") == "sources" {
-		channels, err := model.ListBeaconCostChannels()
-		if err != nil {
-			writeBeaconCostError(c, err)
-			return
-		}
-		rates, err := model.ListBeaconUpstreamRates()
-		if err != nil {
-			writeBeaconCostError(c, err)
-			return
-		}
-		byChannel := map[int][]model.BeaconUpstreamRate{}
-		for _, rate := range rates {
-			byChannel[rate.ChannelID] = append(byChannel[rate.ChannelID], rate)
-		}
-		statuses := service.BeaconCostSyncStatuses()
-		sources := make([]beaconCostSource, 0, len(channels))
-		for _, channel := range channels {
-			source := beaconCostSource{BeaconCostChannel: channel, Rates: byChannel[channel.ID]}
-			if source.Rates == nil {
-				source.Rates = []model.BeaconUpstreamRate{}
-			}
-			if status, ok := statuses[channel.ID]; ok {
-				source.Sync = &status
-			}
-			if len(source.Rates) > 0 {
-				if source.Observation, err = model.LatestBeaconChannelObservation(channel.ID); err != nil {
-					writeBeaconCostError(c, err)
-					return
-				}
-			}
-			sources = append(sources, source)
-		}
-		common.ApiSuccess(c, gin.H{"sources": sources, "now": time.Now().Unix()})
-		return
-	}
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
-	defer cancel()
-	summary, err := model.GetBeaconProfitSummary(ctx, c.DefaultQuery("period", "today"), c.Query("start"), c.Query("end"), c.DefaultQuery("group_by", "channel"), time.Now())
+	channels, err := model.ListBeaconCostChannels()
 	if err != nil {
 		writeBeaconCostError(c, err)
 		return
 	}
-	common.ApiSuccess(c, summary)
+	rates, err := model.ListBeaconUpstreamRates()
+	if err != nil {
+		writeBeaconCostError(c, err)
+		return
+	}
+	byChannel := map[int][]model.BeaconUpstreamRate{}
+	for _, rate := range rates {
+		byChannel[rate.ChannelID] = append(byChannel[rate.ChannelID], rate)
+	}
+	statuses := service.BeaconCostSyncStatuses()
+	sources := make([]beaconCostSource, 0, len(channels))
+	for _, channel := range channels {
+		source := beaconCostSource{BeaconCostChannel: channel, Rates: byChannel[channel.ID]}
+		if source.Rates == nil {
+			source.Rates = []model.BeaconUpstreamRate{}
+		}
+		if status, ok := statuses[channel.ID]; ok {
+			source.Sync = &status
+		}
+		if len(source.Rates) > 0 {
+			if source.Observation, err = model.LatestBeaconChannelObservation(channel.ID); err != nil {
+				writeBeaconCostError(c, err)
+				return
+			}
+		}
+		sources = append(sources, source)
+	}
+	common.ApiSuccess(c, gin.H{"sources": sources, "now": time.Now().Unix()})
 }
 
 func PostBeaconUpstreamRate(c *gin.Context) {

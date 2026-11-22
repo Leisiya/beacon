@@ -134,6 +134,12 @@ export function useSidebarData(): SidebarData {
         title: t('Admin'),
         items: [
           {
+            title: t('Finance books'),
+            url: '/beacon-ledger',
+            icon: ClipboardList,
+            requiredRole: ROLE.SUPER_ADMIN,
+          },
+          {
             title: t('Channels'),
             url: '/channels',
             icon: Radio,
@@ -149,14 +155,8 @@ export function useSidebarData(): SidebarData {
             icon: Users,
           },
           {
-            title: t('Manual ledger'),
-            url: '/beacon-ledger',
-            icon: ClipboardList,
-            requiredRole: ROLE.SUPER_ADMIN,
-          },
-          {
-            title: t('Profit and pricing'),
-            url: '/beacon-profit',
+            title: t('Purchase and sale prices'),
+            url: '/beacon-pricing',
             icon: TrendingUp,
             requiredRole: ROLE.SUPER_ADMIN,
           },
