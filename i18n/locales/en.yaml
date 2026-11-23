@@ -96,3 +96,7 @@ beacon.pricing_proposed: "Upstream costs changed; price changes are waiting for 
 beacon.pricing_applied: "Sale prices were changed automatically by the price rules: {{.Models}}"
 beacon.pricing_failed: "Automatic price changes failed; review them under Manual ledger → Price rules: {{.Models}}"
 beacon.pricing_below_minimum: "Markup is below the configured minimum: {{.Models}}"
+beacon.balance_alert_title: "Beacon upstream balance"
+beacon.balance_low: "{{.Name}} (#{{.ID}}) has ${{.Balance}} left, below ${{.Threshold}}. Top it up soon."
+beacon.balance_unknown: "{{.Name}} (#{{.ID}}): the balance could not be read {{.Count}} times in a row: {{.Error}}"
+beacon.balance_recovered: "{{.Name}} (#{{.ID}}) has ${{.Balance}} again; back to normal."

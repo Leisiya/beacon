@@ -97,3 +97,7 @@ beacon.pricing_proposed: "上游成本发生变化，以下模型有待确认的
 beacon.pricing_applied: "以下模型已按调价规则自动调整售价：{{.Models}}"
 beacon.pricing_failed: "以下模型自动调价失败，请到人工账务 → 调价规则查看：{{.Models}}"
 beacon.pricing_below_minimum: "以下模型的加价率低于设定的最低值：{{.Models}}"
+beacon.balance_alert_title: "Beacon 上游余额提醒"
+beacon.balance_low: "{{.Name}}（#{{.ID}}）余额 ${{.Balance}}，低于 ${{.Threshold}}，请尽快充值。"
+beacon.balance_unknown: "{{.Name}}（#{{.ID}}）连续 {{.Count}} 次查不到余额：{{.Error}}"
+beacon.balance_recovered: "{{.Name}}（#{{.ID}}）余额 ${{.Balance}}，已恢复正常。"

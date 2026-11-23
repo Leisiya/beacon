@@ -122,3 +122,11 @@ const (
 	MsgBeaconPricingFailed        = "beacon.pricing_failed"
 	MsgBeaconPricingBelowMinimum  = "beacon.pricing_below_minimum"
 )
+
+// Beacon upstream balance alerts posted to a Feishu group
+const (
+	MsgBeaconBalanceAlertTitle = "beacon.balance_alert_title"
+	MsgBeaconBalanceLow        = "beacon.balance_low"
+	MsgBeaconBalanceUnknown    = "beacon.balance_unknown"
+	MsgBeaconBalanceRecovered  = "beacon.balance_recovered"
+)

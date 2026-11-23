@@ -131,6 +131,7 @@ func main() {
 
 	if common.IsMasterNode {
 		service.StartBeaconCostSync()
+		controller.StartBeaconBalanceAlert()
 	}
 
 	// Codex credential auto-refresh check every 10 minutes, refresh when expires within 1 day
