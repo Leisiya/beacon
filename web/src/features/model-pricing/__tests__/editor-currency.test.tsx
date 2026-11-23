@@ -596,25 +596,42 @@ it('preserves a legacy per-request draft when conversion is unsupported', async 
   expect(draft?.billingExpr).toBeUndefined()
 })
 
-it('defaults to USD, remembers a currency choice and restores it when reopened', async () => {
+it('defaults to the site currency, remembers a USD choice and restores it when reopened', async () => {
+  usePricingPreferencesStore.setState(
+    usePricingPreferencesStore.getInitialState()
+  )
   const editor = renderEditor()
   expect(
     screen.getByRole('combobox', { name: 'Pricing currency' })
-  ).toHaveTextContent('US dollar (USD)')
-  expect(screen.getByRole('textbox', { name: 'Input price' })).toHaveValue('2')
-  await selectCurrency('Site currency (CNY)')
+  ).toHaveTextContent('Site currency (CNY)')
   expect(screen.getByRole('textbox', { name: 'Input price' })).toHaveValue('14')
+  await selectCurrency('US dollar (USD)')
+  expect(screen.getByRole('textbox', { name: 'Input price' })).toHaveValue('2')
   editor.unmount()
   // Rehydrate from browser storage, rather than relying on the live store.
   const stored = localStorage.getItem('model-pricing-preferences') ?? ''
   expect(stored).not.toBe('')
-  usePricingPreferencesStore.setState({ currency: 'USD' })
+  usePricingPreferencesStore.setState({ currency: 'site' })
   localStorage.setItem('model-pricing-preferences', stored)
   await usePricingPreferencesStore.persist.rehydrate()
   renderEditor()
   expect(
     screen.getByRole('combobox', { name: 'Pricing currency' })
-  ).toHaveTextContent('Site currency (CNY)')
+  ).toHaveTextContent('US dollar (USD)')
+})
+
+it('falls back to USD by default when the site shows USD', () => {
+  usePricingPreferencesStore.setState(
+    usePricingPreferencesStore.getInitialState()
+  )
+  useSystemConfigStore
+    .getState()
+    .setConfig({ currency: { ...DEFAULT_CURRENCY_CONFIG } })
+  renderEditor()
+  expect(
+    screen.getByRole('combobox', { name: 'Pricing currency' })
+  ).toHaveTextContent('US dollar (USD)')
+  expect(screen.getByRole('textbox', { name: 'Input price' })).toHaveValue('2')
 })
 
 it('opens currency help by keyboard and restores focus after Escape', async () => {

@@ -7565,7 +7565,7 @@
     "Sync now, then check each model’s markup under Sale prices.": "Synchronisez, puis vérifiez la marge de chaque modèle dans Prix de vente.",
     "Open sale prices": "Ouvrir les prix de vente",
     "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "Comment les prix de vente suivent les prix fournisseurs. Comparaison au ratio de groupe par défaut {{ratio}}.",
-    "Prices are in USD per 1M tokens; customers pay them at the top-up price. A change applies to every customer at once.": "Prix en USD par 1M tokens, payés par les clients au prix de recharge. Un changement s’applique immédiatement à tous les clients.",
+    "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "Prix par 1M tokens, dans la devise de tarification choisie ci-dessous. Un changement s’applique immédiatement à tous les clients.",
     "{{price}} per request": "{{price}} par requête",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "Prix en CNY au prix de recharge. La marge est la plus basse des types d’usage, face au fournisseur actif le plus cher. Un prix modifié sous la marge cible de la règle entraîne une suggestion de hausse.",
     "Sale per 1M tokens (input / output)": "Vente par 1M tokens (entrée / sortie)",

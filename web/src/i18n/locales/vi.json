@@ -7565,7 +7565,7 @@
     "Sync now, then check each model’s markup under Sale prices.": "Bấm đồng bộ ngay, rồi xem tỷ lệ cộng thêm của từng mô hình trong Giá bán.",
     "Open sale prices": "Mở giá bán",
     "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "Cách giá bán theo giá nhà cung cấp. So sánh theo hệ số nhóm mặc định {{ratio}}.",
-    "Prices are in USD per 1M tokens; customers pay them at the top-up price. A change applies to every customer at once.": "Giá tính bằng USD mỗi 1M token; khách trả theo giá nạp. Thay đổi áp dụng ngay cho mọi khách hàng.",
+    "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "Giá tính cho mỗi 1M token, theo đơn vị tiền định giá chọn bên dưới. Thay đổi áp dụng ngay cho mọi khách hàng.",
     "{{price}} per request": "{{price}} mỗi yêu cầu",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "Giá quy đổi sang CNY theo giá nạp. Tỷ lệ cộng thêm là mức thấp nhất giữa các loại dùng, so với nhà cung cấp đang bật đắt nhất. Sửa giá trực tiếp thấp hơn mục tiêu của quy tắc sẽ tạo đề xuất tăng giá.",
     "Sale per 1M tokens (input / output)": "Giá bán mỗi 1M token (vào / ra)",

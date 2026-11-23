@@ -29,7 +29,9 @@ type PricingPreferences = {
 export const usePricingPreferencesStore = create<PricingPreferences>()(
   persist(
     (set) => ({
-      currency: 'USD',
+      // Beacon shows the site in CNY, so prices are entered in the site
+      // currency until USD is picked; a USD site still falls back to USD.
+      currency: 'site',
       setCurrency: (currency) => set({ currency }),
     }),
     {

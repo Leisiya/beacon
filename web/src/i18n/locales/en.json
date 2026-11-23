@@ -7565,7 +7565,7 @@
     "Sync now, then check each model’s markup under Sale prices.": "Sync now, then check each model’s markup under Sale prices.",
     "Open sale prices": "Open sale prices",
     "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.",
-    "Prices are in USD per 1M tokens; customers pay them at the top-up price. A change applies to every customer at once.": "Prices are in USD per 1M tokens; customers pay them at the top-up price. A change applies to every customer at once.",
+    "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.",
     "{{price}} per request": "{{price}} per request",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.",
     "Sale per 1M tokens (input / output)": "Sale per 1M tokens (input / output)",

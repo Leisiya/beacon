@@ -61,7 +61,7 @@ export function SalePriceSheet(props: {
             </SheetTitle>
             <SheetDescription>
               {t(
-                'Prices are in USD per 1M tokens; customers pay them at the top-up price. A change applies to every customer at once.'
+                'Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.'
               )}
             </SheetDescription>
           </SheetHeader>

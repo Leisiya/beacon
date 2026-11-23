@@ -7565,7 +7565,7 @@
     "Sync now, then check each model’s markup under Sale prices.": "「今すぐ同期」を押してから、「販売価格」で各モデルの上乗せ率を確認します。",
     "Open sale prices": "販売価格を開く",
     "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "仕入先の価格変化に販売価格をどう合わせるか。デフォルトのグループ倍率 {{ratio}} で比較します。",
-    "Prices are in USD per 1M tokens; customers pay them at the top-up price. A change applies to every customer at once.": "価格は 100 万トークンあたりの USD で、顧客はチャージ価格で支払います。変更はすべての顧客に即時反映されます。",
+    "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "価格は 100 万トークンあたりで、単位は下で選んだ価格通貨です。変更はすべての顧客に即時反映されます。",
     "{{price}} per request": "1 リクエスト {{price}}",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "価格はチャージ価格で CNY に換算しています。上乗せ率は利用種別のうち最も低いもので、有効なチャネルのうち最も高い仕入先と比較します。直接編集した価格がルールの目標を下回ると、値上げの提案が出ます。",
     "Sale per 1M tokens (input / output)": "販売価格 / 100 万トークン（入力 / 出力）",

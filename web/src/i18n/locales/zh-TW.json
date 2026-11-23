@@ -7565,7 +7565,7 @@
     "Sync now, then check each model’s markup under Sale prices.": "點「立即同步」，然後到「售價」裡看每個模型的加價率。",
     "Open sale prices": "開啟售價",
     "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "供應商價格變化時，售價如何跟隨。按預設分組倍率 {{ratio}} 比較。",
-    "Prices are in USD per 1M tokens; customers pay them at the top-up price. A change applies to every customer at once.": "價格單位是美元 / 百萬 token，客戶按儲值價格付費。修改後立即對所有客戶生效。",
+    "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "價格按每百萬 token 計，單位是下方選的定價貨幣。修改後立即對所有客戶生效。",
     "{{price}} per request": "每次 {{price}}",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "價格按儲值價格換算成人民幣。加價率取各類用量中最低的一項，對比已啟用渠道中最貴的供應商。直接改價後，如果低於規則的目標加價率，系統會產生漲價建議。",
     "Sale per 1M tokens (input / output)": "售價 / 百萬 token（輸入 / 輸出）",

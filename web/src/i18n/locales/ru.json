@@ -7565,7 +7565,7 @@
     "Sync now, then check each model’s markup under Sale prices.": "Нажмите «Синхронизировать», затем проверьте наценку моделей в разделе «Цены продажи».",
     "Open sale prices": "Открыть цены продажи",
     "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "Как цены продажи следуют за ценами поставщиков. Сравнение при групповом коэффициенте по умолчанию {{ratio}}.",
-    "Prices are in USD per 1M tokens; customers pay them at the top-up price. A change applies to every customer at once.": "Цены в USD за 1M токенов; клиенты платят по цене пополнения. Изменение сразу действует для всех клиентов.",
+    "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "Цены за 1M токенов в валюте цен, выбранной ниже. Изменение сразу действует для всех клиентов.",
     "{{price}} per request": "{{price}} за запрос",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "Цены в юанях по цене пополнения. Наценка — минимальная по типам использования относительно самого дорогого активного поставщика. Если цену изменить ниже целевой наценки правила, появится предложение о повышении.",
     "Sale per 1M tokens (input / output)": "Продажа за 1M токенов (ввод / вывод)",
