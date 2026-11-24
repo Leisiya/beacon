@@ -134,7 +134,7 @@ func TestBeaconLedgerProofRejectsExpiredSessionAndWeakMethod(t *testing.T) {
 
 func TestBeaconLedgerRoutesRejectAnonymousAndOrdinaryUsers(t *testing.T) {
 	_, rootIdentity, target := setupAdminUserTest(t)
-	require.NoError(t, model.DB.AutoMigrate(&model.BeaconLedgerEntry{}))
+	require.NoError(t, model.DB.AutoMigrate(&model.BeaconLedgerEntry{}, &model.BeaconUpstreamPayment{}, &model.BeaconExpense{}))
 	require.NoError(t, model.LOG_DB.AutoMigrate(&model.Log{}))
 	userBundle, err := service.CreateLoginSession(target.Id, "password", "127.0.0.1", "ledger-test")
 	require.NoError(t, err)
@@ -143,6 +143,16 @@ func TestBeaconLedgerRoutesRejectAnonymousAndOrdinaryUsers(t *testing.T) {
 	router := gin.New()
 	router.GET("/api/beacon/ledger", middleware.RootAuth(), GetBeaconLedger)
 	router.POST("/api/beacon/ledger", middleware.RootAuth(), PostBeaconLedger)
+	router.POST("/api/beacon/finance/expenses", middleware.RootAuth(), PostBeaconExpense)
+	for _, token := range []string{"", userBundle.AccessToken} {
+		request := httptest.NewRequest(http.MethodPost, "/api/beacon/finance/expenses", strings.NewReader(`{}`))
+		if token != "" {
+			request.Header.Set("Authorization", "Bearer "+token)
+		}
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+		assert.Contains(t, []int{http.StatusUnauthorized, http.StatusForbidden}, response.Code)
+	}
 	for _, path := range []string{"/api/beacon/ledger", "/api/beacon/ledger?view=cash_summary&period=today", "/api/beacon/ledger?view=reconciliation"} {
 		for _, method := range []string{http.MethodGet, http.MethodPost} {
 			for _, token := range []string{"", userBundle.AccessToken} {

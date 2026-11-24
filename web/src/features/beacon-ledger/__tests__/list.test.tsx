@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AxiosError } from 'axios'
 import { afterEach, expect, it } from 'vitest'
@@ -43,7 +43,7 @@ it('keeps posting and pagination disabled when the ledger is empty in an unsuppo
       success: true,
       data: {
         items: [],
-        next_before: 0,
+        next: '',
         posting_available: false,
         base_currency: 'CNY',
         business_timezone: 'Asia/Shanghai',
@@ -57,23 +57,24 @@ it('keeps posting and pagination disabled when the ledger is empty in an unsuppo
     </QueryClientProvider>
   )
   await screen.findByText('No ledger entries')
-  expect(
-    screen.getByRole('button', { name: 'Record ledger entry' })
-  ).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'New entry' })).toBeDisabled()
   expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled()
   expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled()
   expect(screen.getByRole('alert')).toHaveTextContent('Redis')
 })
 
-it('recovers from a failed read and applies the customer filter without inventing balances', async () => {
-  const filters: number[] = []
+it('recovers from a failed read and applies the category and customer filters', async () => {
+  const filters: { source: string; user_id: number }[] = []
   let fail = true
   api.defaults.adapter = async (config) => {
     if (fail) {
       fail = false
       throw new AxiosError('offline', 'ERR_NETWORK', config)
     }
-    filters.push(config.params.user_id)
+    filters.push({
+      source: config.params.source,
+      user_id: config.params.user_id,
+    })
     return {
       config,
       status: 200,
@@ -83,7 +84,7 @@ it('recovers from a failed read and applies the customer filter without inventin
         success: true,
         data: {
           items: [],
-          next_before: 0,
+          next: '',
           posting_available: true,
           base_currency: 'CNY',
           business_timezone: 'Asia/Shanghai',
@@ -100,13 +101,23 @@ it('recovers from a failed read and applies the customer filter without inventin
   )
   await user.click(await screen.findByRole('button', { name: 'Retry' }))
   await screen.findByText('No ledger entries')
-  await user.type(screen.getByLabelText('Customer ID (blank for all)'), '42')
+  const customer = screen.getByLabelText('Customer ID (blank for all)')
+  await user.type(customer, '42')
   await user.click(screen.getByRole('button', { name: 'Filter' }))
   await screen.findByText('No ledger entries')
-  expect(filters).toEqual([0, 42])
+  // Costs have no customer, so the customer filter is set aside.
+  await user.selectOptions(screen.getByLabelText('Category'), 'expense')
+  expect(customer).toBeDisabled()
+  await user.click(screen.getByRole('button', { name: 'Filter' }))
+  await screen.findByText('No ledger entries')
+  expect(filters).toEqual([
+    { source: '', user_id: 0 },
+    { source: '', user_id: 42 },
+    { source: 'expense', user_id: 0 },
+  ])
 })
 
-it('offers a new receipt only on customer money tabs and reports tab changes', async () => {
+it('offers a new entry on every tab and reports tab changes', async () => {
   // Finance reports stay loading; only the ledger page answers.
   api.defaults.adapter = (config) =>
     config.url === '/api/beacon/ledger'
@@ -119,7 +130,7 @@ it('offers a new receipt only on customer money tabs and reports tab changes', a
             success: true,
             data: {
               items: [],
-              next_before: 0,
+              next: '',
               posting_available: true,
               base_currency: 'CNY',
               business_timezone: 'Asia/Shanghai',
@@ -135,9 +146,9 @@ it('offers a new receipt only on customer money tabs and reports tab changes', a
       <BeaconLedger tab='upstreams' onTabChange={(tab) => tabs.push(tab)} />
     </QueryClientProvider>
   )
-  expect(
-    screen.queryByRole('button', { name: 'Record ledger entry' })
-  ).not.toBeInTheDocument()
+  // Enabled once the books confirm customer entries can be posted.
+  const entry = await screen.findByRole('button', { name: 'New entry' })
+  await waitFor(() => expect(entry).toBeEnabled())
   await user.click(screen.getByRole('tab', { name: 'Customers' }))
   expect(tabs).toEqual(['customers'])
   view.rerender(
@@ -145,7 +156,5 @@ it('offers a new receipt only on customer money tabs and reports tab changes', a
       <BeaconLedger tab='customers' onTabChange={(tab) => tabs.push(tab)} />
     </QueryClientProvider>
   )
-  expect(
-    await screen.findByRole('button', { name: 'Record ledger entry' })
-  ).toBeEnabled()
+  expect(screen.getByRole('button', { name: 'New entry' })).toBeEnabled()
 })

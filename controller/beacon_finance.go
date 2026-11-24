@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -19,6 +18,8 @@ func writeBeaconFinanceError(c *gin.Context, err error) {
 		common.ApiErrorStatus(c, http.StatusBadRequest, common.NewMessage("Check the period and grouping."))
 	case errors.Is(err, model.ErrBeaconPaymentInput):
 		common.ApiErrorStatus(c, http.StatusBadRequest, common.NewMessage("Check the channel, amount, credit, date and note."))
+	case errors.Is(err, model.ErrBeaconExpenseInput):
+		common.ApiErrorStatus(c, http.StatusBadRequest, common.NewMessage("Check the category, amount, date and note."))
 	case errors.Is(err, model.ErrBeaconPaymentConflict):
 		common.ApiErrorStatus(c, http.StatusConflict, common.NewMessage("This request key belongs to a different payment."))
 	case errors.Is(err, model.ErrBeaconPaymentReversed):
@@ -31,8 +32,8 @@ func writeBeaconFinanceError(c *gin.Context, err error) {
 	}
 }
 
-// GetBeaconFinance serves the finance views: overview, profit, customers,
-// upstreams and one channel's payments.
+// GetBeaconFinance serves the finance views: overview, profit, customers and
+// upstreams.
 func GetBeaconFinance(c *gin.Context) {
 	if _, ok := beaconLedgerOperator(c); !ok {
 		return
@@ -52,15 +53,6 @@ func GetBeaconFinance(c *gin.Context) {
 		result, err = model.GetBeaconCustomerFinance(ctx, period, start, end, now)
 	case "upstreams":
 		result, err = model.GetBeaconUpstreamFinance(ctx, period, start, end, now)
-	case "payments":
-		channelID, parseErr := strconv.Atoi(c.Query("channel_id"))
-		if parseErr != nil {
-			writeBeaconFinanceError(c, model.ErrBeaconPaymentInput)
-			return
-		}
-		var payments []model.BeaconUpstreamPaymentRecord
-		payments, err = model.ListBeaconUpstreamPayments(channelID)
-		result = gin.H{"items": payments}
 	default:
 		err = model.ErrBeaconCostInput
 	}
@@ -94,4 +86,29 @@ func PostBeaconUpstreamPayment(c *gin.Context) {
 		})
 	}
 	common.ApiSuccess(c, gin.H{"payment": payment, "created": created})
+}
+
+func PostBeaconExpense(c *gin.Context) {
+	identity, ok := beaconLedgerOperator(c)
+	if !ok {
+		return
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 8<<10)
+	var input model.BeaconExpenseInput
+	if err := common.DecodeJson(c.Request.Body, &input); err != nil {
+		writeBeaconFinanceError(c, model.ErrBeaconExpenseInput)
+		return
+	}
+	expense, created, err := model.CreateBeaconExpense(input, identity.UserID, time.Now().Unix())
+	if err != nil {
+		writeBeaconFinanceError(c, err)
+		return
+	}
+	if created {
+		recordManageAuditFor(c, 0, "beacon.finance.expense", map[string]any{
+			"expense_id": expense.ID, "kind": expense.Kind, "category": expense.Category,
+			"cny_amount_minor": expense.CNYAmountMinor, "corrects_id": expense.CorrectsID,
+		})
+	}
+	common.ApiSuccess(c, gin.H{"expense": expense, "created": created})
 }

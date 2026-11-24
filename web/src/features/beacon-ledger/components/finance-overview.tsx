@@ -93,8 +93,8 @@ function HeadlineCard(props: {
   )
 }
 
-// The three numbers to check every day: profit, what customers paid and what
-// was paid to upstreams. Each card opens its detail tab.
+// The numbers to check every day: profit, what customers paid, what was paid
+// to upstreams and other costs. Each card opens its detail tab.
 export function FinanceOverview(props: { onOpen: (tab: FinanceTab) => void }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -142,7 +142,7 @@ export function FinanceOverview(props: { onOpen: (tab: FinanceTab) => void }) {
           {t('Refresh')}
         </Button>
       </div>
-      <div className='grid min-w-0 gap-4 lg:grid-cols-3'>
+      <div className='grid min-w-0 gap-4 md:grid-cols-2 2xl:grid-cols-4'>
         <HeadlineCard
           title={t('Profit')}
           label={t('Today')}
@@ -194,6 +194,23 @@ export function FinanceOverview(props: { onOpen: (tab: FinanceTab) => void }) {
           action={t('Each upstream')}
           onAction={() => props.onOpen('upstreams')}
         />
+        <HeadlineCard
+          title={t('Other costs')}
+          label={t('Month to date')}
+          value={formatCny(data.month.expense_micro_cny)}
+          lines={[
+            {
+              label: t('Today'),
+              value: formatCny(data.today.expense_micro_cny),
+            },
+            {
+              label: t('All time'),
+              value: formatCny(data.all.expense_micro_cny),
+            },
+          ]}
+          action={t('Ledger entries')}
+          onAction={() => props.onOpen('entries')}
+        />
       </div>
       <Card data-card-hover='false'>
         <CardContent className='flex flex-col gap-1'>
@@ -210,10 +227,11 @@ export function FinanceOverview(props: { onOpen: (tab: FinanceTab) => void }) {
           </p>
           <p className='text-sm'>
             {t(
-              'Paid by customers {{paid}} − paid to upstreams {{upstream}}. This is not profit: money customers prepaid but have not used yet is in it too.',
+              'Paid by customers {{paid}} − paid to upstreams {{upstream}} − other costs {{expense}}. This is not profit: money customers prepaid but have not used yet is in it too.',
               {
                 paid: formatCny(data.customer_paid_micro_cny),
                 upstream: formatCny(data.upstream_paid_micro_cny),
+                expense: formatCny(data.all.expense_micro_cny),
               }
             )}
           </p>
@@ -231,7 +249,7 @@ export function FinanceOverview(props: { onOpen: (tab: FinanceTab) => void }) {
       )}
       <p className='text-muted-foreground text-sm'>
         {t(
-          'Profit = what customers used − what upstreams charged for it. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing.'
+          'Profit = what customers used − what upstreams charged for it − other costs such as servers and promotion. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Money paid to upstreams becomes cost as they deduct it, so it is not counted again when paid.'
         )}
       </p>
     </div>

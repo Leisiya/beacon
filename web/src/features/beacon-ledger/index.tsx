@@ -28,9 +28,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-import { getLedger } from './api'
+import { getBook } from './api'
 import { CustomerFinance } from './components/customer-finance'
 import { FinanceOverview } from './components/finance-overview'
 import { LedgerEntryDialog } from './components/ledger-entry-dialog'
@@ -38,10 +39,7 @@ import { LedgerTable } from './components/ledger-table'
 import { ProfitSummary } from './components/profit-summary'
 import { QuotaReconciliation } from './components/quota-reconciliation'
 import { UpstreamFinance } from './components/upstream-finance'
-import type { FinanceTab, LedgerEntry, LedgerKind } from './types'
-
-// Receipts are recorded from the tabs about customer money.
-const receiptTabs = new Set<FinanceTab>(['overview', 'customers', 'entries'])
+import type { BookSource, EntryKind, FinanceTab, LedgerEntry } from './types'
 
 export function BeaconLedger(props: {
   tab: FinanceTab
@@ -49,39 +47,48 @@ export function BeaconLedger(props: {
 }) {
   const { t } = useTranslation()
   const [filter, setFilter] = useState('')
-  const [userId, setUserId] = useState(0)
-  const [before, setBefore] = useState(0)
-  const [cursors, setCursors] = useState<number[]>([])
+  const [sourceFilter, setSourceFilter] = useState<BookSource | ''>('')
+  const [query, setQuery] = useState<{
+    source: BookSource | ''
+    userId: number
+  }>({ source: '', userId: 0 })
+  const [cursor, setCursor] = useState('')
+  const [cursors, setCursors] = useState<string[]>([])
   const [draft, setDraft] = useState<{
-    kind: LedgerKind
+    kind: EntryKind
     source?: LedgerEntry
+    channelId?: number
   } | null>(null)
   const [open, setOpen] = useState(false)
   const ledger = useQuery({
-    queryKey: ['beacon-ledger', userId, before],
-    queryFn: () => getLedger(userId, before),
+    queryKey: ['beacon-ledger', 'book', query, cursor],
+    queryFn: () => getBook(query.source, query.userId, cursor),
     retry: false,
   })
   const postingAvailable = ledger.data?.posting_available === true
-  const startEntry = (kind: LedgerKind, source?: LedgerEntry): void => {
-    if (!draft) setDraft({ kind, source })
+  const startEntry = (
+    kind: EntryKind,
+    source?: LedgerEntry,
+    channelId?: number
+  ): void => {
+    if (!draft) setDraft({ kind, source, channelId })
     setOpen(true)
   }
+  // Only customer entries can be filtered by customer.
+  const customerFilter = sourceFilter === '' || sourceFilter === 'customer'
   return (
     <>
       <SectionPageLayout stackActionsOnMobile>
         <SectionPageLayout.Title>{t('Finance books')}</SectionPageLayout.Title>
-        {receiptTabs.has(props.tab) && (
-          <SectionPageLayout.Actions>
-            <Button
-              className='min-h-11'
-              disabled={!postingAvailable}
-              onClick={() => startEntry('receipt')}
-            >
-              {draft ? t('Continue draft') : t('Record ledger entry')}
-            </Button>
-          </SectionPageLayout.Actions>
-        )}
+        <SectionPageLayout.Actions>
+          <Button
+            className='min-h-11'
+            disabled={!postingAvailable}
+            onClick={() => startEntry('receipt')}
+          >
+            {draft ? t('Continue draft') : t('New entry')}
+          </Button>
+        </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
           <Tabs
             value={props.tab}
@@ -120,7 +127,11 @@ export function BeaconLedger(props: {
               <CustomerFinance />
             </TabsContent>
             <TabsContent value='upstreams'>
-              <UpstreamFinance />
+              <UpstreamFinance
+                onTopUp={(channelId) =>
+                  startEntry('upstream', undefined, channelId)
+                }
+              />
             </TabsContent>
             <TabsContent value='reconciliation'>
               <QuotaReconciliation />
@@ -129,7 +140,7 @@ export function BeaconLedger(props: {
               <div className='flex min-w-0 flex-col gap-4'>
                 <p className='text-muted-foreground text-sm'>
                   {t(
-                    'CNY reporting · Asia/Shanghai. Cash and quota are separate. This ledger includes only entries recorded here, not historical top-ups or usage revenue.'
+                    'CNY reporting · Asia/Shanghai. Customer money, top-ups paid to upstreams and other costs recorded here, newest first. Historical top-ups and usage revenue are not included.'
                   )}
                 </p>
                 {ledger.data && !postingAvailable && (
@@ -145,11 +156,40 @@ export function BeaconLedger(props: {
                   className='flex flex-wrap items-end gap-2'
                   onSubmit={(event) => {
                     event.preventDefault()
-                    setUserId(Number(filter))
-                    setBefore(0)
+                    setQuery({
+                      source: sourceFilter,
+                      userId: customerFilter ? Number(filter) : 0,
+                    })
+                    setCursor('')
                     setCursors([])
                   }}
                 >
+                  <Field className='w-full sm:w-44'>
+                    <FieldLabel htmlFor='ledger-source-filter'>
+                      {t('Category')}
+                    </FieldLabel>
+                    <NativeSelect
+                      id='ledger-source-filter'
+                      className='w-full [&_select]:min-h-11'
+                      value={sourceFilter}
+                      onChange={(event) =>
+                        setSourceFilter(event.target.value as BookSource | '')
+                      }
+                    >
+                      <NativeSelectOption value=''>
+                        {t('All')}
+                      </NativeSelectOption>
+                      <NativeSelectOption value='customer'>
+                        {t('Customer money')}
+                      </NativeSelectOption>
+                      <NativeSelectOption value='upstream'>
+                        {t('Upstream top-up')}
+                      </NativeSelectOption>
+                      <NativeSelectOption value='expense'>
+                        {t('Other costs')}
+                      </NativeSelectOption>
+                    </NativeSelect>
+                  </Field>
                   <Field className='max-w-64'>
                     <FieldLabel htmlFor='ledger-customer-filter'>
                       {t('Customer ID (blank for all)')}
@@ -157,7 +197,8 @@ export function BeaconLedger(props: {
                     <Input
                       id='ledger-customer-filter'
                       className='min-h-11'
-                      value={filter}
+                      value={customerFilter ? filter : ''}
+                      disabled={!customerFilter}
                       inputMode='numeric'
                       pattern='[0-9]*'
                       onChange={(event) => setFilter(event.target.value)}
@@ -168,8 +209,9 @@ export function BeaconLedger(props: {
                     variant='outline'
                     type='submit'
                     disabled={
-                      !Number.isSafeInteger(Number(filter)) ||
-                      Number(filter) < 0
+                      customerFilter &&
+                      (!Number.isSafeInteger(Number(filter)) ||
+                        Number(filter) < 0)
                     }
                   >
                     {t('Filter')}
@@ -218,7 +260,7 @@ export function BeaconLedger(props: {
                     variant='outline'
                     disabled={cursors.length === 0 || ledger.isFetching}
                     onClick={() => {
-                      setBefore(cursors.at(-1) ?? 0)
+                      setCursor(cursors.at(-1) ?? '')
                       setCursors(cursors.slice(0, -1))
                     }}
                   >
@@ -228,13 +270,11 @@ export function BeaconLedger(props: {
                     className='min-h-11'
                     variant='outline'
                     disabled={
-                      !ledger.data?.next_before ||
-                      ledger.isFetching ||
-                      ledger.isError
+                      !ledger.data?.next || ledger.isFetching || ledger.isError
                     }
                     onClick={() => {
-                      setCursors([...cursors, before])
-                      setBefore(ledger.data?.next_before ?? 0)
+                      setCursors([...cursors, cursor])
+                      setCursor(ledger.data?.next ?? '')
                     }}
                   >
                     {t('Next page')}
@@ -250,6 +290,7 @@ export function BeaconLedger(props: {
           open={open}
           kind={draft.kind}
           source={draft.source}
+          channelId={draft.channelId}
           onOpenChange={(nextOpen) => {
             setOpen(nextOpen)
             if (!nextOpen) setDraft(null)
@@ -257,7 +298,7 @@ export function BeaconLedger(props: {
           onComplete={() => {
             setOpen(false)
             setDraft(null)
-            setBefore(0)
+            setCursor('')
             setCursors([])
           }}
         />

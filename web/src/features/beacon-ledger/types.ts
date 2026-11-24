@@ -18,6 +18,15 @@ For commercial licensing, please contact support@quantumnous.com
 */
 export type LedgerKind = 'receipt' | 'gift' | 'refund' | 'reversal'
 
+// Operating expenses count against profit on the day they are paid.
+export type ExpenseCategory = 'server' | 'promotion' | 'other'
+
+// What a new entry is for: customer money, a top-up paid to an upstream or
+// an operating expense.
+export type EntryKind = LedgerKind | 'upstream' | ExpenseCategory
+
+export type BookSource = 'customer' | 'upstream' | 'expense'
+
 export interface LedgerInput {
   idempotency_key: string
   kind: LedgerKind
@@ -49,15 +58,26 @@ export interface LedgerEntry {
   payment_method: string
   payment_reference: string
   corrects_id: number | null
-  correction_id: number | null
   occurred_at: number
   recorded_at: number
   note: string
 }
 
-export interface LedgerPage {
-  items: LedgerEntry[]
-  next_before: number
+// One row of the books; correction_id is the row that refunded or reversed it.
+export type BookEntry =
+  | { source: 'customer'; correction_id: number | null; customer: LedgerEntry }
+  | {
+      source: 'upstream'
+      correction_id: number | null
+      upstream: UpstreamPayment
+      channel_name?: string
+    }
+  | { source: 'expense'; correction_id: number | null; expense: Expense }
+
+export interface BookPage {
+  items: BookEntry[]
+  // Cursor of the next page, empty on the last page.
+  next: string
   posting_available: boolean
   base_currency: 'CNY'
   business_timezone: 'Asia/Shanghai'
@@ -111,6 +131,7 @@ export interface ProfitRow {
   usage_quota: string
   revenue_micro_cny: string
   cost_micro_cny: string
+  expense_micro_cny: string
   profit_micro_cny: string
 }
 
@@ -130,6 +151,7 @@ export interface ProfitSummaryData {
 export interface ProfitTotals {
   revenue_micro_cny: string
   cost_micro_cny: string
+  expense_micro_cny: string
   profit_micro_cny: string
 }
 
@@ -201,7 +223,6 @@ export interface UpstreamPayment {
   operator_id: number
   recorded_at: number
   note: string
-  reversal_id: number | null
 }
 
 export interface UpstreamPaymentInput {
@@ -209,6 +230,27 @@ export interface UpstreamPaymentInput {
   channel_id: number
   amount: string
   credit: string
+  corrects_id: number
+  occurred_at: number
+  note: string
+}
+
+export interface Expense {
+  id: number
+  kind: 'expense' | 'reversal'
+  category: ExpenseCategory
+  cny_amount_minor: number
+  corrects_id: number | null
+  occurred_at: number
+  operator_id: number
+  recorded_at: number
+  note: string
+}
+
+export interface ExpenseInput {
+  request_key: string
+  category: ExpenseCategory | ''
+  amount: string
   corrects_id: number
   occurred_at: number
   note: string

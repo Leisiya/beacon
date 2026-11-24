@@ -341,6 +341,7 @@ func migrateDB() error {
 		&BeaconPricingRule{},
 		&BeaconPriceProposal{},
 		&BeaconUpstreamPayment{},
+		&BeaconExpense{},
 		&QuotaData{},
 		&Task{},
 		&TaskPlugin{},

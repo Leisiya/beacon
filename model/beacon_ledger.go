@@ -1,10 +1,13 @@
 package model
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -84,11 +87,11 @@ type BeaconLedgerInput struct {
 // beaconMoneySnapshot accepts only currencies with two decimal minor units.
 // Conversion is rounded once, half away from zero, to CNY cents. Unknown
 // currencies and exponent notation are rejected rather than guessed.
-func beaconMoneySnapshot(amount, currency, rate, source string) (int64, int64, string, error) {
+func beaconMoneySnapshot(amount, currency, rate string) (int64, int64, string, error) {
 	if currency != "CNY" && currency != "USD" && currency != "EUR" && currency != "HKD" {
 		return 0, 0, "", ErrBeaconLedgerInput
 	}
-	if !beaconMoneyPattern.MatchString(amount) || !beaconRatePattern.MatchString(rate) || source == "" {
+	if !beaconMoneyPattern.MatchString(amount) || !beaconRatePattern.MatchString(rate) {
 		return 0, 0, "", ErrBeaconLedgerInput
 	}
 	value, err := decimal.NewFromString(amount)
@@ -117,7 +120,7 @@ func (input BeaconLedgerInput) normalized(now int64) (BeaconLedgerInput, error) 
 	input.PaymentMethod = strings.ToLower(strings.TrimSpace(input.PaymentMethod))
 	input.PaymentReference = strings.ToLower(strings.TrimSpace(input.PaymentReference))
 	input.Note = strings.TrimSpace(input.Note)
-	if !beaconRequestKeyPattern.MatchString(input.IdempotencyKey) || input.Note == "" ||
+	if !beaconRequestKeyPattern.MatchString(input.IdempotencyKey) ||
 		!utf8.ValidString(input.Note) || utf8.RuneCountInString(input.Note) > 1000 ||
 		!utf8.ValidString(input.FXSource) || utf8.RuneCountInString(input.FXSource) > 255 ||
 		strings.ContainsRune(input.Note+input.FXSource, '\x00') ||
@@ -133,7 +136,7 @@ func (input BeaconLedgerInput) normalized(now int64) (BeaconLedgerInput, error) 
 			return input, ErrBeaconLedgerInput
 		}
 		if input.Kind == BeaconReceipt {
-			_, _, rate, err := beaconMoneySnapshot(input.Amount, input.Currency, input.CNYPerUnit, input.FXSource)
+			_, _, rate, err := beaconMoneySnapshot(input.Amount, input.Currency, input.CNYPerUnit)
 			if err != nil || input.PaymentMethod == "" || input.PaymentReference == "" {
 				return input, ErrBeaconLedgerInput
 			}
@@ -147,7 +150,7 @@ func (input BeaconLedgerInput) normalized(now int64) (BeaconLedgerInput, error) 
 			return input, ErrBeaconLedgerInput
 		}
 		if input.Kind == BeaconRefund {
-			if input.PaymentMethod == "" || input.PaymentReference == "" || !beaconRatePattern.MatchString(input.CNYPerUnit) || input.FXSource == "" {
+			if input.PaymentMethod == "" || input.PaymentReference == "" || !beaconRatePattern.MatchString(input.CNYPerUnit) {
 				return input, ErrBeaconLedgerInput
 			}
 			fx, err := decimal.NewFromString(input.CNYPerUnit)
@@ -170,57 +173,170 @@ func NormalizeBeaconLedgerInput(input BeaconLedgerInput) (BeaconLedgerInput, err
 	return input.normalized(common.GetTimestamp())
 }
 
-type BeaconLedgerRecord struct {
-	BeaconLedgerEntry
-	CorrectionID *int64 `json:"correction_id"`
+// The books list customer entries, top-ups paid to upstreams and operating
+// expenses together. Rows recorded in the same second are listed in this
+// source order.
+const (
+	BeaconBookCustomer = "customer"
+	BeaconBookUpstream = "upstream"
+	BeaconBookExpense  = "expense"
+)
+
+var beaconBookSources = []string{BeaconBookCustomer, BeaconBookUpstream, BeaconBookExpense}
+
+// BeaconBookEntry is one row of the books. Exactly one of Customer, Upstream
+// and Expense is set, according to Source.
+type BeaconBookEntry struct {
+	Source       string                 `json:"source"`
+	CorrectionID *int64                 `json:"correction_id"`
+	Customer     *BeaconLedgerEntry     `json:"customer,omitempty"`
+	Upstream     *BeaconUpstreamPayment `json:"upstream,omitempty"`
+	ChannelName  string                 `json:"channel_name,omitempty"`
+	Expense      *BeaconExpense         `json:"expense,omitempty"`
+	recordedAt   int64
+	rank         int
+	id           int64
 }
 
-type BeaconLedgerPage struct {
-	Items      []BeaconLedgerRecord `json:"items"`
-	NextBefore int64                `json:"next_before"`
+type BeaconBookPage struct {
+	Items []BeaconBookEntry `json:"items"`
+	// Next is the cursor of the following page, empty on the last page.
+	Next string `json:"next"`
 }
 
-// ListBeaconLedgerEntries uses an ID cursor so newly posted rows do not shift
-// later pages. Corrections are resolved separately, even outside this page.
-func ListBeaconLedgerEntries(userID int, beforeID int64, limit int) (*BeaconLedgerPage, error) {
-	if userID < 0 || beforeID < 0 || limit < 1 || limit > 100 {
+// ListBeaconBookEntries lists the books newest recorded first. The cursor is
+// "recorded_at-source rank-id" of the last row seen, so rows posted meanwhile
+// do not shift later pages. A customer filter lists only that customer's
+// entries. Corrections are resolved even when they fall outside the page.
+func ListBeaconBookEntries(source string, userID int, cursor string, limit int) (*BeaconBookPage, error) {
+	if userID < 0 || limit < 1 || limit > 100 || (source != "" && !slices.Contains(beaconBookSources, source)) ||
+		(userID > 0 && source != "" && source != BeaconBookCustomer) {
 		return nil, ErrBeaconLedgerInput
 	}
-	query := DB.Model(&BeaconLedgerEntry{})
-	if userID > 0 {
-		query = query.Where("user_id = ?", userID)
+	var after *BeaconBookEntry
+	if cursor != "" {
+		parts := strings.Split(cursor, "-")
+		if len(parts) != 3 {
+			return nil, ErrBeaconLedgerInput
+		}
+		at, atErr := strconv.ParseInt(parts[0], 10, 64)
+		rank, rankErr := strconv.Atoi(parts[1])
+		id, idErr := strconv.ParseInt(parts[2], 10, 64)
+		if atErr != nil || rankErr != nil || idErr != nil || rank < 0 || rank >= len(beaconBookSources) || id <= 0 {
+			return nil, ErrBeaconLedgerInput
+		}
+		after = &BeaconBookEntry{recordedAt: at, rank: rank, id: id}
 	}
-	if beforeID > 0 {
-		query = query.Where("id < ?", beforeID)
+	var items []BeaconBookEntry
+	for rank, name := range beaconBookSources {
+		if (source != "" && source != name) || (userID > 0 && name != BeaconBookCustomer) {
+			continue
+		}
+		query := DB.Order("recorded_at DESC, id DESC").Limit(limit + 1)
+		switch {
+		case after == nil:
+		case rank > after.rank:
+			query = query.Where("recorded_at <= ?", after.recordedAt)
+		case rank == after.rank:
+			query = query.Where("(recorded_at < ? OR (recorded_at = ? AND id < ?))", after.recordedAt, after.recordedAt, after.id)
+		default:
+			query = query.Where("recorded_at < ?", after.recordedAt)
+		}
+		switch name {
+		case BeaconBookCustomer:
+			if userID > 0 {
+				query = query.Where("user_id = ?", userID)
+			}
+			var rows []BeaconLedgerEntry
+			if err := query.Find(&rows).Error; err != nil {
+				return nil, err
+			}
+			for i := range rows {
+				items = append(items, BeaconBookEntry{Source: name, Customer: &rows[i], recordedAt: rows[i].RecordedAt, rank: rank, id: rows[i].ID})
+			}
+		case BeaconBookUpstream:
+			var rows []BeaconUpstreamPayment
+			if err := query.Find(&rows).Error; err != nil {
+				return nil, err
+			}
+			for i := range rows {
+				items = append(items, BeaconBookEntry{Source: name, Upstream: &rows[i], recordedAt: rows[i].RecordedAt, rank: rank, id: rows[i].ID})
+			}
+		case BeaconBookExpense:
+			var rows []BeaconExpense
+			if err := query.Find(&rows).Error; err != nil {
+				return nil, err
+			}
+			for i := range rows {
+				items = append(items, BeaconBookEntry{Source: name, Expense: &rows[i], recordedAt: rows[i].RecordedAt, rank: rank, id: rows[i].ID})
+			}
+		}
 	}
-	var entries []BeaconLedgerEntry
-	if err := query.Order("id DESC").Limit(limit + 1).Find(&entries).Error; err != nil {
-		return nil, err
+	slices.SortFunc(items, func(a, b BeaconBookEntry) int {
+		if a.recordedAt != b.recordedAt {
+			return cmp.Compare(b.recordedAt, a.recordedAt)
+		}
+		if a.rank != b.rank {
+			return cmp.Compare(a.rank, b.rank)
+		}
+		return cmp.Compare(b.id, a.id)
+	})
+	page := &BeaconBookPage{Items: items}
+	if len(items) > limit {
+		page.Items = items[:limit]
+		last := page.Items[limit-1]
+		page.Next = fmt.Sprintf("%d-%d-%d", last.recordedAt, last.rank, last.id)
 	}
-	page := &BeaconLedgerPage{Items: make([]BeaconLedgerRecord, 0, min(len(entries), limit))}
-	if len(entries) > limit {
-		entries = entries[:limit]
-		page.NextBefore = entries[len(entries)-1].ID
+	if page.Items == nil {
+		page.Items = []BeaconBookEntry{}
 	}
-	ids := make([]int64, 0, len(entries))
-	for _, entry := range entries {
-		page.Items = append(page.Items, BeaconLedgerRecord{BeaconLedgerEntry: entry})
-		ids = append(ids, entry.ID)
+
+	ids := map[string][]int64{}
+	var channelIDs []int
+	for _, item := range page.Items {
+		ids[item.Source] = append(ids[item.Source], item.id)
+		if item.Upstream != nil {
+			channelIDs = append(channelIDs, item.Upstream.ChannelID)
+		}
 	}
-	if len(ids) == 0 {
-		return page, nil
+	corrections := map[string]map[int64]int64{}
+	for name, tableIDs := range ids {
+		var rows []struct {
+			ID         int64
+			CorrectsID int64
+		}
+		query := DB.Model(&BeaconLedgerEntry{})
+		switch name {
+		case BeaconBookUpstream:
+			query = DB.Model(&BeaconUpstreamPayment{})
+		case BeaconBookExpense:
+			query = DB.Model(&BeaconExpense{})
+		}
+		if err := query.Select("id", "corrects_id").Where("corrects_id IN ?", tableIDs).Scan(&rows).Error; err != nil {
+			return nil, err
+		}
+		corrections[name] = make(map[int64]int64, len(rows))
+		for _, row := range rows {
+			corrections[name][row.CorrectsID] = row.ID
+		}
 	}
-	var corrections []BeaconLedgerEntry
-	if err := DB.Select("id", "corrects_id").Where("corrects_id IN ?", ids).Find(&corrections).Error; err != nil {
-		return nil, err
-	}
-	byOriginal := make(map[int64]int64, len(corrections))
-	for _, correction := range corrections {
-		byOriginal[*correction.CorrectsID] = correction.ID
+	channelNames := map[int]string{}
+	if len(channelIDs) > 0 {
+		var channels []Channel
+		if err := DB.Select("id", "name").Where("id IN ?", channelIDs).Find(&channels).Error; err != nil {
+			return nil, err
+		}
+		for _, channel := range channels {
+			channelNames[channel.Id] = channel.Name
+		}
 	}
 	for i := range page.Items {
-		if id, ok := byOriginal[page.Items[i].ID]; ok {
-			page.Items[i].CorrectionID = &id
+		item := &page.Items[i]
+		if id, ok := corrections[item.Source][item.id]; ok {
+			item.CorrectionID = &id
+		}
+		if item.Upstream != nil {
+			item.ChannelName = channelNames[item.Upstream.ChannelID]
 		}
 	}
 	return page, nil
@@ -278,7 +394,7 @@ func PostBeaconLedgerEntry(input BeaconLedgerInput, operatorID int) (entry *Beac
 		}
 		switch input.Kind {
 		case BeaconReceipt:
-			entry.OriginalAmountMinor, entry.CNYAmountMinor, entry.CNYPerUnit, err = beaconMoneySnapshot(input.Amount, input.Currency, input.CNYPerUnit, input.FXSource)
+			entry.OriginalAmountMinor, entry.CNYAmountMinor, entry.CNYPerUnit, err = beaconMoneySnapshot(input.Amount, input.Currency, input.CNYPerUnit)
 			if err != nil {
 				return err
 			}
@@ -299,7 +415,7 @@ func PostBeaconLedgerEntry(input BeaconLedgerInput, operatorID int) (entry *Beac
 				// A real refund has its own FX snapshot; an accounting reversal
 				// exactly negates the original snapshot without revaluing it.
 				amount := decimal.NewFromInt(original.OriginalAmountMinor).Shift(-2).StringFixed(2)
-				_, cny, rate, err := beaconMoneySnapshot(amount, original.Currency, input.CNYPerUnit, input.FXSource)
+				_, cny, rate, err := beaconMoneySnapshot(amount, original.Currency, input.CNYPerUnit)
 				if err != nil {
 					return err
 				}

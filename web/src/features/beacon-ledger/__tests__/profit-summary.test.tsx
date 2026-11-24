@@ -50,7 +50,8 @@ const total: ProfitRow = {
   usage_quota: '650000',
   revenue_micro_cny: '35000000',
   cost_micro_cny: '8000000',
-  profit_micro_cny: '27000000',
+  expense_micro_cny: '3000000',
+  profit_micro_cny: '24000000',
 }
 
 function summary(groupBy: ProfitSummaryData['group_by']): ProfitSummaryData {
@@ -64,6 +65,7 @@ function summary(groupBy: ProfitSummaryData['group_by']): ProfitSummaryData {
             usage_quota: '0',
             revenue_micro_cny: '0',
             cost_micro_cny: '1000000',
+            expense_micro_cny: '0',
             profit_micro_cny: '-1000000',
           },
           {
@@ -71,7 +73,18 @@ function summary(groupBy: ProfitSummaryData['group_by']): ProfitSummaryData {
             key: '7',
             label: 'alice',
             cost_micro_cny: '7000000',
+            expense_micro_cny: '0',
             profit_micro_cny: '28000000',
+          },
+          {
+            key: 'expenses',
+            label: 'expenses',
+            requests: 0,
+            usage_quota: '0',
+            revenue_micro_cny: '0',
+            cost_micro_cny: '0',
+            expense_micro_cny: '3000000',
+            profit_micro_cny: '-3000000',
           },
         ]
       : [
@@ -82,7 +95,8 @@ function summary(groupBy: ProfitSummaryData['group_by']): ProfitSummaryData {
             requests: 3,
             revenue_micro_cny: '20000000',
             cost_micro_cny: '4000000',
-            profit_micro_cny: '16000000',
+            expense_micro_cny: '3000000',
+            profit_micro_cny: '13000000',
           },
           {
             ...total,
@@ -91,6 +105,7 @@ function summary(groupBy: ProfitSummaryData['group_by']): ProfitSummaryData {
             requests: 1,
             revenue_micro_cny: '15000000',
             cost_micro_cny: '4000000',
+            expense_micro_cny: '0',
             profit_micro_cny: '11000000',
           },
         ]
@@ -125,14 +140,18 @@ function renderProfit(requests: Record<string, string>[]) {
   )
 }
 
-it('shows this month’s profit by day and says what earns nothing or lacks a cost', async () => {
+it('shows this month’s profit by day after other costs and says what earns nothing or lacks a cost', async () => {
   const requests: Record<string, string>[] = []
   renderProfit(requests)
   expect((await screen.findAllByText('¥35.00'))[0]).toBeInTheDocument()
-  expect(screen.getAllByText('¥27.00')[0]).toBeInTheDocument()
-  expect(screen.getAllByText('77.1%')[0]).toBeInTheDocument()
+  expect(screen.getAllByText('¥24.00')[0]).toBeInTheDocument()
+  expect(screen.getAllByText('68.6%')[0]).toBeInTheDocument()
   expect(screen.getByText('2026-11-19')).toBeInTheDocument()
-  expect(screen.getByText('¥16.00')).toBeInTheDocument()
+  expect(
+    screen.getByRole('columnheader', { name: 'Other costs' })
+  ).toBeInTheDocument()
+  expect(screen.getAllByText('¥3.00')).toHaveLength(2)
+  expect(screen.getByText('¥13.00')).toBeInTheDocument()
   expect(screen.getByText(/of gifted balance was used/)).toBeInTheDocument()
   expect(
     screen.getByText(/was used with no recorded payment/)
@@ -150,7 +169,7 @@ it('shows this month’s profit by day and says what earns nothing or lacks a co
   })
 })
 
-it('labels deductions with no request on this site and marks a loss', async () => {
+it('labels deductions with no request on this site, other costs and a loss', async () => {
   const requests: Record<string, string>[] = []
   renderProfit(requests)
   const user = userEvent.setup()
@@ -160,5 +179,8 @@ it('labels deductions with no request on this site and marks a loss', async () =
   expect(await screen.findByText('No request on this site')).toBeInTheDocument()
   expect(screen.getByText('alice')).toBeInTheDocument()
   expect(screen.getByText('-¥1.00')).toHaveClass('text-destructive')
+  // Other costs belong to no customer and get a row of their own.
+  expect(screen.getByRole('cell', { name: 'Other costs' })).toBeInTheDocument()
+  expect(screen.getByText('-¥3.00')).toHaveClass('text-destructive')
   expect(requests.at(-1)).toMatchObject({ group_by: 'user' })
 })

@@ -18,7 +18,6 @@ import (
 const (
 	BeaconUpstreamPaymentKind  = "payment"
 	BeaconUpstreamReversalKind = "reversal"
-	beaconPaymentListLimit     = 200
 )
 
 var (
@@ -93,7 +92,7 @@ func CreateBeaconUpstreamPayment(input BeaconUpstreamPaymentInput, operatorID in
 		payment.Kind, payment.ChannelID = BeaconUpstreamPaymentKind, input.ChannelID
 		payment.CNYAmountMinor, payment.CreditMicro = cents.IntPart(), micro.IntPart()
 	} else {
-		if input.CorrectsID < 0 || input.ChannelID != 0 || input.Amount != "" || input.Credit != "" || input.Note == "" {
+		if input.CorrectsID < 0 || input.ChannelID != 0 || input.Amount != "" || input.Credit != "" {
 			return nil, false, ErrBeaconPaymentInput
 		}
 		payment.Kind, payment.CorrectsID = BeaconUpstreamReversalKind, &input.CorrectsID
@@ -151,47 +150,6 @@ func CreateBeaconUpstreamPayment(input BeaconUpstreamPaymentInput, operatorID in
 		return nil, false, ErrBeaconPaymentConflict
 	}
 	return &payment, false, nil
-}
-
-// BeaconUpstreamPaymentRecord adds the reversal that cancelled a payment.
-type BeaconUpstreamPaymentRecord struct {
-	BeaconUpstreamPayment
-	ReversalID *int64 `json:"reversal_id"`
-}
-
-// ListBeaconUpstreamPayments returns a channel's latest payments and
-// reversals, newest first.
-func ListBeaconUpstreamPayments(channelID int) ([]BeaconUpstreamPaymentRecord, error) {
-	if channelID <= 0 {
-		return nil, ErrBeaconPaymentInput
-	}
-	var payments []BeaconUpstreamPayment
-	if err := DB.Where("channel_id = ?", channelID).Order("occurred_at DESC, id DESC").Limit(beaconPaymentListLimit).Find(&payments).Error; err != nil {
-		return nil, err
-	}
-	ids := make([]int64, 0, len(payments))
-	for _, payment := range payments {
-		ids = append(ids, payment.ID)
-	}
-	var reversals []BeaconUpstreamPayment
-	if len(ids) > 0 {
-		if err := DB.Select("id", "corrects_id").Where("corrects_id IN ?", ids).Find(&reversals).Error; err != nil {
-			return nil, err
-		}
-	}
-	reversedBy := map[int64]int64{}
-	for _, reversal := range reversals {
-		reversedBy[*reversal.CorrectsID] = reversal.ID
-	}
-	records := make([]BeaconUpstreamPaymentRecord, 0, len(payments))
-	for _, payment := range payments {
-		record := BeaconUpstreamPaymentRecord{BeaconUpstreamPayment: payment}
-		if id, ok := reversedBy[payment.ID]; ok {
-			record.ReversalID = &id
-		}
-		records = append(records, record)
-	}
-	return records, nil
 }
 
 // beaconDaySQL is the start of the Asia/Shanghai calendar day of a Unix
@@ -400,11 +358,13 @@ type BeaconProfitRow struct {
 	UsageQuota      string `json:"usage_quota"`
 	RevenueMicroCNY string `json:"revenue_micro_cny"`
 	CostMicroCNY    string `json:"cost_micro_cny"`
+	ExpenseMicroCNY string `json:"expense_micro_cny"`
 	ProfitMicroCNY  string `json:"profit_micro_cny"`
 }
 
 // BeaconProfitSummary: profit = what customers used of their purchased
-// balance, valued at what they paid, minus what suppliers deducted.
+// balance, valued at what they paid, minus what suppliers deducted, minus
+// operating expenses paid in the period.
 type BeaconProfitSummary struct {
 	Range   BeaconCashRange   `json:"range"`
 	GroupBy string            `json:"group_by"`
@@ -422,22 +382,27 @@ type BeaconProfitSummary struct {
 }
 
 type beaconProfitAccumulator struct {
-	requests      int64
-	usage         int64
-	revenue, cost decimal.Decimal
+	requests               int64
+	usage                  int64
+	revenue, cost, expense decimal.Decimal
 }
 
 func (acc *beaconProfitAccumulator) row(key string) BeaconProfitRow {
 	return BeaconProfitRow{
 		Key: key, Label: key, Requests: acc.requests, UsageQuota: strconv.FormatInt(acc.usage, 10),
 		RevenueMicroCNY: beaconMicroString(acc.revenue), CostMicroCNY: beaconMicroString(acc.cost),
-		ProfitMicroCNY: beaconMicroString(acc.revenue.Sub(acc.cost)),
+		ExpenseMicroCNY: beaconMicroString(acc.expense),
+		ProfitMicroCNY:  beaconMicroString(acc.revenue.Sub(acc.cost).Sub(acc.expense)),
 	}
 }
 
 // beaconProfitAdjustmentKey groups revenue that no request carries, such as a
 // refund larger than the unused balance, when grouping by model or channel.
 const beaconProfitAdjustmentKey = "adjustment"
+
+// beaconProfitExpenseKey groups operating expenses, which belong to no
+// customer, model or channel, when not grouping by day.
+const beaconProfitExpenseKey = "expenses"
 
 var beaconProfitLogColumns = map[string]string{
 	"channel": "channel_id",
@@ -457,6 +422,7 @@ var beaconProfitChargeColumns = map[string]string{
 // Revenue reaches a model or channel in proportion to the quota its requests
 // used on that customer's day. A supplier deduction counts toward the model
 // the customer asked for, and one with no local request toward customer 0.
+// Operating expenses count on the day they were paid.
 func GetBeaconProfitSummary(ctx context.Context, period, startDate, endDate, groupBy string, now time.Time) (*BeaconProfitSummary, error) {
 	window, err := ResolveBeaconCashRange(period, startDate, endDate, now)
 	if err != nil {
@@ -575,6 +541,28 @@ func GetBeaconProfitSummary(ctx context.Context, period, startDate, endDate, gro
 		acc := group(key)
 		acc.cost = acc.cost.Add(decimal.NewFromInt(row.Cost))
 	}
+	var expenses []struct {
+		ExpenseDay int64
+		Amount     int64
+	}
+	expenseDay := beaconDaySQL("occurred_at")
+	if err := DB.WithContext(ctx).Model(&BeaconExpense{}).
+		Select(expenseDay+" AS expense_day, COALESCE(SUM(cny_amount_minor), 0) AS amount").
+		Where("occurred_at >= ? AND occurred_at < ?", window.StartAt, window.EndBefore).
+		Group(expenseDay).Scan(&expenses).Error; err != nil {
+		return nil, err
+	}
+	for _, row := range expenses {
+		if row.Amount == 0 {
+			continue
+		}
+		key := beaconProfitExpenseKey
+		if groupBy == "day" {
+			key = beaconDayLabel(row.ExpenseDay)
+		}
+		acc := group(key)
+		acc.expense = acc.expense.Add(decimal.NewFromInt(row.Amount).Shift(4))
+	}
 
 	summary.UncostedRequests, err = beaconUncostedRequests(ctx, window)
 	if err != nil {
@@ -583,6 +571,8 @@ func GetBeaconProfitSummary(ctx context.Context, period, startDate, endDate, gro
 	keys := slices.Sorted(maps.Keys(groups))
 	if groupBy == "day" {
 		slices.Reverse(keys)
+	} else if index := slices.Index(keys, beaconProfitExpenseKey); index >= 0 {
+		keys = append(slices.Delete(keys, index, index+1), beaconProfitExpenseKey)
 	}
 	var total beaconProfitAccumulator
 	for _, key := range keys {
@@ -591,6 +581,7 @@ func GetBeaconProfitSummary(ctx context.Context, period, startDate, endDate, gro
 		total.usage += acc.usage
 		total.revenue = total.revenue.Add(acc.revenue)
 		total.cost = total.cost.Add(acc.cost)
+		total.expense = total.expense.Add(acc.expense)
 		summary.Rows = append(summary.Rows, acc.row(key))
 	}
 	if err := labelBeaconProfitRows(ctx, groupBy, summary.Rows); err != nil {
@@ -620,9 +611,16 @@ func labelBeaconProfitRows(ctx context.Context, groupBy string, rows []BeaconPro
 	if groupBy != "channel" && groupBy != "user" {
 		return nil
 	}
-	ids := make([]string, 0, len(rows))
+	// Skip the adjustment and expense rows: PostgreSQL rejects a non-numeric
+	// text in an integer IN list.
+	ids := make([]int, 0, len(rows))
 	for _, row := range rows {
-		ids = append(ids, row.Key)
+		if id, err := strconv.Atoi(row.Key); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
 	}
 	names := map[string]string{}
 	if groupBy == "channel" {
@@ -884,10 +882,12 @@ func GetBeaconUpstreamFinance(ctx context.Context, period, startDate, endDate st
 	return result, nil
 }
 
-// BeaconProfitTotals is revenue, cost and profit in millionths of CNY.
+// BeaconProfitTotals is revenue, upstream cost, operating expenses and profit
+// in millionths of CNY.
 type BeaconProfitTotals struct {
 	RevenueMicroCNY string `json:"revenue_micro_cny"`
 	CostMicroCNY    string `json:"cost_micro_cny"`
+	ExpenseMicroCNY string `json:"expense_micro_cny"`
 	ProfitMicroCNY  string `json:"profit_micro_cny"`
 }
 
@@ -908,7 +908,7 @@ type BeaconFinanceOverview struct {
 	UpstreamUsedMicroCNY      string `json:"upstream_used_micro_cny"`
 	UpstreamRemainingMicroCNY string `json:"upstream_remaining_micro_cny"`
 	// CashMicroCNY is what should be on hand: customer payments minus
-	// supplier payments. It is not profit.
+	// supplier payments and operating expenses. It is not profit.
 	CashMicroCNY   string `json:"cash_micro_cny"`
 	PendingCharges int64  `json:"pending_charges"`
 }
@@ -964,11 +964,35 @@ func GetBeaconFinanceOverview(ctx context.Context, now time.Time) (*BeaconFinanc
 			costToday += row.Cost
 		}
 	}
-	totals := func(revenue decimal.Decimal, cost int64) BeaconProfitTotals {
-		costValue := decimal.NewFromInt(cost)
-		return BeaconProfitTotals{RevenueMicroCNY: beaconMicroString(revenue), CostMicroCNY: costValue.String(), ProfitMicroCNY: beaconMicroString(revenue.Sub(costValue))}
+	var expenses []struct {
+		ExpenseDay int64
+		Amount     int64
 	}
-	result.Today, result.Month, result.All = totals(revenueToday, costToday), totals(revenueMonth, costMonth), totals(revenueAll, costAll)
+	if err := DB.WithContext(ctx).Model(&BeaconExpense{}).
+		Select(day + " AS expense_day, COALESCE(SUM(cny_amount_minor), 0) AS amount").
+		Group(day).Scan(&expenses).Error; err != nil {
+		return nil, err
+	}
+	var expenseToday, expenseMonth, expenseAll int64
+	for _, row := range expenses {
+		expenseAll += row.Amount
+		if row.ExpenseDay >= month.StartAt {
+			expenseMonth += row.Amount
+		}
+		if row.ExpenseDay >= today.StartAt {
+			expenseToday += row.Amount
+		}
+	}
+	totals := func(revenue decimal.Decimal, cost, expenseCents int64) BeaconProfitTotals {
+		costValue, expense := decimal.NewFromInt(cost), decimal.NewFromInt(expenseCents).Shift(4)
+		return BeaconProfitTotals{
+			RevenueMicroCNY: beaconMicroString(revenue), CostMicroCNY: costValue.String(), ExpenseMicroCNY: expense.String(),
+			ProfitMicroCNY: beaconMicroString(revenue.Sub(costValue).Sub(expense)),
+		}
+	}
+	result.Today = totals(revenueToday, costToday, expenseToday)
+	result.Month = totals(revenueMonth, costMonth, expenseMonth)
+	result.All = totals(revenueAll, costAll, expenseAll)
 	result.CustomerPaidMicroCNY = beaconMicroString(paid)
 	result.CustomerUsedMicroCNY = beaconMicroString(revenueAll)
 	result.CustomerRemainingMicroCNY = beaconMicroString(remaining)
@@ -980,6 +1004,6 @@ func GetBeaconFinanceOverview(ctx context.Context, now time.Time) (*BeaconFinanc
 	result.UpstreamPaidMicroCNY = strconv.FormatInt(upstreamPaid*10_000, 10)
 	result.UpstreamUsedMicroCNY = strconv.FormatInt(costAll, 10)
 	result.UpstreamRemainingMicroCNY = strconv.FormatInt(upstreamPaid*10_000-costAll, 10)
-	result.CashMicroCNY = beaconMicroString(paid.Sub(decimal.NewFromInt(upstreamPaid * 10_000)))
+	result.CashMicroCNY = beaconMicroString(paid.Sub(decimal.NewFromInt(upstreamPaid * 10_000)).Sub(decimal.NewFromInt(expenseAll).Shift(4)))
 	return result, nil
 }

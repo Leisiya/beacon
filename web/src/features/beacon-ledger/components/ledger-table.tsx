@@ -16,45 +16,206 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { TFunction } from 'i18next'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StaticDataTable } from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
 import { Button } from '@/components/ui/button'
 import { toIntlLocale } from '@/i18n/languages'
+import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatNumber } from '@/lib/format'
+import { handleServerError } from '@/lib/handle-server-error'
 
-import { ledgerMoney } from '../lib/form'
-import type { LedgerEntry, LedgerKind } from '../types'
+import { postExpense, postUpstreamPayment } from '../api'
+import { formatCredit } from '../lib/cost'
+import { entryKindLabels, ledgerMoney, newRequestKey } from '../lib/form'
+import type { BookEntry, LedgerEntry, LedgerKind } from '../types'
+
+type EntryView = {
+  key: string
+  id: number
+  label: string
+  party: string
+  cash: string
+  credited: string
+  occurredAt: number
+  correctsId: number | null
+  details: [string, string][]
+}
+
+// How one row of the books reads in the table and its detail dialog.
+function describeEntry(
+  entry: BookEntry,
+  t: TFunction,
+  locale: Intl.LocalesArgument
+): EntryView {
+  const time = (seconds: number): string =>
+    new Date(seconds * 1000).toLocaleString(locale, {
+      timeZone: 'Asia/Shanghai',
+      hour12: false,
+    })
+  const note = (text: string): [string, string][] =>
+    text ? [[t('Note'), text]] : []
+  if (entry.source === 'customer') {
+    const row = entry.customer
+    return {
+      key: `customer-${row.id}`,
+      id: row.id,
+      label: t(entryKindLabels[row.kind]),
+      party: `${t('Customer')} #${row.user_id}`,
+      cash: ledgerMoney(row.cny_amount_minor, 'CNY'),
+      credited: formatQuotaWithCurrency(row.quota_delta, {
+        abbreviate: false,
+        locale,
+      }),
+      occurredAt: row.occurred_at,
+      correctsId: row.corrects_id,
+      details: [
+        [t('Entry type'), t(entryKindLabels[row.kind])],
+        [t('Customer ID'), String(row.user_id)],
+        [t('Operator ID'), String(row.operator_id)],
+        [
+          t('Original currency amount'),
+          ledgerMoney(row.original_amount_minor, row.currency || 'CNY'),
+        ],
+        [t('Cash amount (CNY)'), ledgerMoney(row.cny_amount_minor, 'CNY')],
+        [t('Quota change (units)'), formatNumber(row.quota_delta, locale)],
+        [t('CNY per original currency unit'), row.cny_per_unit || '—'],
+        ...(row.fx_source
+          ? [[t('Exchange rate source'), row.fx_source] as [string, string]]
+          : []),
+        [t('Payment method'), row.payment_method || '—'],
+        [t('External payment reference'), row.payment_reference || '—'],
+        [t('Occurred at (Asia/Shanghai)'), time(row.occurred_at)],
+        [t('Recorded at (Asia/Shanghai)'), time(row.recorded_at)],
+        ...note(row.note),
+        [t('Request key'), row.idempotency_key],
+      ],
+    }
+  }
+  if (entry.source === 'upstream') {
+    const row = entry.upstream
+    const label = t(
+      row.kind === 'payment' ? entryKindLabels.upstream : 'Reverse entry'
+    )
+    const upstream = `${entry.channel_name || '—'} #${row.channel_id}`
+    return {
+      key: `upstream-${row.id}`,
+      id: row.id,
+      label,
+      party: upstream,
+      cash: ledgerMoney(row.cny_amount_minor, 'CNY'),
+      credited: formatCredit(row.credit_micro),
+      occurredAt: row.occurred_at,
+      correctsId: row.corrects_id,
+      details: [
+        [t('Entry type'), label],
+        [t('Upstream'), upstream],
+        [t('Operator ID'), String(row.operator_id)],
+        [t('CNY paid'), ledgerMoney(row.cny_amount_minor, 'CNY')],
+        [t('Credit received (upstream $)'), formatCredit(row.credit_micro)],
+        [t('Occurred at (Asia/Shanghai)'), time(row.occurred_at)],
+        [t('Recorded at (Asia/Shanghai)'), time(row.recorded_at)],
+        ...note(row.note),
+      ],
+    }
+  }
+  const row = entry.expense
+  const category = t(entryKindLabels[row.category])
+  const label = row.kind === 'expense' ? category : t('Reverse entry')
+  return {
+    key: `expense-${row.id}`,
+    id: row.id,
+    label,
+    party: '—',
+    cash: ledgerMoney(row.cny_amount_minor, 'CNY'),
+    credited: '—',
+    occurredAt: row.occurred_at,
+    correctsId: row.corrects_id,
+    details: [
+      [t('Entry type'), label],
+      [t('Category'), category],
+      [t('Operator ID'), String(row.operator_id)],
+      [t('Amount (CNY)'), ledgerMoney(row.cny_amount_minor, 'CNY')],
+      [t('Occurred at (Asia/Shanghai)'), time(row.occurred_at)],
+      [t('Recorded at (Asia/Shanghai)'), time(row.recorded_at)],
+      ...note(row.note),
+    ],
+  }
+}
 
 export function LedgerTable(props: {
-  entries: LedgerEntry[]
+  entries: BookEntry[]
   postingAvailable: boolean
   onCorrect: (entry: LedgerEntry, kind: LedgerKind) => void
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
-  const [detail, setDetail] = useState<LedgerEntry | null>(null)
-  const kinds = {
-    receipt: t('Manual receipt'),
-    gift: t('Gift quota'),
-    refund: t('Full refund'),
-    reversal: t('Reverse entry'),
-  }
+  const queryClient = useQueryClient()
+  const [detail, setDetail] = useState<EntryView | null>(null)
+  // Money paid out is reversed without a proof; the key makes a retry safe.
+  const [reversing, setReversing] = useState<{
+    entry: BookEntry
+    key: string
+  } | null>(null)
+  const reverse = useMutation({
+    mutationFn: (request: {
+      entry: BookEntry
+      key: string
+    }): Promise<unknown> => {
+      const occurredAt = Math.floor(Date.now() / 1000)
+      if (request.entry.source === 'upstream') {
+        return postUpstreamPayment({
+          request_key: request.key,
+          channel_id: 0,
+          amount: '',
+          credit: '',
+          corrects_id: request.entry.upstream.id,
+          occurred_at: occurredAt,
+          note: '',
+        })
+      }
+      if (request.entry.source === 'expense') {
+        return postExpense({
+          request_key: request.key,
+          category: '',
+          amount: '',
+          corrects_id: request.entry.expense.id,
+          occurred_at: occurredAt,
+          note: '',
+        })
+      }
+      return Promise.reject(new Error('Customer entries need a proof'))
+    },
+    onSuccess: () => {
+      toast.success(t('Entry reversed'))
+      setReversing(null)
+      void queryClient.invalidateQueries({ queryKey: ['beacon-ledger'] })
+    },
+    onError: (error) => handleServerError(error),
+  })
+  const rows = props.entries.map((entry) => ({
+    entry,
+    view: describeEntry(entry, t, locale),
+  }))
   return (
     <>
       <StaticDataTable
         className='overflow-x-auto'
         tableProps={{ withContainer: false }}
-        data={props.entries}
-        getRowKey={(entry) => entry.id}
+        data={rows}
+        getRowKey={(row) => row.view.key}
         containerProps={{
           role: 'region',
           'aria-label': t('Ledger entries'),
           tabIndex: 0,
         }}
-        tableClassName='min-w-[680px]'
+        tableClassName='min-w-[760px]'
         columns={[
           {
             id: 'id',
@@ -63,64 +224,83 @@ export function LedgerTable(props: {
               <Button
                 className='min-h-11'
                 variant='outline'
-                onClick={() => setDetail(row)}
+                onClick={() => setDetail(row.view)}
               >
-                #{row.id} · {kinds[row.kind]}
+                #{row.view.id} · {row.view.label}
               </Button>
             ),
           },
           {
-            id: 'user',
-            header: t('Customer ID'),
-            cell: (row) => formatNumber(row.user_id, locale),
+            id: 'party',
+            header: t('Customer or upstream'),
+            cell: (row) => <span className='break-all'>{row.view.party}</span>,
           },
           {
             id: 'cash',
             header: t('Cash amount (CNY)'),
-            cell: (row) => ledgerMoney(row.cny_amount_minor, 'CNY'),
+            cell: (row) => row.view.cash,
           },
           {
-            id: 'quota',
-            header: t('Quota change (units)'),
-            cell: (row) => formatNumber(row.quota_delta, locale),
+            id: 'credited',
+            header: t('Credited'),
+            cell: (row) => row.view.credited,
+          },
+          {
+            id: 'occurred',
+            header: t('Occurred at (Asia/Shanghai)'),
+            cell: (row) =>
+              new Date(row.view.occurredAt * 1000).toLocaleString(locale, {
+                timeZone: 'Asia/Shanghai',
+                hour12: false,
+              }),
           },
           {
             id: 'actions',
             header: t('Actions'),
-            cell: (row) => (
-              <div className='flex flex-wrap gap-2'>
-                {row.correction_id && (
-                  <span>
-                    {t('Corrected by #{{id}}', { id: row.correction_id })}
-                  </span>
-                )}
-                {row.corrects_id && (
-                  <span>{t('Corrects #{{id}}', { id: row.corrects_id })}</span>
-                )}
-                {!row.correction_id && !row.corrects_id && (
-                  <>
-                    {row.kind === 'receipt' && (
-                      <Button
-                        className='min-h-11'
-                        variant='outline'
-                        disabled={!props.postingAvailable}
-                        onClick={() => props.onCorrect(row, 'refund')}
-                      >
-                        {t('Full refund')}
-                      </Button>
-                    )}
+            cell: (row) => {
+              const entry = row.entry
+              if (entry.correction_id) {
+                return t('Corrected by #{{id}}', { id: entry.correction_id })
+              }
+              if (row.view.correctsId) {
+                return t('Corrects #{{id}}', { id: row.view.correctsId })
+              }
+              if (entry.source !== 'customer') {
+                return (
+                  <Button
+                    className='min-h-11'
+                    variant='outline'
+                    onClick={() =>
+                      setReversing({ entry, key: newRequestKey() })
+                    }
+                  >
+                    {t('Reverse entry')}
+                  </Button>
+                )
+              }
+              return (
+                <div className='flex flex-wrap gap-2'>
+                  {entry.customer.kind === 'receipt' && (
                     <Button
                       className='min-h-11'
                       variant='outline'
                       disabled={!props.postingAvailable}
-                      onClick={() => props.onCorrect(row, 'reversal')}
+                      onClick={() => props.onCorrect(entry.customer, 'refund')}
                     >
-                      {t('Reverse entry')}
+                      {t('Full refund')}
                     </Button>
-                  </>
-                )}
-              </div>
-            ),
+                  )}
+                  <Button
+                    className='min-h-11'
+                    variant='outline'
+                    disabled={!props.postingAvailable}
+                    onClick={() => props.onCorrect(entry.customer, 'reversal')}
+                  >
+                    {t('Reverse entry')}
+                  </Button>
+                </div>
+              )
+            },
           },
         ]}
       />
@@ -133,47 +313,7 @@ export function LedgerTable(props: {
       >
         {detail && (
           <dl className='grid gap-3 text-sm break-words'>
-            {[
-              [t('Entry type'), kinds[detail.kind]],
-              [t('Customer ID'), String(detail.user_id)],
-              [t('Operator ID'), String(detail.operator_id)],
-              [
-                t('Original currency amount'),
-                ledgerMoney(
-                  detail.original_amount_minor,
-                  detail.currency || 'CNY'
-                ),
-              ],
-              [
-                t('Cash amount (CNY)'),
-                ledgerMoney(detail.cny_amount_minor, 'CNY'),
-              ],
-              [
-                t('Quota change (units)'),
-                formatNumber(detail.quota_delta, locale),
-              ],
-              [t('CNY per original currency unit'), detail.cny_per_unit || '—'],
-              [t('Exchange rate source'), detail.fx_source || '—'],
-              [t('Payment method'), detail.payment_method || '—'],
-              [
-                t('External payment reference'),
-                detail.payment_reference || '—',
-              ],
-              [
-                t('Occurred at (Asia/Shanghai)'),
-                new Date(detail.occurred_at * 1000).toLocaleString(locale, {
-                  timeZone: 'Asia/Shanghai',
-                }),
-              ],
-              [
-                t('Recorded at (Asia/Shanghai)'),
-                new Date(detail.recorded_at * 1000).toLocaleString(locale, {
-                  timeZone: 'Asia/Shanghai',
-                }),
-              ],
-              [t('Reason / evidence'), detail.note],
-              [t('Request key'), detail.idempotency_key],
-            ].map(([label, value]) => (
+            {detail.details.map(([label, value]) => (
               <div key={label}>
                 <dt className='text-muted-foreground'>{label}</dt>
                 <dd className='break-all whitespace-pre-wrap'>{value}</dd>
@@ -182,6 +322,22 @@ export function LedgerTable(props: {
           </dl>
         )}
       </Dialog>
+      <ConfirmDialog
+        open={!!reversing}
+        onOpenChange={(open) => {
+          if (!open && !reverse.isPending) setReversing(null)
+        }}
+        title={t('Reverse this entry?')}
+        desc={t(
+          'The entry stays in the books and a reversal with the opposite amount is added.'
+        )}
+        confirmText={t('Reverse entry')}
+        destructive
+        isLoading={reverse.isPending}
+        handleConfirm={() => {
+          if (reversing) reverse.mutate(reversing)
+        }}
+      />
     </>
   )
 }

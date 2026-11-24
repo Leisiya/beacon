@@ -38,9 +38,11 @@ import { formatCny, formatCredit } from '../lib/cost'
 import type { UpstreamFinanceRow } from '../types'
 import { RangeForm } from './range-form'
 import { SummaryMetrics } from './summary-metrics'
-import { UpstreamPaymentDialog } from './upstream-payment-dialog'
 
-export function UpstreamFinance() {
+// A top-up is recorded through New entry, preset to this upstream.
+export function UpstreamFinance(props: {
+  onTopUp: (channelId: number) => void
+}) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const queryClient = useQueryClient()
@@ -49,7 +51,6 @@ export function UpstreamFinance() {
     start: '',
     end: '',
   })
-  const [paying, setPaying] = useState<UpstreamFinanceRow | null>(null)
   const report = useQuery({
     queryKey: ['beacon-ledger', 'upstream-finance', range],
     queryFn: () => getUpstreamFinance(range),
@@ -222,12 +223,12 @@ export function UpstreamFinance() {
                       <Button
                         className='min-h-11'
                         variant='outline'
-                        aria-label={t('Payments to {{name}}', {
+                        aria-label={t('Record a top-up to {{name}}', {
                           name: row.name,
                         })}
-                        onClick={() => setPaying(row)}
+                        onClick={() => props.onTopUp(row.channel_id)}
                       >
-                        {t('Payments')}
+                        {t('Record top-up')}
                       </Button>
                     ),
                   },
@@ -250,12 +251,6 @@ export function UpstreamFinance() {
           </div>
         )}
       </div>
-      <UpstreamPaymentDialog
-        row={paying}
-        onOpenChange={(open) => {
-          if (!open) setPaying(null)
-        }}
-      />
     </TitledCard>
   )
 }

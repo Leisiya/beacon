@@ -83,13 +83,16 @@ export function ProfitSummary() {
     if (row.key === 'adjustment' && data?.group_by !== 'user') {
       return t('Refund adjustments')
     }
+    if (row.key === 'expenses' && data?.group_by !== 'day') {
+      return t('Other costs')
+    }
     return row.label || '—'
   }
   return (
     <TitledCard
       title={<h2>{t('Profit')}</h2>}
       description={t(
-        'What customers used against what upstreams charged · CNY'
+        'What customers used against what upstreams charged and other costs · CNY'
       )}
       disableHoverEffect
     >
@@ -154,6 +157,10 @@ export function ProfitSummary() {
                   value: formatCny(data.total.cost_micro_cny),
                 },
                 {
+                  label: t('Other costs'),
+                  value: formatCny(data.total.expense_micro_cny),
+                },
+                {
                   label: t('Profit'),
                   value: formatCny(data.total.profit_micro_cny),
                 },
@@ -202,7 +209,7 @@ export function ProfitSummary() {
                 'aria-label': t('Profit'),
                 tabIndex: 0,
               }}
-              tableClassName='min-w-[640px]'
+              tableClassName='min-w-[760px]'
               columns={[
                 {
                   id: 'label',
@@ -226,13 +233,18 @@ export function ProfitSummary() {
                   header: t('Charged by upstreams'),
                   cell: (row) => formatCny(row.cost_micro_cny),
                 },
+                {
+                  id: 'expense',
+                  header: t('Other costs'),
+                  cell: (row) => formatCny(row.expense_micro_cny),
+                },
                 { id: 'profit', header: t('Profit'), cell: profit },
                 { id: 'margin', header: t('Profit margin'), cell: margin },
               ]}
             />
             <p className='text-muted-foreground text-sm'>
               {t(
-                'Profit = what customers used − what upstreams charged for it. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time.'
+                'Profit = what customers used − what upstreams charged for it − other costs. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time. Other costs count on the day they were paid; grouped by customer, model or channel they are one separate row.'
               )}
             </p>
           </div>

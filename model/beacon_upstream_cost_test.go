@@ -23,10 +23,10 @@ func setupBeaconCostTest(t *testing.T) (User, User, Channel) {
 	t.Cleanup(initCol)
 	operator, user := setupBeaconLedgerTest(t)
 	initCol()
-	require.NoError(t, DB.AutoMigrate(&Channel{}, &BeaconUpstreamRate{}, &BeaconUpstreamCharge{}, &BeaconUpstreamPayment{}))
+	require.NoError(t, DB.AutoMigrate(&Channel{}, &BeaconUpstreamRate{}, &BeaconUpstreamCharge{}, &BeaconUpstreamPayment{}, &BeaconExpense{}))
 	t.Cleanup(func() {
 		if !common.UsingMainDatabase(common.DatabaseTypeSQLite) {
-			require.NoError(t, DB.Migrator().DropTable(&Channel{}, &BeaconUpstreamRate{}, &BeaconUpstreamCharge{}, &BeaconUpstreamPayment{}))
+			require.NoError(t, DB.Migrator().DropTable(&Channel{}, &BeaconUpstreamRate{}, &BeaconUpstreamCharge{}, &BeaconUpstreamPayment{}, &BeaconExpense{}))
 		}
 	})
 	baseURL := "https://upstream.example"

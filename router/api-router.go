@@ -84,6 +84,7 @@ func SetApiRouter(router *gin.Engine) {
 		financeRoute := apiRouter.Group("/beacon/finance", middleware.RootAuth(), middleware.DisableCache())
 		financeRoute.GET("", controller.GetBeaconFinance)
 		financeRoute.POST("/payments", middleware.CriticalRateLimit(), controller.PostBeaconUpstreamPayment)
+		financeRoute.POST("/expenses", middleware.CriticalRateLimit(), controller.PostBeaconExpense)
 
 		pricingRoute := apiRouter.Group("/beacon/pricing", middleware.RootAuth(), middleware.DisableCache())
 		pricingRoute.GET("", controller.GetBeaconPricing)

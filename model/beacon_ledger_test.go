@@ -241,30 +241,29 @@ func TestBeaconCashSummaryExactLargeTotalsAndCutoff(t *testing.T) {
 
 func TestBeaconMoneySnapshot(t *testing.T) {
 	for _, tc := range []struct {
-		name, amount, currency, rate, source string
-		original, cny                        int64
-		valid                                bool
+		name, amount, currency, rate string
+		original, cny                int64
+		valid                        bool
 	}{
-		{"exact CNY", "0.29", "CNY", "1", "same currency", 29, 29, true},
-		{"USD snapshot", "10.05", "USD", "7.12345", "receipt FX", 1005, 7159, true},
-		{"half cent rounds up", "0.01", "USD", "1.5", "receipt FX", 1, 2, true},
-		{"zero", "0", "CNY", "1", "same currency", 0, 0, false},
-		{"negative", "-1", "CNY", "1", "same currency", 0, 0, false},
-		{"too many decimals", "0.001", "USD", "7", "receipt FX", 0, 0, false},
-		{"exponent", "1e9", "CNY", "1", "same currency", 0, 0, false},
-		{"NaN", "NaN", "CNY", "1", "same currency", 0, 0, false},
-		{"FX exponent", "1", "USD", "1e8", "receipt FX", 0, 0, false},
-		{"zero FX", "1", "USD", "0", "receipt FX", 0, 0, false},
-		{"missing source", "1", "USD", "7", "", 0, 0, false},
-		{"unknown currency", "1", "XYZ", "1", "receipt FX", 0, 0, false},
-		{"unsupported precision", "1", "JPY", "0.05", "receipt FX", 0, 0, false},
-		{"CNY is not revalued", "1", "CNY", "7", "receipt FX", 0, 0, false},
-		{"original overflow", "99999999999999.99", "CNY", "1", "same currency", 0, 0, false},
-		{"converted overflow", "90071992547409.91", "USD", "2", "receipt FX", 0, 0, false},
-		{"sub-cent conversion", "0.01", "HKD", "0.01", "receipt FX", 0, 0, false},
+		{"exact CNY", "0.29", "CNY", "1", 29, 29, true},
+		{"USD snapshot", "10.05", "USD", "7.12345", 1005, 7159, true},
+		{"half cent rounds up", "0.01", "USD", "1.5", 1, 2, true},
+		{"zero", "0", "CNY", "1", 0, 0, false},
+		{"negative", "-1", "CNY", "1", 0, 0, false},
+		{"too many decimals", "0.001", "USD", "7", 0, 0, false},
+		{"exponent", "1e9", "CNY", "1", 0, 0, false},
+		{"NaN", "NaN", "CNY", "1", 0, 0, false},
+		{"FX exponent", "1", "USD", "1e8", 0, 0, false},
+		{"zero FX", "1", "USD", "0", 0, 0, false},
+		{"unknown currency", "1", "XYZ", "1", 0, 0, false},
+		{"unsupported precision", "1", "JPY", "0.05", 0, 0, false},
+		{"CNY is not revalued", "1", "CNY", "7", 0, 0, false},
+		{"original overflow", "99999999999999.99", "CNY", "1", 0, 0, false},
+		{"converted overflow", "90071992547409.91", "USD", "2", 0, 0, false},
+		{"sub-cent conversion", "0.01", "HKD", "0.01", 0, 0, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			original, cny, _, err := beaconMoneySnapshot(tc.amount, tc.currency, tc.rate, tc.source)
+			original, cny, _, err := beaconMoneySnapshot(tc.amount, tc.currency, tc.rate)
 			if !tc.valid {
 				require.ErrorIs(t, err, ErrBeaconLedgerInput)
 				return
@@ -393,7 +392,6 @@ func TestBeaconLedgerRejectsUnsafeInputsAndRollsBack(t *testing.T) {
 		{"negative quota", func(i *BeaconLedgerInput, _, _ *User) { i.Quota = math.MinInt }, ErrBeaconLedgerInput},
 		{"huge quota", func(i *BeaconLedgerInput, _, _ *User) { i.Quota = math.MaxInt }, ErrBeaconLedgerInput},
 		{"short request key", func(i *BeaconLedgerInput, _, _ *User) { i.IdempotencyKey = "short" }, ErrBeaconLedgerInput},
-		{"missing reason", func(i *BeaconLedgerInput, _, _ *User) { i.Note = " " }, ErrBeaconLedgerInput},
 		{"NUL in reason", func(i *BeaconLedgerInput, _, _ *User) { i.Note = "invalid\x00note" }, ErrBeaconLedgerInput},
 		{"future time", func(i *BeaconLedgerInput, _, _ *User) { i.OccurredAt = math.MaxInt64 }, ErrBeaconLedgerInput},
 		{"missing user", func(i *BeaconLedgerInput, _, _ *User) { i.UserID = 999999 }, gorm.ErrRecordNotFound},
@@ -498,34 +496,89 @@ func TestBeaconLedgerMigrationPreservesExistingData(t *testing.T) {
 	t.Logf("%s %s: new table and populated database, repeated migration, data and payment uniqueness preserved", common.MainDatabaseType(), version)
 }
 
-func TestBeaconLedgerCursorAndCorrectionVisibility(t *testing.T) {
-	operator, user := setupBeaconLedgerTest(t)
-	first, _, err := PostBeaconLedgerEntry(beaconReceiptInput(user.Id, "page-receipt-00001"), operator.Id)
+func TestBeaconBooksListEverySourceWithCursor(t *testing.T) {
+	operator, user, channel := setupBeaconCostTest(t)
+	recorded := common.GetTimestamp()
+	// The reason and exchange-rate source are optional.
+	receipt := func(userID int, key string) *BeaconLedgerEntry {
+		input := beaconReceiptInput(userID, key)
+		input.Currency, input.CNYPerUnit, input.FXSource, input.Note = "CNY", "1", "", ""
+		entry, _, err := PostBeaconLedgerEntry(input, operator.Id)
+		require.NoError(t, err)
+		require.NoError(t, DB.Model(entry).Update("recorded_at", recorded).Error)
+		return entry
+	}
+	first := receipt(user.Id, "books-receipt-00001")
+	second := receipt(operator.Id, "books-receipt-00002")
+	payment, _, err := CreateBeaconUpstreamPayment(BeaconUpstreamPaymentInput{
+		RequestKey: "books-payment-00001", ChannelID: channel.Id, Amount: "100", Credit: "100", OccurredAt: recorded,
+	}, operator.Id, recorded)
 	require.NoError(t, err)
-	second, _, err := PostBeaconLedgerEntry(beaconReceiptInput(operator.Id, "page-receipt-00002"), operator.Id)
+	expense, _, err := CreateBeaconExpense(BeaconExpenseInput{
+		RequestKey: "books-expense-00001", Category: "server", Amount: "30", OccurredAt: recorded,
+	}, operator.Id, recorded+10)
 	require.NoError(t, err)
-	page, err := ListBeaconLedgerEntries(0, 0, 1)
+	correction, _, err := PostBeaconLedgerEntry(BeaconLedgerInput{IdempotencyKey: "books-correction-01", Kind: BeaconReversal, CorrectsID: first.ID, OccurredAt: recorded}, operator.Id)
 	require.NoError(t, err)
-	require.Len(t, page.Items, 1)
-	assert.Equal(t, second.ID, page.Items[0].ID)
-	assert.Equal(t, second.ID, page.NextBefore)
-	correction, _, err := PostBeaconLedgerEntry(BeaconLedgerInput{IdempotencyKey: "page-correction-01", Kind: BeaconReversal, CorrectsID: first.ID, OccurredAt: common.GetTimestamp(), Note: "test correction"}, operator.Id)
+	require.NoError(t, DB.Model(correction).Update("recorded_at", recorded+20).Error)
+
+	type row struct {
+		source string
+		id     int64
+	}
+	rows := func(page *BeaconBookPage) []row {
+		result := []row{}
+		for _, item := range page.Items {
+			switch item.Source {
+			case BeaconBookCustomer:
+				result = append(result, row{item.Source, item.Customer.ID})
+			case BeaconBookUpstream:
+				result = append(result, row{item.Source, item.Upstream.ID})
+			case BeaconBookExpense:
+				result = append(result, row{item.Source, item.Expense.ID})
+			}
+		}
+		return result
+	}
+	// Newest recorded first; in the same second customer entries come before
+	// upstream payments, and later IDs first.
+	page, err := ListBeaconBookEntries("", 0, "", 2)
 	require.NoError(t, err)
-	older, err := ListBeaconLedgerEntries(0, page.NextBefore, 1)
+	assert.Equal(t, []row{{BeaconBookCustomer, correction.ID}, {BeaconBookExpense, expense.ID}}, rows(page))
+	require.NotEmpty(t, page.Next)
+	page, err = ListBeaconBookEntries("", 0, page.Next, 2)
 	require.NoError(t, err)
-	require.Len(t, older.Items, 1)
-	assert.Equal(t, first.ID, older.Items[0].ID)
-	require.NotNil(t, older.Items[0].CorrectionID)
-	assert.Equal(t, correction.ID, *older.Items[0].CorrectionID)
-	assert.Zero(t, older.NextBefore)
-	filtered, err := ListBeaconLedgerEntries(operator.Id, 0, 25)
+	assert.Equal(t, []row{{BeaconBookCustomer, second.ID}, {BeaconBookCustomer, first.ID}}, rows(page))
+	require.NotNil(t, page.Items[1].CorrectionID, "a correction on another page is still shown")
+	assert.Equal(t, correction.ID, *page.Items[1].CorrectionID)
+	page, err = ListBeaconBookEntries("", 0, page.Next, 2)
 	require.NoError(t, err)
-	require.Len(t, filtered.Items, 1)
-	assert.Equal(t, second.ID, filtered.Items[0].ID)
-	_, err = ListBeaconLedgerEntries(0, 0, 101)
-	require.ErrorIs(t, err, ErrBeaconLedgerInput)
-	_, err = ListBeaconLedgerEntries(-1, 0, 25)
-	require.ErrorIs(t, err, ErrBeaconLedgerInput)
+	assert.Equal(t, []row{{BeaconBookUpstream, payment.ID}}, rows(page))
+	assert.Equal(t, "supplier-a", page.Items[0].ChannelName)
+	assert.Empty(t, page.Next)
+
+	page, err = ListBeaconBookEntries(BeaconBookExpense, 0, "", 25)
+	require.NoError(t, err)
+	assert.Equal(t, []row{{BeaconBookExpense, expense.ID}}, rows(page))
+	page, err = ListBeaconBookEntries("", user.Id, "", 25)
+	require.NoError(t, err)
+	assert.Equal(t, []row{{BeaconBookCustomer, correction.ID}, {BeaconBookCustomer, first.ID}}, rows(page), "a customer filter lists only that customer's entries")
+
+	for _, tc := range []struct {
+		source, cursor string
+		userID, limit  int
+	}{
+		{source: BeaconBookUpstream, userID: user.Id, limit: 25},
+		{source: "payments", limit: 25},
+		{cursor: "1-2", limit: 25},
+		{cursor: "1-3-1", limit: 25},
+		{cursor: "x-0-1", limit: 25},
+		{limit: 101},
+		{userID: -1, limit: 25},
+	} {
+		_, err := ListBeaconBookEntries(tc.source, tc.userID, tc.cursor, tc.limit)
+		assert.ErrorIs(t, err, ErrBeaconLedgerInput, "%+v", tc)
+	}
 }
 
 func TestBeaconLedgerSQLiteContendingTransactions(t *testing.T) {

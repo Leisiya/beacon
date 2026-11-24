@@ -79,19 +79,18 @@ func GetBeaconLedger(c *gin.Context) {
 		return
 	}
 	userID, userErr := strconv.Atoi(c.DefaultQuery("user_id", "0"))
-	before, cursorErr := strconv.ParseInt(c.DefaultQuery("before", "0"), 10, 64)
 	limit, limitErr := strconv.Atoi(c.DefaultQuery("limit", "25"))
-	if userErr != nil || cursorErr != nil || limitErr != nil {
+	if userErr != nil || limitErr != nil {
 		writeBeaconLedgerError(c, model.ErrBeaconLedgerInput)
 		return
 	}
-	page, err := model.ListBeaconLedgerEntries(userID, before, limit)
+	page, err := model.ListBeaconBookEntries(c.Query("source"), userID, c.Query("cursor"), limit)
 	if err != nil {
 		writeBeaconLedgerError(c, err)
 		return
 	}
 	common.ApiSuccess(c, gin.H{
-		"items": page.Items, "next_before": page.NextBefore,
+		"items": page.Items, "next": page.Next,
 		"base_currency": "CNY", "business_timezone": "Asia/Shanghai",
 		"posting_available": !common.RedisEnabled && !common.BatchUpdateEnabled,
 	})

@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { useRef, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
@@ -39,44 +39,185 @@ import { formatNumber } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 import { AuthOperationError } from '@/lib/secure-verification'
 
-import { postLedger } from '../api'
 import {
+  getCostSources,
+  postExpense,
+  postLedger,
+  postUpstreamPayment,
+} from '../api'
+import {
+  entryKindLabels,
+  entryRequest,
   ledgerFormSchema,
-  ledgerInput,
   ledgerMoney,
   newLedgerForm,
   newRequestKey,
+  type EntryRequest,
   type LedgerFormValues,
 } from '../lib/form'
-import type { LedgerEntry, LedgerInput, LedgerKind } from '../types'
+import type { EntryKind, LedgerEntry } from '../types'
 import { LedgerFormFields } from './ledger-form'
+
+function shanghaiTime(seconds: number): string {
+  return new Date(seconds * 1000 + 8 * 3600000)
+    .toISOString()
+    .slice(0, 16)
+    .replace('T', ' ')
+}
+
+// What the operator confirms: every detail that will be recorded.
+function ReviewDetails(props: { review: EntryRequest; source?: LedgerEntry }) {
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const upstreams = useQuery({
+    queryKey: ['beacon-ledger', 'cost-sources'],
+    queryFn: getCostSources,
+    enabled: props.review.source === 'upstream',
+    retry: false,
+  })
+  const review = props.review
+  if (review.source === 'upstream') {
+    const upstream = upstreams.data?.sources.find(
+      (item) => item.id === review.input.channel_id
+    )
+    return (
+      <dl className='grid grid-cols-1 gap-2 text-sm'>
+        <div>
+          {t('Entry type')}: {t(entryKindLabels.upstream)}
+        </div>
+        <div>
+          {t('Upstream')}: {upstream?.name ?? '—'} #{review.input.channel_id}
+        </div>
+        <div>
+          {t('CNY paid')}: CNY {review.input.amount}
+        </div>
+        <div>
+          {t('Credit received (upstream $)')}: ${review.input.credit}
+        </div>
+        <div>
+          {t('Occurred at (Asia/Shanghai)')}:{' '}
+          {shanghaiTime(review.input.occurred_at)}
+        </div>
+        {review.input.note && (
+          <div className='break-words'>{review.input.note}</div>
+        )}
+      </dl>
+    )
+  }
+  if (review.source === 'expense') {
+    return (
+      <dl className='grid grid-cols-1 gap-2 text-sm'>
+        <div>
+          {t('Entry type')}:{' '}
+          {t(entryKindLabels[review.input.category as EntryKind])}
+        </div>
+        <div>
+          {t('Amount (CNY)')}: CNY {review.input.amount}
+        </div>
+        <div>
+          {t('Occurred at (Asia/Shanghai)')}:{' '}
+          {shanghaiTime(review.input.occurred_at)}
+        </div>
+        {review.input.note && (
+          <div className='break-words'>{review.input.note}</div>
+        )}
+      </dl>
+    )
+  }
+  const entry = review.input
+  return (
+    <dl className='grid grid-cols-1 gap-2 text-sm'>
+      <div>
+        {t('Entry type')}: {t(entryKindLabels[entry.kind])}
+      </div>
+      <div>
+        {t('Customer ID')}: {entry.user_id || props.source?.user_id || '—'} /{' '}
+        {t('Original entry ID')}: {entry.corrects_id || '—'}
+      </div>
+      {props.source && (
+        <div>
+          {t('Original currency amount')}:{' '}
+          {ledgerMoney(
+            props.source.original_amount_minor,
+            props.source.currency || 'CNY'
+          )}{' '}
+          / {t('Quota change (units)')}: {-props.source.quota_delta}
+        </div>
+      )}
+      <div>
+        {t('Original currency amount')}: {entry.currency}{' '}
+        {entry.kind === 'gift'
+          ? 'CNY 0.00'
+          : entry.amount || t('Derived from original entry')}
+      </div>
+      <div>
+        {t('Balance to credit')}:{' '}
+        {entry.quota
+          ? t('{{balance}} ({{quota}} quota units)', {
+              balance: formatQuotaWithCurrency(entry.quota, {
+                abbreviate: false,
+                locale,
+              }),
+              quota: formatNumber(entry.quota, locale),
+            })
+          : t('Derived from original entry')}
+      </div>
+      {entry.cny_per_unit && entry.cny_per_unit !== '1' && (
+        <div>
+          {t('CNY per original currency unit')}: {entry.cny_per_unit}
+        </div>
+      )}
+      <div className='break-all'>
+        {entry.payment_method} {entry.payment_reference}
+      </div>
+      <div>
+        {t('Occurred at (Asia/Shanghai)')}: {shanghaiTime(entry.occurred_at)}
+      </div>
+    </dl>
+  )
+}
 
 export function LedgerEntryDialog(props: {
   open: boolean
-  kind: LedgerKind
+  kind: EntryKind
   source?: LedgerEntry
+  // Preselects the upstream of a top-up.
+  channelId?: number
   onOpenChange: (open: boolean) => void
   onComplete: () => void
 }) {
-  const { t, i18n } = useTranslation()
-  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const { t } = useTranslation()
   const client = useQueryClient()
   const verification = useSecureVerification()
   const form = useForm<LedgerFormValues>({
     resolver: zodResolver(ledgerFormSchema),
     defaultValues: {
       ...newLedgerForm(props.kind, props.source?.id),
+      channel_id: props.channelId ? String(props.channelId) : '',
       cny_per_unit:
         props.kind === 'refund' && props.source?.currency !== 'CNY' ? '' : '1',
     },
   })
-  const [review, setReview] = useState<LedgerInput | null>(null)
-  const [pending, setPending] = useState<LedgerInput | null>(null)
+  const [review, setReview] = useState<EntryRequest | null>(null)
+  const [pending, setPending] = useState<EntryRequest | null>(null)
   const [working, setWorking] = useState(false)
   const inFlight = useRef(false)
+  // Resolves to the success message. Customer entries change a wallet and
+  // need a proof; money paid out does not.
   const mutation = useMutation({
-    mutationFn: (request: { entry: LedgerInput; proof: string }) =>
-      postLedger(request.entry, request.proof),
+    mutationFn: async (request: {
+      entry: EntryRequest
+      proof: string
+    }): Promise<string> => {
+      const entry = request.entry
+      if (entry.source === 'customer') {
+        const result = await postLedger(entry.input, request.proof)
+        return t('Ledger entry confirmed: #{{id}}', { id: result.entry.id })
+      }
+      if (entry.source === 'upstream') await postUpstreamPayment(entry.input)
+      else await postExpense(entry.input)
+      return t('Entry recorded')
+    },
     retry: false,
     meta: { errorToast: false },
   })
@@ -86,25 +227,24 @@ export function LedgerEntryDialog(props: {
     setWorking(true)
     let sent = false
     try {
-      const proof = await verification.requestVerification({
-        scope: 'beacon.ledger.post',
-        context: { entry: review },
-        title: t('Verify ledger entry'),
-        description: t(
-          'This authorization applies only to the reviewed entry.'
-        ),
-      })
-      if (!proof) return
+      let proof = ''
+      if (review.source === 'customer') {
+        const verified = await verification.requestVerification({
+          scope: 'beacon.ledger.post',
+          context: { entry: review.input },
+          title: t('Verify ledger entry'),
+          description: t(
+            'This authorization applies only to the reviewed entry.'
+          ),
+        })
+        if (!verified) return
+        proof = verified.proof_token
+      }
       sent = true
-      const result = await mutation.mutateAsync({
-        entry: review,
-        proof: proof.proof_token,
-      })
+      const message = await mutation.mutateAsync({ entry: review, proof })
       setPending(null)
       setReview(null)
-      toast.success(
-        t('Ledger entry confirmed: #{{id}}', { id: result.entry.id })
-      )
+      toast.success(message)
       await client.invalidateQueries({ queryKey: ['beacon-ledger'] })
       props.onComplete()
     } catch (error) {
@@ -127,6 +267,9 @@ export function LedgerEntryDialog(props: {
       inFlight.current = false
     }
   }
+  let confirmText = t('Confirm and record')
+  if (pending) confirmText = t('Retry same entry')
+  else if (review?.source === 'customer') confirmText = t('Verify and post')
   return (
     <>
       <FormNavigationGuard
@@ -140,7 +283,7 @@ export function LedgerEntryDialog(props: {
         onOpenChange={(open) => {
           if (!working) props.onOpenChange(open)
         }}
-        title={t('Record ledger entry')}
+        title={t('New entry')}
         description={t(
           'Record confirmed external payments only. This page does not transfer money.'
         )}
@@ -159,17 +302,23 @@ export function LedgerEntryDialog(props: {
           <form
             id='ledger-entry-form'
             onSubmit={form.handleSubmit((values) =>
-              setReview(pending ?? ledgerInput(values, newRequestKey()))
+              setReview(pending ?? entryRequest(values, newRequestKey()))
             )}
           >
-            <LedgerFormFields locked={!!pending} correction={!!props.source} />
+            <LedgerFormFields
+              locked={!!pending}
+              correction={!!props.source}
+              sourceCurrency={props.source?.currency}
+            />
           </form>
         </FormProvider>
-        <p className='text-muted-foreground mt-4 text-sm'>
-          {t(
-            'Refunds return the full original amount and remove the original quota. Reversals negate the original entry; they do not make a bank refund. Original records remain available.'
-          )}
-        </p>
+        {props.source && (
+          <p className='text-muted-foreground mt-4 text-sm'>
+            {t(
+              'Refunds return the full original amount and remove the original quota. Reversals negate the original entry; they do not make a bank refund. Original records remain available.'
+            )}
+          </p>
+        )}
       </Dialog>
       <ConfirmDialog
         className='max-h-[90dvh] overflow-y-auto'
@@ -181,75 +330,15 @@ export function LedgerEntryDialog(props: {
         desc={
           <div className='flex flex-col gap-3'>
             <p>
-              {t(
-                'Check the customer, amount, quota and reference before confirming. Entries cannot be edited after posting.'
-              )}
-            </p>
-            {review && (
-              <dl className='grid grid-cols-1 gap-2 text-sm'>
-                <div>
-                  {t('Entry type')}:{' '}
-                  {t(
-                    {
-                      receipt: 'Manual receipt',
-                      gift: 'Gift quota',
-                      refund: 'Full refund',
-                      reversal: 'Reverse entry',
-                    }[review.kind]
+              {review?.source === 'customer'
+                ? t(
+                    'Check the customer, amount, quota and reference before confirming. Entries cannot be edited after posting.'
+                  )
+                : t(
+                    'Check the amount and date before confirming. Entries cannot be edited; a wrong one can be reversed.'
                   )}
-                </div>
-                <div>
-                  {t('Customer ID')}:{' '}
-                  {review.user_id || props.source?.user_id || '—'} /{' '}
-                  {t('Original entry ID')}: {review.corrects_id || '—'}
-                </div>
-                {props.source && (
-                  <div>
-                    {t('Original currency amount')}:{' '}
-                    {ledgerMoney(
-                      props.source.original_amount_minor,
-                      props.source.currency || 'CNY'
-                    )}{' '}
-                    / {t('Quota change (units)')}: {-props.source.quota_delta}
-                  </div>
-                )}
-                <div>
-                  {t('Original currency amount')}: {review.currency}{' '}
-                  {review.kind === 'gift'
-                    ? 'CNY 0.00'
-                    : review.amount || t('Derived from original entry')}
-                </div>
-                <div>
-                  {t('Balance to credit')}:{' '}
-                  {review.quota
-                    ? t('{{balance}} ({{quota}} quota units)', {
-                        balance: formatQuotaWithCurrency(review.quota, {
-                          abbreviate: false,
-                          locale,
-                        }),
-                        quota: formatNumber(review.quota, locale),
-                      })
-                    : t('Derived from original entry')}
-                </div>
-                {review.cny_per_unit && (
-                  <div>
-                    {t('CNY per original currency unit')}: {review.cny_per_unit}{' '}
-                    / {review.fx_source}
-                  </div>
-                )}
-                <div className='break-all'>
-                  {review.payment_method} {review.payment_reference}
-                </div>
-                <div className='break-words'>{review.note}</div>
-                <div>
-                  {t('Occurred at (Asia/Shanghai)')}:{' '}
-                  {new Date(review.occurred_at * 1000 + 8 * 3600000)
-                    .toISOString()
-                    .slice(0, 16)
-                    .replace('T', ' ')}
-                </div>
-              </dl>
-            )}
+            </p>
+            {review && <ReviewDetails review={review} source={props.source} />}
             {pending && (
               <Alert>
                 <AlertDescription>
@@ -262,7 +351,7 @@ export function LedgerEntryDialog(props: {
           </div>
         }
         isLoading={working}
-        confirmText={pending ? t('Retry same entry') : t('Verify and post')}
+        confirmText={confirmText}
         handleConfirm={() => {
           void submit()
         }}

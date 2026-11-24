@@ -41,17 +41,20 @@ const overview: FinanceOverviewData = {
   today: {
     revenue_micro_cny: '2000000',
     cost_micro_cny: '4000000',
+    expense_micro_cny: '0',
     profit_micro_cny: '-2000000',
   },
   month: {
     revenue_micro_cny: '35000000',
     cost_micro_cny: '8000000',
-    profit_micro_cny: '27000000',
+    expense_micro_cny: '3000000',
+    profit_micro_cny: '24000000',
   },
   all: {
     revenue_micro_cny: '135000000',
     cost_micro_cny: '18000000',
-    profit_micro_cny: '117000000',
+    expense_micro_cny: '13000000',
+    profit_micro_cny: '104000000',
   },
   customer_paid_micro_cny: '1000000000',
   customer_used_micro_cny: '135000000',
@@ -59,7 +62,7 @@ const overview: FinanceOverviewData = {
   upstream_paid_micro_cny: '300000000',
   upstream_used_micro_cny: '18000000',
   upstream_remaining_micro_cny: '282000000',
-  cash_micro_cny: '700000000',
+  cash_micro_cny: '687000000',
   pending_charges: 2,
 }
 
@@ -79,21 +82,25 @@ function renderOverview(opened: FinanceTab[]) {
   )
 }
 
-it('shows profit, customer payments, upstream payments and the money on hand', async () => {
+it('shows profit, customer payments, upstream payments, other costs and the money on hand', async () => {
   renderOverview([])
   expect(
     await screen.findByRole('heading', { name: 'Paid by customers' })
   ).toBeInTheDocument()
   expect(screen.getByText('-¥2.00')).toHaveClass('text-destructive')
-  expect(screen.getByText('¥27.00')).toBeInTheDocument()
-  expect(screen.getByText('¥117.00')).toBeInTheDocument()
+  expect(screen.getByText('¥24.00')).toBeInTheDocument()
+  expect(screen.getByText('¥104.00')).toBeInTheDocument()
+  expect(
+    screen.getByRole('heading', { name: 'Other costs' })
+  ).toBeInTheDocument()
+  expect(screen.getByText('¥3.00')).toBeInTheDocument()
   expect(screen.getAllByText('¥1,000.00')[0]).toBeInTheDocument()
   expect(screen.getByText('¥865.00')).toBeInTheDocument()
   expect(screen.getAllByText('¥300.00')[0]).toBeInTheDocument()
   expect(screen.getByText('¥282.00')).toBeInTheDocument()
-  expect(screen.getByText('¥700.00')).toBeInTheDocument()
+  expect(screen.getByText('¥687.00')).toBeInTheDocument()
   expect(screen.getByText(/This is not profit/)).toHaveTextContent(
-    'Paid by customers ¥1,000.00 − paid to upstreams ¥300.00'
+    'Paid by customers ¥1,000.00 − paid to upstreams ¥300.00 − other costs ¥13.00'
   )
   expect(
     screen.getByText(/2 upstream deductions have no purchase price/)
@@ -107,5 +114,6 @@ it('opens the detail tab behind each headline number', async () => {
   await user.click(await screen.findByRole('button', { name: 'Profit by day' }))
   await user.click(screen.getByRole('button', { name: 'Each customer' }))
   await user.click(screen.getByRole('button', { name: 'Each upstream' }))
-  expect(opened).toEqual(['profit', 'customers', 'upstreams'])
+  await user.click(screen.getByRole('button', { name: 'Ledger entries' }))
+  expect(opened).toEqual(['profit', 'customers', 'upstreams', 'entries'])
 })

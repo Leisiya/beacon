@@ -21,7 +21,14 @@ import { z } from 'zod'
 import { getCurrencyDisplay } from '@/lib/currency'
 import { parseQuotaFromDollars } from '@/lib/format'
 
-import type { LedgerInput, LedgerKind } from '../types'
+import type {
+  BookSource,
+  EntryKind,
+  ExpenseCategory,
+  ExpenseInput,
+  LedgerInput,
+  UpstreamPaymentInput,
+} from '../types'
 
 const required = z.string().trim().min(1, 'Required')
 const positiveInteger = z
@@ -52,16 +59,62 @@ const rate = z
     'Enter a positive exchange rate with up to eight decimal places.'
   )
 
+const upstreamCredit = z
+  .string()
+  .regex(
+    /^(0|[1-9][0-9]{0,11})(\.[0-9]{1,6})?$/,
+    'Enter credit above 0 with up to six decimal places.'
+  )
+  .refine(
+    (value) => Number(value) > 0,
+    'Enter credit above 0 with up to six decimal places.'
+  )
+
+export const expenseCategories: ExpenseCategory[] = [
+  'server',
+  'promotion',
+  'other',
+]
+
+// i18n keys of each kind of entry.
+export const entryKindLabels: Record<EntryKind, string> = {
+  receipt: 'Manual receipt',
+  gift: 'Gift quota',
+  refund: 'Full refund',
+  reversal: 'Reverse entry',
+  upstream: 'Upstream top-up',
+  server: 'Server cost',
+  promotion: 'Promotion cost',
+  other: 'Other cost',
+}
+
+export function entrySource(kind: EntryKind): BookSource {
+  if (kind === 'upstream') return 'upstream'
+  return expenseCategories.includes(kind as ExpenseCategory)
+    ? 'expense'
+    : 'customer'
+}
+
 export const ledgerFormSchema = z
   .object({
-    kind: z.enum(['receipt', 'gift', 'refund', 'reversal']),
+    kind: z.enum([
+      'receipt',
+      'gift',
+      'refund',
+      'reversal',
+      'upstream',
+      'server',
+      'promotion',
+      'other',
+    ]),
     user_id: z.string(),
     corrects_id: z.string(),
     credit: z.string(),
     amount: z.string(),
     currency: z.enum(['CNY', 'USD', 'EUR', 'HKD']),
     cny_per_unit: z.string(),
-    fx_source: z.string().max(255),
+    channel_id: z.string(),
+    upstream_credit: z.string(),
     payment_method: z.string().max(32),
     payment_reference: z.string().max(128),
     occurred_at: required.refine((value) => {
@@ -72,7 +125,7 @@ export const ledgerFormSchema = z
         time <= Date.now() + 300000
       )
     }, 'Enter a valid date in Shanghai time, no later than now.'),
-    note: required.max(1000),
+    note: z.string().max(500),
   })
   .superRefine((value, ctx) => {
     const check = (key: keyof typeof value, schema: z.ZodType): void => {
@@ -99,7 +152,9 @@ export const ledgerFormSchema = z
           message: 'Enter a balance of at least one quota unit.',
         })
       }
-    } else check('corrects_id', positiveInteger)
+    } else if (value.kind === 'refund' || value.kind === 'reversal') {
+      check('corrects_id', positiveInteger)
+    }
     if (value.kind === 'receipt') {
       check('amount', money)
       if (value.currency === 'CNY' && Number(value.cny_per_unit) !== 1) {
@@ -112,16 +167,24 @@ export const ledgerFormSchema = z
     }
     if (value.kind === 'receipt' || value.kind === 'refund') {
       check('cny_per_unit', rate)
-      check('fx_source', required)
       check('payment_method', required)
       check('payment_reference', required)
     }
+    if (value.kind === 'upstream') {
+      check(
+        'channel_id',
+        z.string().regex(/^[1-9][0-9]*$/, 'Choose an upstream.')
+      )
+      check('amount', money)
+      check('upstream_credit', upstreamCredit)
+    }
+    if (entrySource(value.kind) === 'expense') check('amount', money)
   })
 
 export type LedgerFormValues = z.infer<typeof ledgerFormSchema>
 
 export function newLedgerForm(
-  kind: LedgerKind = 'receipt',
+  kind: EntryKind = 'receipt',
   sourceId = 0
 ): LedgerFormValues {
   return {
@@ -132,7 +195,8 @@ export function newLedgerForm(
     amount: '',
     currency: 'CNY',
     cny_per_unit: '1',
-    fx_source: '',
+    channel_id: '',
+    upstream_credit: '',
     payment_method: '',
     payment_reference: '',
     note: '',
@@ -140,26 +204,71 @@ export function newLedgerForm(
   }
 }
 
+// A reviewed entry, ready to post to the endpoint of its source. Fields the
+// chosen kind does not show are left out.
+export type EntryRequest =
+  | { source: 'customer'; input: LedgerInput }
+  | { source: 'upstream'; input: UpstreamPaymentInput }
+  | { source: 'expense'; input: ExpenseInput }
+
+export function entryRequest(
+  values: LedgerFormValues,
+  key: string
+): EntryRequest {
+  const occurredAt = Math.floor(
+    Date.parse(`${values.occurred_at}+08:00`) / 1000
+  )
+  if (values.kind === 'upstream') {
+    return {
+      source: 'upstream',
+      input: {
+        request_key: key,
+        channel_id: Number(values.channel_id),
+        amount: values.amount,
+        credit: values.upstream_credit,
+        corrects_id: 0,
+        occurred_at: occurredAt,
+        note: values.note.trim(),
+      },
+    }
+  }
+  if (entrySource(values.kind) === 'expense') {
+    return {
+      source: 'expense',
+      input: {
+        request_key: key,
+        category: values.kind as ExpenseCategory,
+        amount: values.amount,
+        corrects_id: 0,
+        occurred_at: occurredAt,
+        note: values.note.trim(),
+      },
+    }
+  }
+  return { source: 'customer', input: ledgerInput(values, key) }
+}
+
 export function ledgerInput(
   values: LedgerFormValues,
   key: string
 ): LedgerInput {
-  const original = values.kind === 'receipt' || values.kind === 'gift'
-  const cash = values.kind === 'receipt' || values.kind === 'refund'
+  const kind = values.kind as LedgerInput['kind']
+  const original = kind === 'receipt' || kind === 'gift'
+  const cash = kind === 'receipt' || kind === 'refund'
   return {
     idempotency_key: key,
-    kind: values.kind,
+    kind,
     user_id: original ? Number(values.user_id) : 0,
     quota: original ? parseQuotaFromDollars(Number(values.credit)) : 0,
     corrects_id: original ? 0 : Number(values.corrects_id),
-    amount: values.kind === 'receipt' ? values.amount : '',
-    currency: values.kind === 'receipt' ? values.currency : '',
+    amount: kind === 'receipt' ? values.amount : '',
+    currency: kind === 'receipt' ? values.currency : '',
     cny_per_unit: cash ? values.cny_per_unit : '',
-    fx_source: cash ? values.fx_source : '',
+    fx_source: '',
     payment_method: cash ? values.payment_method : '',
     payment_reference: cash ? values.payment_reference : '',
     occurred_at: Math.floor(Date.parse(`${values.occurred_at}+08:00`) / 1000),
-    note: values.note,
+    note: '',
   }
 }
 

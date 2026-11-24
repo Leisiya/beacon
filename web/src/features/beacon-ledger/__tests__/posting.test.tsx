@@ -23,7 +23,7 @@ import {
   createMemoryHistory,
   RouterProvider,
 } from '@tanstack/react-router'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AxiosError, type AxiosAdapter } from 'axios'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -33,7 +33,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import { LedgerEntryDialog } from '../components/ledger-entry-dialog'
 import { LedgerTable } from '../components/ledger-table'
-import type { LedgerEntry } from '../types'
+import type { BookEntry, EntryKind, LedgerEntry } from '../types'
 
 const originalAdapter = api.defaults.adapter
 let client: QueryClient
@@ -45,7 +45,8 @@ afterEach(() => {
 
 function setupDialog(
   onComplete = vi.fn(),
-  kind: 'gift' | 'receipt' = 'gift'
+  kind: EntryKind = 'gift',
+  channelId?: number
 ): void {
   const now = Math.floor(Date.now() / 1000)
   useAuthStore.getState().auth.setBundle({
@@ -72,6 +73,7 @@ function setupDialog(
       <LedgerEntryDialog
         open
         kind={kind}
+        channelId={channelId}
         onOpenChange={() => {}}
         onComplete={onComplete}
       />
@@ -93,10 +95,6 @@ async function reviewGift(
 ): Promise<void> {
   await user.type(await screen.findByLabelText('Customer ID'), '42')
   await user.type(screen.getByLabelText('Balance to credit (USD)'), '5')
-  await user.type(
-    screen.getByLabelText('Reason / evidence'),
-    'service recovery gift'
-  )
   await user.click(screen.getByRole('button', { name: 'Review entry' }))
   await screen.findByRole('alertdialog', { name: 'Confirm ledger entry' })
 }
@@ -278,13 +276,21 @@ it('makes corrected records read-only while keeping complete details keyboard-ac
     payment_method: 'bank',
     payment_reference: 'long-reference-'.repeat(6),
     corrects_id: null,
-    correction_id: 2,
     occurred_at: 1767317400,
     recorded_at: 1767317400,
     note: 'evidence '.repeat(100),
   }
   const user = userEvent.setup()
-  render(<LedgerTable entries={[row]} postingAvailable onCorrect={vi.fn()} />)
+  client = new QueryClient()
+  render(
+    <QueryClientProvider client={client}>
+      <LedgerTable
+        entries={[{ source: 'customer', correction_id: 2, customer: row }]}
+        postingAvailable
+        onCorrect={vi.fn()}
+      />
+    </QueryClientProvider>
+  )
   expect(
     screen.queryByRole('button', { name: 'Full refund' })
   ).not.toBeInTheDocument()
@@ -299,4 +305,198 @@ it('makes corrected records read-only while keeping complete details keyboard-ac
   await screen.findByRole('dialog', { name: 'Ledger entry #1' })
   expect(screen.getByText(row.payment_reference)).toBeVisible()
   expect(screen.getByText(row.note.trim())).toBeVisible()
+})
+
+function answer(requests: { url: string; body: unknown }[]): AxiosAdapter {
+  return async (config) => {
+    requests.push({
+      url: config.url ?? '',
+      body: config.data ? JSON.parse(config.data) : undefined,
+    })
+    let data: unknown = {}
+    if (config.url === '/api/beacon/costs') {
+      data = {
+        now: 2000000000,
+        sources: [
+          {
+            id: 3,
+            name: 'novaris',
+            type: 60,
+            status: 1,
+            base_url: 'https://upstream.example',
+            observation: null,
+            sync: null,
+            rates: [
+              {
+                id: 1,
+                channel_id: 3,
+                effective_at: 1795000000,
+                cny_per_unit: '1.25',
+                operator_id: 1,
+                recorded_at: 1795000000,
+                note: '',
+              },
+            ],
+          },
+        ],
+      }
+    } else if (config.url === '/api/beacon/finance/payments') {
+      data = { payment: { id: 11 }, created: true }
+    } else if (config.url === '/api/beacon/finance/expenses') {
+      data = { expense: { id: 5 }, created: true }
+    }
+    return {
+      config,
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      data: { success: true, data },
+    }
+  }
+}
+
+it('asks a receipt for no reason or exchange-rate source, and for a rate only in another currency', async () => {
+  api.defaults.adapter = answer([])
+  const user = userEvent.setup()
+  setupDialog(vi.fn(), 'receipt')
+  await screen.findByLabelText('Original currency amount')
+  expect(screen.queryByLabelText('Reason / evidence')).not.toBeInTheDocument()
+  expect(screen.queryByLabelText('Note (optional)')).not.toBeInTheDocument()
+  expect(
+    screen.queryByLabelText('Exchange rate source')
+  ).not.toBeInTheDocument()
+  expect(
+    screen.queryByLabelText('CNY per original currency unit')
+  ).not.toBeInTheDocument()
+  await user.selectOptions(screen.getByLabelText('Original currency'), 'USD')
+  expect(screen.getByLabelText('CNY per original currency unit')).toHaveValue(
+    ''
+  )
+})
+
+it('records a server cost without a security proof', async () => {
+  const requests: { url: string; body: unknown }[] = []
+  api.defaults.adapter = answer(requests)
+  const done = vi.fn()
+  const user = userEvent.setup()
+  setupDialog(done, 'receipt')
+  await user.selectOptions(await screen.findByLabelText('Entry type'), 'server')
+  expect(screen.queryByLabelText('Customer ID')).not.toBeInTheDocument()
+  await user.type(screen.getByLabelText('Amount (CNY)'), '30')
+  await user.type(screen.getByLabelText('Note (optional)'), ' November VPS ')
+  await user.click(screen.getByRole('button', { name: 'Review entry' }))
+  const confirm = await screen.findByRole('alertdialog', {
+    name: 'Confirm ledger entry',
+  })
+  expect(within(confirm).getByText(/Server cost/)).toBeInTheDocument()
+  await user.click(
+    within(confirm).getByRole('button', { name: 'Confirm and record' })
+  )
+  await waitFor(() => expect(done).toHaveBeenCalledOnce())
+  const posts = requests.filter((request) => request.body)
+  expect(posts).toHaveLength(1)
+  expect(posts[0].url).toBe('/api/beacon/finance/expenses')
+  expect(posts[0].body).toMatchObject({
+    category: 'server',
+    amount: '30',
+    corrects_id: 0,
+    note: 'November VPS',
+  })
+  expect(requests.map((request) => request.url)).not.toContain(
+    '/api/verify/methods'
+  )
+})
+
+it('records a top-up to a preselected upstream with the credit filled in from its purchase price', async () => {
+  const requests: { url: string; body: unknown }[] = []
+  api.defaults.adapter = answer(requests)
+  const done = vi.fn()
+  const user = userEvent.setup()
+  setupDialog(done, 'upstream', 3)
+  await screen.findByRole('option', { name: 'novaris #3' })
+  expect(screen.getByLabelText('Upstream')).toHaveValue('3')
+  await user.type(screen.getByLabelText('CNY paid'), '100')
+  expect(screen.getByLabelText('Credit received (upstream $)')).toHaveValue(
+    '80'
+  )
+  await user.click(screen.getByRole('button', { name: 'Review entry' }))
+  const confirm = await screen.findByRole('alertdialog', {
+    name: 'Confirm ledger entry',
+  })
+  expect(within(confirm).getByText(/novaris #3/)).toBeInTheDocument()
+  await user.click(
+    within(confirm).getByRole('button', { name: 'Confirm and record' })
+  )
+  await waitFor(() => expect(done).toHaveBeenCalledOnce())
+  const posts = requests.filter((request) => request.body)
+  expect(posts).toHaveLength(1)
+  expect(posts[0].url).toBe('/api/beacon/finance/payments')
+  expect(posts[0].body).toMatchObject({
+    channel_id: 3,
+    amount: '100',
+    credit: '80',
+    corrects_id: 0,
+    note: '',
+  })
+})
+
+it('asks for an upstream before reviewing a top-up', async () => {
+  const requests: { url: string; body: unknown }[] = []
+  api.defaults.adapter = answer(requests)
+  const user = userEvent.setup()
+  setupDialog(vi.fn(), 'upstream')
+  await screen.findByRole('option', { name: 'novaris #3' })
+  await user.type(screen.getByLabelText('CNY paid'), '100')
+  await user.type(screen.getByLabelText('Credit received (upstream $)'), '80')
+  await user.click(screen.getByRole('button', { name: 'Review entry' }))
+  expect(await screen.findByText('Choose an upstream.')).toBeInTheDocument()
+  expect(screen.getByLabelText('Upstream')).toHaveAttribute(
+    'aria-invalid',
+    'true'
+  )
+  expect(
+    screen.queryByRole('alertdialog', { name: 'Confirm ledger entry' })
+  ).not.toBeInTheDocument()
+})
+
+it('reverses an expense from the books without a security proof', async () => {
+  const requests: { url: string; body: unknown }[] = []
+  api.defaults.adapter = answer(requests)
+  const entry: BookEntry = {
+    source: 'expense',
+    correction_id: null,
+    expense: {
+      id: 5,
+      kind: 'expense',
+      category: 'promotion',
+      cny_amount_minor: 1250,
+      corrects_id: null,
+      occurred_at: 1795700000,
+      operator_id: 1,
+      recorded_at: 1795700000,
+      note: '',
+    },
+  }
+  const user = userEvent.setup()
+  client = new QueryClient()
+  render(
+    <QueryClientProvider client={client}>
+      <LedgerTable entries={[entry]} postingAvailable onCorrect={vi.fn()} />
+    </QueryClientProvider>
+  )
+  expect(
+    screen.getByRole('button', { name: '#5 · Promotion cost' })
+  ).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Reverse entry' }))
+  const confirm = await screen.findByRole('alertdialog')
+  await user.click(
+    within(confirm).getByRole('button', { name: 'Reverse entry' })
+  )
+  await waitFor(() => expect(requests).toHaveLength(1))
+  expect(requests[0].url).toBe('/api/beacon/finance/expenses')
+  expect(requests[0].body).toMatchObject({
+    corrects_id: 5,
+    category: '',
+    amount: '',
+  })
 })

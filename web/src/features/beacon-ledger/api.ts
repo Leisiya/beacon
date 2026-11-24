@@ -21,13 +21,16 @@ import { authRequestOptions, authResult } from '@/lib/secure-verification'
 
 import type { CashRangeValues } from './lib/cash-range'
 import type {
+  BookPage,
+  BookSource,
   CostSource,
   CostSyncStatus,
   CustomerFinanceData,
+  Expense,
+  ExpenseInput,
   FinanceOverview,
   LedgerEntry,
   LedgerInput,
-  LedgerPage,
   PricingReport,
   PricingRule,
   PricingRuleInput,
@@ -50,11 +53,15 @@ export function getQuotaReconciliation(): Promise<QuotaReconciliationData> {
   )
 }
 
-export function getLedger(userId: number, before: number): Promise<LedgerPage> {
+export function getBook(
+  source: BookSource | '',
+  userId: number,
+  cursor: string
+): Promise<BookPage> {
   return authResult(
     api.get('/api/beacon/ledger', {
       ...authRequestOptions,
-      params: { user_id: userId, before, limit: 25 },
+      params: { source, user_id: userId, cursor, limit: 25 },
     })
   )
 }
@@ -114,22 +121,19 @@ export function getUpstreamFinance(
   )
 }
 
-export function getUpstreamPayments(
-  channelId: number
-): Promise<{ items: UpstreamPayment[] }> {
-  return authResult(
-    api.get('/api/beacon/finance', {
-      ...authRequestOptions,
-      params: { view: 'payments', channel_id: channelId },
-    })
-  )
-}
-
 export function postUpstreamPayment(
   input: UpstreamPaymentInput
 ): Promise<{ payment: UpstreamPayment; created: boolean }> {
   return authResult(
     api.post('/api/beacon/finance/payments', input, authRequestOptions)
+  )
+}
+
+export function postExpense(
+  input: ExpenseInput
+): Promise<{ expense: Expense; created: boolean }> {
+  return authResult(
+    api.post('/api/beacon/finance/expenses', input, authRequestOptions)
   )
 }
 

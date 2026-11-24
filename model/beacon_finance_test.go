@@ -140,8 +140,8 @@ func TestBeaconFinanceViews(t *testing.T) {
 	t.Run("overview", func(t *testing.T) {
 		overview, err := GetBeaconFinanceOverview(ctx, now)
 		require.NoError(t, err)
-		assert.Equal(t, BeaconProfitTotals{RevenueMicroCNY: "20000000", CostMicroCNY: "4000000", ProfitMicroCNY: "16000000"}, overview.Today)
-		assert.Equal(t, BeaconProfitTotals{RevenueMicroCNY: "35000000", CostMicroCNY: "8000000", ProfitMicroCNY: "27000000"}, overview.Month)
+		assert.Equal(t, BeaconProfitTotals{RevenueMicroCNY: "20000000", CostMicroCNY: "4000000", ExpenseMicroCNY: "0", ProfitMicroCNY: "16000000"}, overview.Today)
+		assert.Equal(t, BeaconProfitTotals{RevenueMicroCNY: "35000000", CostMicroCNY: "8000000", ExpenseMicroCNY: "0", ProfitMicroCNY: "27000000"}, overview.Month)
 		assert.Equal(t, overview.Month, overview.All)
 		assert.Equal(t, []string{"100000000", "35000000", "65000000"},
 			[]string{overview.CustomerPaidMicroCNY, overview.CustomerUsedMicroCNY, overview.CustomerRemainingMicroCNY}, "customers: paid = used + remaining")
@@ -155,10 +155,10 @@ func TestBeaconFinanceViews(t *testing.T) {
 		byDay, err := GetBeaconProfitSummary(ctx, "custom", "2026-11-18", "2026-11-19", "day", now)
 		require.NoError(t, err)
 		assert.Equal(t, []BeaconProfitRow{
-			{Key: "2026-11-19", Label: "2026-11-19", Requests: 3, UsageQuota: "250000", RevenueMicroCNY: "20000000", CostMicroCNY: "4000000", ProfitMicroCNY: "16000000"},
-			{Key: "2026-11-18", Label: "2026-11-18", Requests: 1, UsageQuota: "400000", RevenueMicroCNY: "15000000", CostMicroCNY: "4000000", ProfitMicroCNY: "11000000"},
+			{Key: "2026-11-19", Label: "2026-11-19", Requests: 3, UsageQuota: "250000", RevenueMicroCNY: "20000000", CostMicroCNY: "4000000", ExpenseMicroCNY: "0", ProfitMicroCNY: "16000000"},
+			{Key: "2026-11-18", Label: "2026-11-18", Requests: 1, UsageQuota: "400000", RevenueMicroCNY: "15000000", CostMicroCNY: "4000000", ExpenseMicroCNY: "0", ProfitMicroCNY: "11000000"},
 		}, byDay.Rows, "newest day first")
-		assert.Equal(t, BeaconProfitRow{Key: "total", Label: "total", Requests: 4, UsageQuota: "650000", RevenueMicroCNY: "35000000", CostMicroCNY: "8000000", ProfitMicroCNY: "27000000"}, byDay.Total)
+		assert.Equal(t, BeaconProfitRow{Key: "total", Label: "total", Requests: 4, UsageQuota: "650000", RevenueMicroCNY: "35000000", CostMicroCNY: "8000000", ExpenseMicroCNY: "0", ProfitMicroCNY: "27000000"}, byDay.Total)
 		assert.Equal(t, "250000", byDay.GiftQuota)
 		assert.Equal(t, "50000", byDay.UnpaidQuota)
 		assert.Equal(t, int64(1), byDay.PendingCharges)
@@ -169,16 +169,16 @@ func TestBeaconFinanceViews(t *testing.T) {
 		byUser, err := GetBeaconProfitSummary(ctx, "today", "", "", "user", now)
 		require.NoError(t, err)
 		assert.Equal(t, []BeaconProfitRow{
-			{Key: "0", Label: "0", UsageQuota: "0", RevenueMicroCNY: "0", CostMicroCNY: "1000000", ProfitMicroCNY: "-1000000"},
-			{Key: strconv.Itoa(operator.Id), Label: operator.Username, Requests: 1, UsageQuota: "50000", RevenueMicroCNY: "0", CostMicroCNY: "0", ProfitMicroCNY: "0"},
-			{Key: strconv.Itoa(customer.Id), Label: customer.Username, Requests: 2, UsageQuota: "200000", RevenueMicroCNY: "20000000", CostMicroCNY: "3000000", ProfitMicroCNY: "17000000"},
+			{Key: "0", Label: "0", UsageQuota: "0", RevenueMicroCNY: "0", CostMicroCNY: "1000000", ExpenseMicroCNY: "0", ProfitMicroCNY: "-1000000"},
+			{Key: strconv.Itoa(operator.Id), Label: operator.Username, Requests: 1, UsageQuota: "50000", RevenueMicroCNY: "0", CostMicroCNY: "0", ExpenseMicroCNY: "0", ProfitMicroCNY: "0"},
+			{Key: strconv.Itoa(customer.Id), Label: customer.Username, Requests: 2, UsageQuota: "200000", RevenueMicroCNY: "20000000", CostMicroCNY: "3000000", ExpenseMicroCNY: "0", ProfitMicroCNY: "17000000"},
 		}, byUser.Rows, "a deduction with no local request has no customer")
 
 		byModel, err := GetBeaconProfitSummary(ctx, "today", "", "", "model", now)
 		require.NoError(t, err)
 		assert.Equal(t, []BeaconProfitRow{
-			{Key: "claude-haiku-4-5", Label: "claude-haiku-4-5", Requests: 2, UsageQuota: "150000", RevenueMicroCNY: "10000000", CostMicroCNY: "0", ProfitMicroCNY: "10000000"},
-			{Key: "claude-sonnet-4-6", Label: "claude-sonnet-4-6", Requests: 1, UsageQuota: "100000", RevenueMicroCNY: "10000000", CostMicroCNY: "4000000", ProfitMicroCNY: "6000000"},
+			{Key: "claude-haiku-4-5", Label: "claude-haiku-4-5", Requests: 2, UsageQuota: "150000", RevenueMicroCNY: "10000000", CostMicroCNY: "0", ExpenseMicroCNY: "0", ProfitMicroCNY: "10000000"},
+			{Key: "claude-sonnet-4-6", Label: "claude-sonnet-4-6", Requests: 1, UsageQuota: "100000", RevenueMicroCNY: "10000000", CostMicroCNY: "4000000", ExpenseMicroCNY: "0", ProfitMicroCNY: "6000000"},
 		}, byModel.Rows, "a day's revenue is shared by quota; refunds reduce their model's share")
 
 		byChannel, err := GetBeaconProfitSummary(ctx, "today", "", "", "channel", now)
@@ -229,13 +229,13 @@ func TestBeaconFinanceViews(t *testing.T) {
 		assert.Equal(t, "8500000", month.Total.UsedCreditMicro, "pending deductions still use up credit")
 		assert.Equal(t, int64(1), month.Total.PendingCharges)
 
-		payments, err := ListBeaconUpstreamPayments(channel.Id)
+		books, err := ListBeaconBookEntries(BeaconBookUpstream, 0, "", 25)
 		require.NoError(t, err)
-		require.Len(t, payments, 3)
-		assert.Equal(t, []int64{reversal.ID, second.ID, first.ID}, []int64{payments[0].ID, payments[1].ID, payments[2].ID})
-		require.NotNil(t, payments[1].ReversalID)
-		assert.Equal(t, reversal.ID, *payments[1].ReversalID)
-		assert.Nil(t, payments[2].ReversalID)
+		require.Len(t, books.Items, 3)
+		assert.Equal(t, []int64{reversal.ID, second.ID, first.ID}, []int64{books.Items[0].Upstream.ID, books.Items[1].Upstream.ID, books.Items[2].Upstream.ID})
+		require.NotNil(t, books.Items[1].CorrectionID)
+		assert.Equal(t, reversal.ID, *books.Items[1].CorrectionID)
+		assert.Nil(t, books.Items[2].CorrectionID)
 	})
 
 	t.Run("payment input", func(t *testing.T) {
@@ -265,7 +265,6 @@ func TestBeaconFinanceViews(t *testing.T) {
 			{ChannelID: channel.Id, Amount: "1", Credit: "1", Note: strings.Repeat("x", 501)},
 			{ChannelID: channel.Id, Amount: "1", Credit: "1", OccurredAt: now.Unix() + 3600},
 			{CorrectsID: reversal.ID, Note: "reverse a reversal"},
-			{CorrectsID: first.ID},
 			{CorrectsID: first.ID, ChannelID: channel.Id, Note: "with amounts"},
 		} {
 			input.RequestKey = "finance-invalid-0001"
@@ -274,6 +273,72 @@ func TestBeaconFinanceViews(t *testing.T) {
 			}
 			_, _, err := CreateBeaconUpstreamPayment(input, operator.Id, now.Unix())
 			assert.ErrorIs(t, err, ErrBeaconPaymentInput, "%+v", input)
+		}
+	})
+
+	// Runs last: the expenses change every profit figure above.
+	t.Run("expenses count against profit", func(t *testing.T) {
+		expense := func(key, category, amount string, occurredAt int64) *BeaconExpense {
+			row, created, err := CreateBeaconExpense(BeaconExpenseInput{RequestKey: key, Category: category, Amount: amount, OccurredAt: occurredAt}, operator.Id, now.Unix())
+			require.NoError(t, err)
+			assert.True(t, created)
+			return row
+		}
+		server := expense("finance-expense-0001", "server", "30", today+600)
+		expense("finance-expense-0002", "promotion", "12.50", yesterday+100)
+		other := expense("finance-expense-0003", "other", "5", today+700)
+		reversed, _, err := CreateBeaconExpense(BeaconExpenseInput{RequestKey: "finance-expense-0004", CorrectsID: other.ID, OccurredAt: today + 800}, operator.Id, now.Unix())
+		require.NoError(t, err)
+		assert.Equal(t, int64(-500), reversed.CNYAmountMinor)
+		assert.Equal(t, "other", reversed.Category)
+
+		overview, err := GetBeaconFinanceOverview(ctx, now)
+		require.NoError(t, err)
+		assert.Equal(t, BeaconProfitTotals{RevenueMicroCNY: "20000000", CostMicroCNY: "4000000", ExpenseMicroCNY: "30000000", ProfitMicroCNY: "-14000000"}, overview.Today)
+		assert.Equal(t, BeaconProfitTotals{RevenueMicroCNY: "35000000", CostMicroCNY: "8000000", ExpenseMicroCNY: "42500000", ProfitMicroCNY: "-15500000"}, overview.Month)
+		assert.Equal(t, "7500000", overview.CashMicroCNY, "expenses are money paid out")
+
+		byDay, err := GetBeaconProfitSummary(ctx, "custom", "2026-11-18", "2026-11-19", "day", now)
+		require.NoError(t, err)
+		require.Len(t, byDay.Rows, 2)
+		assert.Equal(t, []string{"30000000", "-14000000"}, []string{byDay.Rows[0].ExpenseMicroCNY, byDay.Rows[0].ProfitMicroCNY})
+		assert.Equal(t, []string{"12500000", "-1500000"}, []string{byDay.Rows[1].ExpenseMicroCNY, byDay.Rows[1].ProfitMicroCNY})
+		assert.Equal(t, "-15500000", byDay.Total.ProfitMicroCNY)
+
+		for _, groupBy := range []string{"model", "channel", "user"} {
+			grouped, err := GetBeaconProfitSummary(ctx, "today", "", "", groupBy, now)
+			require.NoError(t, err)
+			last := grouped.Rows[len(grouped.Rows)-1]
+			assert.Equal(t, BeaconProfitRow{Key: "expenses", Label: "expenses", UsageQuota: "0", RevenueMicroCNY: "0", CostMicroCNY: "0", ExpenseMicroCNY: "30000000", ProfitMicroCNY: "-30000000"}, last, groupBy)
+			assert.Equal(t, "-14000000", grouped.Total.ProfitMicroCNY, groupBy)
+		}
+
+		repeat, created, err := CreateBeaconExpense(BeaconExpenseInput{RequestKey: "finance-expense-0001", Category: "server", Amount: "30.00", OccurredAt: today + 600}, operator.Id, now.Unix())
+		require.NoError(t, err)
+		assert.False(t, created, "a resubmitted form returns the stored expense")
+		assert.Equal(t, server.ID, repeat.ID)
+		_, _, err = CreateBeaconExpense(BeaconExpenseInput{RequestKey: "finance-expense-0001", Category: "server", Amount: "31", OccurredAt: today + 600}, operator.Id, now.Unix())
+		assert.ErrorIs(t, err, ErrBeaconPaymentConflict)
+		_, _, err = CreateBeaconExpense(BeaconExpenseInput{RequestKey: "finance-expense-0005", CorrectsID: other.ID, OccurredAt: today}, operator.Id, now.Unix())
+		assert.ErrorIs(t, err, ErrBeaconPaymentReversed)
+		_, _, err = CreateBeaconExpense(BeaconExpenseInput{RequestKey: "finance-expense-0006", CorrectsID: server.ID + 1000, OccurredAt: today}, operator.Id, now.Unix())
+		assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+		for _, input := range []BeaconExpenseInput{
+			{Category: "rent", Amount: "1"},
+			{Amount: "1"},
+			{Category: "server", Amount: "0"},
+			{Category: "server", Amount: "1.001"},
+			{Category: "server", Amount: "1", Note: strings.Repeat("x", 501)},
+			{Category: "server", Amount: "1", OccurredAt: now.Unix() + 3600},
+			{CorrectsID: reversed.ID},
+			{CorrectsID: server.ID, Amount: "30"},
+		} {
+			input.RequestKey = "finance-expense-0404"
+			if input.OccurredAt == 0 {
+				input.OccurredAt = today
+			}
+			_, _, err := CreateBeaconExpense(input, operator.Id, now.Unix())
+			assert.ErrorIs(t, err, ErrBeaconExpenseInput, "%+v", input)
 		}
 	})
 }
