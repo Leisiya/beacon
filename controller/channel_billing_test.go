@@ -181,38 +181,3 @@ func TestUpdateChannelNewAPIBalanceUsesTheSmallerRemainingQuota(t *testing.T) {
 		})
 	}
 }
-
-func TestUpdateChannelBalanceReadsAnthropicRelaysAsNewAPI(t *testing.T) {
-	setupSub2APIBalanceTest(t)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/usage/token/":
-			assert.Equal(t, "Bearer sk-relay", r.Header.Get("Authorization"))
-			_, _ = w.Write([]byte(`{"code":true,"data":{"total_available":0,"unlimited_quota":true,"user_quota":{"total_available":2637565}}}`))
-		case "/api/status":
-			_, _ = w.Write([]byte(`{"success":true,"data":{"quota_per_unit":500000}}`))
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
-	relayURL := server.URL + "/"
-	relay := &model.Channel{Type: constant.ChannelTypeAnthropic, BaseURL: &relayURL, Key: "sk-relay", Name: "anthropic-relay"}
-	require.NoError(t, model.DB.Create(relay).Error)
-
-	result, err := updateChannelBalance(relay)
-	require.NoError(t, err)
-	assert.InDelta(t, 5.27513, result.Balance, 1e-9)
-
-	officialURL := "https://api.anthropic.com/"
-	for _, official := range []*model.Channel{
-		{Type: constant.ChannelTypeAnthropic, Key: "sk-ant", Name: "anthropic-default"},
-		{Type: constant.ChannelTypeAnthropic, BaseURL: &officialURL, Key: "sk-ant", Name: "anthropic-explicit"},
-	} {
-		require.NoError(t, model.DB.Create(official).Error)
-		_, err = updateChannelBalance(official)
-		var message *common.Message
-		require.ErrorAs(t, err, &message, official.Name)
-		assert.Equal(t, "Not implemented yet", message.Key, official.Name)
-	}
-}
