@@ -115,9 +115,7 @@ func GetBeaconCashSummary(ctx context.Context, period, startDate, endDate string
 			}
 			refund.Sub(&refund, amount)
 		case BeaconReversal:
-			if cents > 0 {
-				return nil, fmt.Errorf("invalid cash reversal in ledger")
-			}
+			// Reversing a receipt takes cash out; reversing a refund puts it back.
 			reversal.Add(&reversal, amount)
 		case BeaconGift:
 			if cents != 0 {

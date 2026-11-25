@@ -51,6 +51,16 @@ func TestBeaconCustomerBookUsesGiftFirstAndPaidAtAveragePrice(t *testing.T) {
 			revenue: 40_000_000, paidQuota: 600_000, paidValue: 60_000_000,
 		},
 		{
+			name:    "a partial refund takes back unused balance at its value",
+			steps:   []step{{true, 10000, 1_000_000}, {false, 0, 300_000}, {true, -7000, -700_000}},
+			revenue: 30_000_000,
+		},
+		{
+			name:    "a refund that takes back no balance lowers what the rest is worth",
+			steps:   []step{{true, 10000, 1_000_000}, {true, -2000, 0}, {false, 0, 500_000}},
+			revenue: 40_000_000, paidQuota: 500_000, paidValue: 40_000_000,
+		},
+		{
 			name:   "a gift reversal takes back unused gifted balance",
 			steps:  []step{{true, 0, 100}, {true, 0, -100}, {false, 0, 50}},
 			unpaid: 50,

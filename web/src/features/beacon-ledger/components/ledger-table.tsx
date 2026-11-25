@@ -34,7 +34,7 @@ import { handleServerError } from '@/lib/handle-server-error'
 import { postExpense, postUpstreamPayment } from '../api'
 import { formatCredit } from '../lib/cost'
 import { entryKindLabels, ledgerMoney, newRequestKey } from '../lib/form'
-import type { BookEntry, LedgerEntry, LedgerKind } from '../types'
+import type { BookEntry, LedgerEntry } from '../types'
 
 type EntryView = {
   key: string
@@ -152,7 +152,8 @@ function describeEntry(
 export function LedgerTable(props: {
   entries: BookEntry[]
   postingAvailable: boolean
-  onCorrect: (entry: LedgerEntry, kind: LedgerKind) => void
+  // Opens a reversal of a customer entry, which needs a security proof.
+  onCorrect: (entry: LedgerEntry) => void
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -279,26 +280,14 @@ export function LedgerTable(props: {
                 )
               }
               return (
-                <div className='flex flex-wrap gap-2'>
-                  {entry.customer.kind === 'receipt' && (
-                    <Button
-                      className='min-h-11'
-                      variant='outline'
-                      disabled={!props.postingAvailable}
-                      onClick={() => props.onCorrect(entry.customer, 'refund')}
-                    >
-                      {t('Full refund')}
-                    </Button>
-                  )}
-                  <Button
-                    className='min-h-11'
-                    variant='outline'
-                    disabled={!props.postingAvailable}
-                    onClick={() => props.onCorrect(entry.customer, 'reversal')}
-                  >
-                    {t('Reverse entry')}
-                  </Button>
-                </div>
+                <Button
+                  className='min-h-11'
+                  variant='outline'
+                  disabled={!props.postingAvailable}
+                  onClick={() => props.onCorrect(entry.customer)}
+                >
+                  {t('Reverse entry')}
+                </Button>
               )
             },
           },

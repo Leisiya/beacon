@@ -58,6 +58,8 @@ export function BeaconLedger(props: {
     kind: EntryKind
     source?: LedgerEntry
     channelId?: number
+    userId?: number
+    amount?: string
   } | null>(null)
   const [open, setOpen] = useState(false)
   const ledger = useQuery({
@@ -68,10 +70,9 @@ export function BeaconLedger(props: {
   const postingAvailable = ledger.data?.posting_available === true
   const startEntry = (
     kind: EntryKind,
-    source?: LedgerEntry,
-    channelId?: number
+    preset: Omit<NonNullable<typeof draft>, 'kind'> = {}
   ): void => {
-    if (!draft) setDraft({ kind, source, channelId })
+    if (!draft) setDraft({ kind, ...preset })
     setOpen(true)
   }
   // Only customer entries can be filtered by customer.
@@ -124,13 +125,15 @@ export function BeaconLedger(props: {
               <ProfitSummary />
             </TabsContent>
             <TabsContent value='customers'>
-              <CustomerFinance />
+              <CustomerFinance
+                onRefund={(userId, amount) =>
+                  startEntry('refund', { userId, amount })
+                }
+              />
             </TabsContent>
             <TabsContent value='upstreams'>
               <UpstreamFinance
-                onTopUp={(channelId) =>
-                  startEntry('upstream', undefined, channelId)
-                }
+                onTopUp={(channelId) => startEntry('upstream', { channelId })}
               />
             </TabsContent>
             <TabsContent value='reconciliation'>
@@ -248,7 +251,9 @@ export function BeaconLedger(props: {
                   <LedgerTable
                     entries={ledger.data.items}
                     postingAvailable={postingAvailable && !draft}
-                    onCorrect={(entry, kind) => startEntry(kind, entry)}
+                    onCorrect={(entry) =>
+                      startEntry('reversal', { source: entry })
+                    }
                   />
                 )}
                 <nav
@@ -291,6 +296,8 @@ export function BeaconLedger(props: {
           kind={draft.kind}
           source={draft.source}
           channelId={draft.channelId}
+          userId={draft.userId}
+          amount={draft.amount}
           onOpenChange={(nextOpen) => {
             setOpen(nextOpen)
             if (!nextOpen) setDraft(null)

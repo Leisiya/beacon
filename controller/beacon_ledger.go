@@ -36,7 +36,9 @@ func writeBeaconLedgerError(c *gin.Context, err error) {
 	case errors.Is(err, model.ErrBeaconAlreadyCorrected):
 		message = "This entry has already been refunded or reversed."
 	case errors.Is(err, model.ErrBeaconInsufficientQuota):
-		message = "The customer's available quota is insufficient for a full correction."
+		message = "The customer's balance is less than the balance to take back."
+	case errors.Is(err, model.ErrBeaconRefundExceedsPaid):
+		message = "A refund cannot be more than the customer has paid."
 	case errors.Is(err, model.ErrWalletQuotaLimitExceeded):
 		message = "Wallet quota limit exceeded"
 	case errors.Is(err, model.ErrBeaconLedgerActor):

@@ -151,16 +151,19 @@ function ReviewDetails(props: { review: EntryRequest; source?: LedgerEntry }) {
           : entry.amount || t('Derived from original entry')}
       </div>
       <div>
-        {t('Balance to credit')}:{' '}
-        {entry.quota
-          ? t('{{balance}} ({{quota}} quota units)', {
+        {t(
+          entry.kind === 'refund' ? 'Balance to take back' : 'Balance to credit'
+        )}
+        :{' '}
+        {entry.kind === 'reversal'
+          ? t('Derived from original entry')
+          : t('{{balance}} ({{quota}} quota units)', {
               balance: formatQuotaWithCurrency(entry.quota, {
                 abbreviate: false,
                 locale,
               }),
               quota: formatNumber(entry.quota, locale),
-            })
-          : t('Derived from original entry')}
+            })}
       </div>
       {entry.cny_per_unit && entry.cny_per_unit !== '1' && (
         <div>
@@ -183,6 +186,9 @@ export function LedgerEntryDialog(props: {
   source?: LedgerEntry
   // Preselects the upstream of a top-up.
   channelId?: number
+  // Preselects the customer of a refund, and the money to pay back.
+  userId?: number
+  amount?: string
   onOpenChange: (open: boolean) => void
   onComplete: () => void
 }) {
@@ -192,10 +198,9 @@ export function LedgerEntryDialog(props: {
   const form = useForm<LedgerFormValues>({
     resolver: zodResolver(ledgerFormSchema),
     defaultValues: {
-      ...newLedgerForm(props.kind, props.source?.id),
+      ...newLedgerForm(props.kind, props.source?.id, props.userId),
       channel_id: props.channelId ? String(props.channelId) : '',
-      cny_per_unit:
-        props.kind === 'refund' && props.source?.currency !== 'CNY' ? '' : '1',
+      amount: props.amount ?? '',
     },
   })
   const [review, setReview] = useState<EntryRequest | null>(null)
@@ -305,17 +310,13 @@ export function LedgerEntryDialog(props: {
               setReview(pending ?? entryRequest(values, newRequestKey()))
             )}
           >
-            <LedgerFormFields
-              locked={!!pending}
-              correction={!!props.source}
-              sourceCurrency={props.source?.currency}
-            />
+            <LedgerFormFields locked={!!pending} correction={!!props.source} />
           </form>
         </FormProvider>
         {props.source && (
           <p className='text-muted-foreground mt-4 text-sm'>
             {t(
-              'Refunds return the full original amount and remove the original quota. Reversals negate the original entry; they do not make a bank refund. Original records remain available.'
+              'The entry stays in the books and a reversal with the opposite amount is added.'
             )}
           </p>
         )}

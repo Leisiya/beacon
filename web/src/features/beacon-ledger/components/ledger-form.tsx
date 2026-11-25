@@ -43,7 +43,8 @@ import {
   quotaUnitsToEditableAmount,
 } from '@/lib/format'
 
-import { getCostSources } from '../api'
+import { getCostSources, getCustomerFinance } from '../api'
+import { formatCny } from '../lib/cost'
 import {
   entryKindLabels,
   entrySource,
@@ -58,11 +59,12 @@ type FieldSpec = {
   decimal?: boolean
 }
 
+// A refund weighs against what the customer paid and has left, all time.
+const allTime = { period: 'all', start: '', end: '' } as const
+
 export function LedgerFormFields(props: {
   locked: boolean
   correction: boolean
-  // The currency of the entry a refund corrects; a CNY refund needs no rate.
-  sourceCurrency?: string
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -71,11 +73,22 @@ export function LedgerFormFields(props: {
   const kind = form.watch('kind')
   const source = entrySource(kind)
   const original = kind === 'receipt' || kind === 'gift'
+  const refund = kind === 'refund'
+  // Money that changes hands, as opposed to a gift or a reversal.
+  const cash = kind === 'receipt' || refund
   const currency = form.watch('currency')
   const amount = form.watch('amount')
   const cnyPerUnit = form.watch('cny_per_unit')
   const credit = form.watch('credit')
   const channelId = Number(form.watch('channel_id'))
+  const userId = Number(form.watch('user_id'))
+  const customers = useQuery({
+    queryKey: ['beacon-ledger', 'customer-finance', allTime],
+    queryFn: () => getCustomerFinance(allTime),
+    enabled: refund,
+    retry: false,
+  })
+  const customer = customers.data?.rows.find((row) => row.user_id === userId)
   const upstreams = useQuery({
     queryKey: ['beacon-ledger', 'cost-sources'],
     queryFn: getCostSources,
@@ -88,16 +101,16 @@ export function LedgerFormFields(props: {
     ?.rates.find(
       (rate) => rate.effective_at <= upstreams.data.now
     )?.cny_per_unit
-  const faceQuota =
-    kind === 'receipt'
-      ? receiptFaceQuota(amount, cnyPerUnit, Number(status?.price))
-      : null
+  const faceQuota = cash
+    ? receiptFaceQuota(amount, cnyPerUnit, Number(status?.price))
+    : null
   const creditQuota = parseQuotaFromDollars(Number(credit))
   const balance = (quota: number): string =>
     formatQuotaWithCurrency(quota, { abbreviate: false, locale })
 
-  // Until the operator types a balance, a receipt credits its list-price value
-  // and a top-up the credit its purchase price buys. Reading dirtyFields
+  // Until the operator types a balance, a receipt credits and a refund takes
+  // back its list-price value, and a top-up gets the credit its purchase
+  // price buys. Reading dirtyFields
   // during render subscribes the form to it.
   const creditEdited = !!form.formState.dirtyFields.credit
   const upstreamCreditEdited = !!form.formState.dirtyFields.upstream_credit
@@ -118,36 +131,35 @@ export function LedgerFormFields(props: {
   }, [amount, kind, purchaseRate, setValue, upstreamCreditEdited])
 
   const fields: FieldSpec[] = []
-  if (original) fields.push({ name: 'user_id', label: 'Customer ID' })
+  if (original || refund) fields.push({ name: 'user_id', label: 'Customer ID' })
   if (props.correction) {
     fields.push({ name: 'corrects_id', label: 'Original entry ID' })
   }
   // The payment comes first because it prefills the balance to credit.
-  if (kind === 'receipt') {
+  if (cash) {
     fields.push({
       name: 'amount',
-      label: 'Original currency amount',
+      label: refund ? 'Refund amount' : 'Original currency amount',
       decimal: true,
     })
   }
-  if (
-    (kind === 'receipt' && currency !== 'CNY') ||
-    (kind === 'refund' && props.sourceCurrency !== 'CNY')
-  ) {
+  if (cash && currency !== 'CNY') {
     fields.push({
       name: 'cny_per_unit',
       label: 'CNY per original currency unit',
       decimal: true,
     })
   }
-  if (original) {
+  if (original || refund) {
     fields.push({
       name: 'credit',
-      label: 'Balance to credit ({{currency}})',
+      label: refund
+        ? 'Balance to take back ({{currency}})'
+        : 'Balance to credit ({{currency}})',
       decimal: true,
     })
   }
-  if (kind === 'receipt' || kind === 'refund') {
+  if (cash) {
     fields.push(
       { name: 'payment_method', label: 'Payment method' },
       { name: 'payment_reference', label: 'External payment reference' }
@@ -186,15 +198,13 @@ export function LedgerFormFields(props: {
           {...form.register('kind')}
         >
           {props.correction ? (
-            (['refund', 'reversal'] as const).map((value) => (
-              <NativeSelectOption key={value} value={value}>
-                {t(entryKindLabels[value])}
-              </NativeSelectOption>
-            ))
+            <NativeSelectOption value='reversal'>
+              {t(entryKindLabels.reversal)}
+            </NativeSelectOption>
           ) : (
             <>
               <NativeSelectOptGroup label={t('Customer money')}>
-                {(['receipt', 'gift'] as const).map((value) => (
+                {(['receipt', 'gift', 'refund'] as const).map((value) => (
                   <NativeSelectOption key={value} value={value}>
                     {t(entryKindLabels[value])}
                   </NativeSelectOption>
@@ -213,7 +223,7 @@ export function LedgerFormFields(props: {
           )}
         </NativeSelect>
       </Field>
-      {kind === 'receipt' && (
+      {cash && (
         <Field data-disabled={props.locked}>
           <FieldLabel htmlFor='ledger-currency'>
             {t('Original currency')}
@@ -290,7 +300,11 @@ export function LedgerFormFields(props: {
         const error = form.formState.errors[field.name]?.message
         const description =
           (field.name === 'credit' && creditQuota > 0) ||
-          (field.name === 'upstream_credit' && !!purchaseRate)
+          (field.name === 'upstream_credit' && !!purchaseRate) ||
+          (field.name === 'user_id' &&
+            refund &&
+            customers.isSuccess &&
+            userId > 0)
         return (
           <Field
             key={field.name}
@@ -318,20 +332,44 @@ export function LedgerFormFields(props: {
               }
               {...form.register(field.name)}
             />
+            {field.name === 'user_id' &&
+              refund &&
+              customers.isSuccess &&
+              userId > 0 && (
+                <FieldDescription id='ledger-hint-user_id'>
+                  {customer
+                    ? t(
+                        'Paid {{paid}}, not used yet {{remaining}}, wallet balance {{balance}}.',
+                        {
+                          paid: formatCny(customer.paid_micro_cny),
+                          remaining: formatCny(customer.remaining_micro_cny),
+                          balance: balance(Number(customer.balance_quota)),
+                        }
+                      )
+                    : t('No payment recorded for this customer yet.')}
+                </FieldDescription>
+              )}
             {field.name === 'credit' && creditQuota > 0 && (
               <FieldDescription id='ledger-hint-credit'>
-                {t('Customer balance +{{balance}} ({{quota}} quota units)', {
-                  balance: balance(creditQuota),
-                  quota: formatNumber(creditQuota, locale),
-                })}
-                {faceQuota !== null && faceQuota !== creditQuota && (
-                  <span className='text-foreground block'>
-                    {t(
-                      'At the top-up price this payment buys {{balance}}; check any discount or bonus.',
-                      { balance: balance(faceQuota) }
-                    )}
-                  </span>
+                {t(
+                  refund
+                    ? 'Customer balance −{{balance}} ({{quota}} quota units)'
+                    : 'Customer balance +{{balance}} ({{quota}} quota units)',
+                  {
+                    balance: balance(creditQuota),
+                    quota: formatNumber(creditQuota, locale),
+                  }
                 )}
+                {kind === 'receipt' &&
+                  faceQuota !== null &&
+                  faceQuota !== creditQuota && (
+                    <span className='text-foreground block'>
+                      {t(
+                        'At the top-up price this payment buys {{balance}}; check any discount or bonus.',
+                        { balance: balance(faceQuota) }
+                      )}
+                    </span>
+                  )}
               </FieldDescription>
             )}
             {field.name === 'upstream_credit' && purchaseRate && (

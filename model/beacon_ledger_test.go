@@ -349,6 +349,64 @@ func TestBeaconLedgerCorrections(t *testing.T) {
 	}
 }
 
+func TestBeaconLedgerPartialRefund(t *testing.T) {
+	operator, user := setupBeaconLedgerTest(t)
+	receipt, _, err := PostBeaconLedgerEntry(beaconReceiptInput(user.Id, "partial-receipt-001"), operator.Id)
+	require.NoError(t, err)
+	require.Equal(t, int64(7159), receipt.CNYAmountMinor)
+	refund := func(key, amount string, quota int) BeaconLedgerInput {
+		return BeaconLedgerInput{
+			IdempotencyKey: key, Kind: BeaconRefund, UserID: user.Id, Amount: amount, Currency: "CNY", CNYPerUnit: "1",
+			Quota: quota, PaymentMethod: "bank", PaymentReference: key, OccurredAt: 1792857700,
+		}
+	}
+
+	first, created, err := PostBeaconLedgerEntry(refund("partial-refund-0001", "30", 200), operator.Id)
+	require.NoError(t, err)
+	assert.True(t, created)
+	assert.Nil(t, first.CorrectsID)
+	assert.Equal(t, int64(-3000), first.OriginalAmountMinor)
+	assert.Equal(t, int64(-3000), first.CNYAmountMinor)
+	assert.Equal(t, -200, first.QuotaDelta)
+	assert.Equal(t, 300, getUserQuotaFromDB(t, user.Id))
+	_, created, err = PostBeaconLedgerEntry(refund("partial-refund-0001", "30", 200), operator.Id)
+	require.NoError(t, err)
+	assert.False(t, created, "a repeated request is replayed, not refunded twice")
+
+	_, _, err = PostBeaconLedgerEntry(refund("partial-refund-0002", "41.60", 0), operator.Id)
+	require.ErrorIs(t, err, ErrBeaconRefundExceedsPaid, "only ¥41.59 of ¥71.59 is left to refund")
+	_, _, err = PostBeaconLedgerEntry(refund("partial-refund-0003", "1", 301), operator.Id)
+	require.ErrorIs(t, err, ErrBeaconInsufficientQuota)
+	_, _, err = PostBeaconLedgerEntry(refund("partial-refund-0004", "1", -1), operator.Id)
+	require.ErrorIs(t, err, ErrBeaconLedgerInput)
+	assert.Equal(t, 300, getUserQuotaFromDB(t, user.Id))
+
+	// Money can be paid back without taking balance, e.g. for a service failure.
+	second, _, err := PostBeaconLedgerEntry(refund("partial-refund-0005", "41.59", 0), operator.Id)
+	require.NoError(t, err)
+	assert.Equal(t, 300, getUserQuotaFromDB(t, user.Id))
+	_, _, err = PostBeaconLedgerEntry(refund("partial-refund-0006", "0.01", 0), operator.Id)
+	require.ErrorIs(t, err, ErrBeaconRefundExceedsPaid)
+
+	// A refund recorded by mistake is reversed, which returns money and balance.
+	reversal, _, err := PostBeaconLedgerEntry(BeaconLedgerInput{IdempotencyKey: "partial-reversal-001", Kind: BeaconReversal, CorrectsID: first.ID, OccurredAt: 1792857800}, operator.Id)
+	require.NoError(t, err)
+	assert.Equal(t, int64(3000), reversal.CNYAmountMinor)
+	assert.Equal(t, 200, reversal.QuotaDelta)
+	assert.Equal(t, 500, getUserQuotaFromDB(t, user.Id))
+	_, _, err = PostBeaconLedgerEntry(BeaconLedgerInput{
+		IdempotencyKey: "partial-refund-0007", Kind: BeaconRefund, CorrectsID: second.ID,
+		CNYPerUnit: "1", PaymentMethod: "bank", PaymentReference: "partial-refund-0007", OccurredAt: 1792857800,
+	}, operator.Id)
+	require.ErrorIs(t, err, ErrBeaconLedgerInput, "only a receipt can be refunded whole")
+
+	summary, err := GetBeaconCashSummary(context.Background(), "all", "", "", time.Unix(1792857900, 0))
+	require.NoError(t, err)
+	assert.Equal(t, "7159", summary.RefundMinor)
+	assert.Equal(t, "3000", summary.ReversalMinor)
+	assert.Equal(t, "3000", summary.NetMinor)
+}
+
 func TestBeaconLedgerGiftAndFailedCorrection(t *testing.T) {
 	operator, user := setupBeaconLedgerTest(t)
 	input := BeaconLedgerInput{IdempotencyKey: "gift-request-00001", Kind: BeaconGift, UserID: user.Id, Quota: 100, OccurredAt: 1792857600, Note: "free test quota"}

@@ -59,6 +59,14 @@ const rate = z
     'Enter a positive exchange rate with up to eight decimal places.'
   )
 
+// A refund may pay money back without taking any balance.
+const balanceTakenBack = z
+  .string()
+  .regex(
+    /^(0|[1-9][0-9]{0,13})(\.[0-9]{1,2})?$/,
+    'Enter 0 or an amount with up to two decimal places.'
+  )
+
 const upstreamCredit = z
   .string()
   .regex(
@@ -80,7 +88,7 @@ export const expenseCategories: ExpenseCategory[] = [
 export const entryKindLabels: Record<EntryKind, string> = {
   receipt: 'Manual receipt',
   gift: 'Gift quota',
-  refund: 'Full refund',
+  refund: 'Customer refund',
   reversal: 'Reverse entry',
   upstream: 'Upstream top-up',
   server: 'Server cost',
@@ -152,10 +160,13 @@ export const ledgerFormSchema = z
           message: 'Enter a balance of at least one quota unit.',
         })
       }
-    } else if (value.kind === 'refund' || value.kind === 'reversal') {
+    } else if (value.kind === 'refund') {
+      check('user_id', positiveInteger)
+      check('credit', balanceTakenBack)
+    } else if (value.kind === 'reversal') {
       check('corrects_id', positiveInteger)
     }
-    if (value.kind === 'receipt') {
+    if (value.kind === 'receipt' || value.kind === 'refund') {
       check('amount', money)
       if (value.currency === 'CNY' && Number(value.cny_per_unit) !== 1) {
         ctx.addIssue({
@@ -185,11 +196,12 @@ export type LedgerFormValues = z.infer<typeof ledgerFormSchema>
 
 export function newLedgerForm(
   kind: EntryKind = 'receipt',
-  sourceId = 0
+  sourceId = 0,
+  userId = 0
 ): LedgerFormValues {
   return {
     kind,
-    user_id: '',
+    user_id: userId ? String(userId) : '',
     corrects_id: sourceId ? String(sourceId) : '',
     credit: '',
     amount: '',
@@ -253,16 +265,18 @@ export function ledgerInput(
   key: string
 ): LedgerInput {
   const kind = values.kind as LedgerInput['kind']
-  const original = kind === 'receipt' || kind === 'gift'
+  // Only a reversal points at an entry; every other kind names its customer.
+  // A refund's quota is the balance taken back.
+  const reversal = kind === 'reversal'
   const cash = kind === 'receipt' || kind === 'refund'
   return {
     idempotency_key: key,
     kind,
-    user_id: original ? Number(values.user_id) : 0,
-    quota: original ? parseQuotaFromDollars(Number(values.credit)) : 0,
-    corrects_id: original ? 0 : Number(values.corrects_id),
-    amount: kind === 'receipt' ? values.amount : '',
-    currency: kind === 'receipt' ? values.currency : '',
+    user_id: reversal ? 0 : Number(values.user_id),
+    quota: reversal ? 0 : parseQuotaFromDollars(Number(values.credit)),
+    corrects_id: reversal ? Number(values.corrects_id) : 0,
+    amount: cash ? values.amount : '',
+    currency: cash ? values.currency : '',
     cny_per_unit: cash ? values.cny_per_unit : '',
     fx_source: '',
     payment_method: cash ? values.payment_method : '',

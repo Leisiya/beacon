@@ -212,13 +212,15 @@ func (book *beaconCustomerBook) credit(day *beaconCustomerDay, cents, quota int6
 	case quota >= 0 && cents > 0:
 		book.paidQuota += quota
 		book.paidValue = book.paidValue.Add(value)
-	case quota >= 0:
-		book.gift += quota
 	case cents < 0:
+		// Money paid back takes back purchased balance first, then gifts. A
+		// refund that takes back no balance lowers what the rest is worth.
 		taken := min(-quota, book.paidQuota)
 		book.paidQuota -= taken
 		book.paidValue = book.paidValue.Add(value)
 		book.gift -= min(-quota-taken, book.gift)
+	case quota >= 0:
+		book.gift += quota
 	default:
 		taken := min(-quota, book.gift)
 		book.gift -= taken

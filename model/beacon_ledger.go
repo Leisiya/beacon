@@ -31,6 +31,7 @@ var (
 	ErrBeaconDuplicatePayment  = errors.New("payment reference has already been recorded")
 	ErrBeaconAlreadyCorrected  = errors.New("ledger entry has already been refunded or reversed")
 	ErrBeaconInsufficientQuota = errors.New("insufficient available quota for ledger correction")
+	ErrBeaconRefundExceedsPaid = errors.New("refund exceeds what the customer has paid")
 	ErrBeaconLedgerActor       = errors.New("manual ledger requires an enabled root operator")
 	ErrBeaconLedgerMode        = errors.New("manual ledger requires synchronous database quota without Redis or batch updates")
 	beaconRequestKeyPattern    = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{15,63}$`)
@@ -67,7 +68,8 @@ type BeaconLedgerEntry struct {
 // BeaconLedgerInput uses decimal text for money and FX, and integer quota.
 // Corrections accept only CorrectsID plus their own timestamp/reason/reference;
 // their user, amount and quota are derived from the original row server-side.
-// The first slice supports full refunds only, with enough available quota.
+// A refund without CorrectsID pays back any part of what the customer paid:
+// Amount is the money returned and Quota the balance taken back, possibly 0.
 type BeaconLedgerInput struct {
 	IdempotencyKey   string `json:"idempotency_key"`
 	Kind             string `json:"kind"`
@@ -130,12 +132,17 @@ func (input BeaconLedgerInput) normalized(now int64) (BeaconLedgerInput, error) 
 		input.OccurredAt < 946684800 || input.OccurredAt > now+300 {
 		return input, ErrBeaconLedgerInput
 	}
-	switch input.Kind {
-	case BeaconReceipt, BeaconGift:
-		if input.UserID <= 0 || input.CorrectsID != 0 || input.Quota <= 0 || input.Quota > common.MaxWalletQuota {
+	partialRefund := input.Kind == BeaconRefund && input.CorrectsID == 0
+	switch {
+	case input.Kind == BeaconReceipt || input.Kind == BeaconGift || partialRefund:
+		minQuota := 1
+		if partialRefund {
+			minQuota = 0
+		}
+		if input.UserID <= 0 || input.CorrectsID != 0 || input.Quota < minQuota || input.Quota > common.MaxWalletQuota {
 			return input, ErrBeaconLedgerInput
 		}
-		if input.Kind == BeaconReceipt {
+		if input.Kind != BeaconGift {
 			_, _, rate, err := beaconMoneySnapshot(input.Amount, input.Currency, input.CNYPerUnit)
 			if err != nil || input.PaymentMethod == "" || input.PaymentReference == "" {
 				return input, ErrBeaconLedgerInput
@@ -145,7 +152,7 @@ func (input BeaconLedgerInput) normalized(now int64) (BeaconLedgerInput, error) 
 		} else if input.Amount != "" || input.Currency != "" || input.CNYPerUnit != "" || input.FXSource != "" || input.PaymentMethod != "" || input.PaymentReference != "" {
 			return input, ErrBeaconLedgerInput
 		}
-	case BeaconRefund, BeaconReversal:
+	case input.Kind == BeaconRefund || input.Kind == BeaconReversal:
 		if input.CorrectsID <= 0 || input.UserID != 0 || input.Quota != 0 || input.Amount != "" || input.Currency != "" {
 			return input, ErrBeaconLedgerInput
 		}
@@ -392,20 +399,46 @@ func PostBeaconLedgerEntry(input BeaconLedgerInput, operatorID int) (entry *Beac
 			PaymentMethod: input.PaymentMethod, PaymentReference: input.PaymentReference,
 			OccurredAt: input.OccurredAt, RecordedAt: common.GetTimestamp(), Note: input.Note,
 		}
-		switch input.Kind {
-		case BeaconReceipt:
+		switch {
+		case input.Kind == BeaconReceipt:
 			entry.OriginalAmountMinor, entry.CNYAmountMinor, entry.CNYPerUnit, err = beaconMoneySnapshot(input.Amount, input.Currency, input.CNYPerUnit)
 			if err != nil {
 				return err
 			}
-		case BeaconGift:
+		case input.Kind == BeaconGift:
 			entry.Currency, entry.CNYPerUnit = "CNY", "1"
-		case BeaconRefund, BeaconReversal:
+		case input.CorrectsID == 0:
+			// A refund pays back at most what the customer paid so far. The
+			// customer row lock keeps two refunds from both passing the check.
+			original, cny, rate, err := beaconMoneySnapshot(input.Amount, input.Currency, input.CNYPerUnit)
+			if err != nil {
+				return err
+			}
+			var customer User
+			if err := lockForUpdate(tx).Select("id", "status").First(&customer, input.UserID).Error; err != nil {
+				return err
+			}
+			if customer.Status != common.UserStatusEnabled {
+				return ErrBeaconLedgerInput
+			}
+			var paid int64
+			if err := tx.Model(&BeaconLedgerEntry{}).Where("user_id = ?", input.UserID).Select("COALESCE(SUM(cny_amount_minor), 0)").Scan(&paid).Error; err != nil {
+				return err
+			}
+			if cny > paid {
+				return ErrBeaconRefundExceedsPaid
+			}
+			entry.OriginalAmountMinor, entry.CNYAmountMinor, entry.CNYPerUnit = -original, -cny, rate
+			entry.QuotaDelta = -input.Quota
+		default:
 			var original BeaconLedgerEntry
 			if err := lockForUpdate(tx).First(&original, input.CorrectsID).Error; err != nil {
 				return err
 			}
-			if original.CorrectsID != nil || (original.Kind != BeaconReceipt && original.Kind != BeaconGift) || (input.Kind == BeaconRefund && original.Kind != BeaconReceipt) {
+			// A refund of a whole receipt is itself a correction and is final;
+			// a standalone refund can be reversed like any original entry.
+			if original.CorrectsID != nil || (input.Kind == BeaconRefund && original.Kind != BeaconReceipt) ||
+				(original.Kind != BeaconReceipt && original.Kind != BeaconGift && original.Kind != BeaconRefund) {
 				return ErrBeaconLedgerInput
 			}
 			entry.UserID, entry.Currency, entry.CorrectsID = original.UserID, original.Currency, &original.ID
@@ -430,6 +463,11 @@ func PostBeaconLedgerEntry(input BeaconLedgerInput, operatorID int) (entry *Beac
 		// succeed before touching the wallet; any failure rolls back both.
 		if err := tx.Create(entry).Error; err != nil {
 			return err
+		}
+		// A refund that takes back no balance leaves the wallet alone.
+		if entry.QuotaDelta == 0 {
+			created = true
+			return nil
 		}
 		wallet := tx.Model(&User{}).Where("id = ? AND status = ?", entry.UserID, common.UserStatusEnabled)
 		if entry.QuotaDelta > 0 {

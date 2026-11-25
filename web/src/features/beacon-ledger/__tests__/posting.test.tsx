@@ -46,7 +46,8 @@ afterEach(() => {
 function setupDialog(
   onComplete = vi.fn(),
   kind: EntryKind = 'gift',
-  channelId?: number
+  channelId?: number,
+  customer: { userId?: number; amount?: string } = {}
 ): void {
   const now = Math.floor(Date.now() / 1000)
   useAuthStore.getState().auth.setBundle({
@@ -74,6 +75,8 @@ function setupDialog(
         open
         kind={kind}
         channelId={channelId}
+        userId={customer.userId}
+        amount={customer.amount}
         onOpenChange={() => {}}
         onComplete={onComplete}
       />
@@ -260,6 +263,102 @@ it('prefills a receipt with its top-up price value and keeps a balance the opera
   ).toBeInTheDocument()
 })
 
+it('records a refund for the preset customer with the balance to take back and no original entry', async () => {
+  const posted: Record<string, unknown>[] = []
+  api.defaults.adapter = async (config) => {
+    let data: unknown = {}
+    if (config.url === '/api/status') data = { price: 1 }
+    else if (config.url === '/api/beacon/finance') {
+      data = {
+        range: {},
+        total: {},
+        rows: [
+          {
+            user_id: 42,
+            username: 'alice',
+            paid_micro_cny: '100000000',
+            used_micro_cny: '35000000',
+            usage_quota: '0',
+            gift_quota: '0',
+            unpaid_quota: '0',
+            remaining_micro_cny: '65000000',
+            balance_quota: '32500000',
+          },
+        ],
+      }
+    } else if (config.url === '/api/verify/methods') {
+      data = {
+        scope: 'beacon.ledger.post',
+        methods: [{ method: 'password', available: true }],
+        oauth_providers: [],
+        password_encryption_enabled: false,
+      }
+    } else if (config.url === '/api/verify') {
+      data = {
+        proof_token: 'proof-1',
+        expires_at: Math.floor(Date.now() / 1000) + 60,
+        method: 'password',
+        scope: 'beacon.ledger.post',
+      }
+    } else if (config.url === '/api/beacon/ledger') {
+      posted.push(JSON.parse(config.data))
+      data = { entry: { id: 21 }, created: true }
+    }
+    return {
+      config,
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      data: { success: true, data },
+    }
+  }
+  const done = vi.fn()
+  const user = userEvent.setup()
+  setupDialog(done, 'refund', undefined, { userId: 42, amount: '65.00' })
+  expect(await screen.findByLabelText('Customer ID')).toHaveValue('42')
+  expect(screen.getByLabelText('Refund amount')).toHaveValue('65.00')
+  expect(
+    await screen.findByText(
+      /^Paid ¥100.00, not used yet ¥65.00, wallet balance/
+    )
+  ).toBeInTheDocument()
+  // The balance taken back starts at the refund's value at the top-up price.
+  await waitFor(() =>
+    expect(screen.getByLabelText('Balance to take back (USD)')).toHaveValue(
+      '65'
+    )
+  )
+  await user.type(screen.getByLabelText('Payment method'), 'bank')
+  await user.type(
+    screen.getByLabelText('External payment reference'),
+    'refund-001'
+  )
+  await user.click(screen.getByRole('button', { name: 'Review entry' }))
+  const review = await screen.findByRole('alertdialog', {
+    name: 'Confirm ledger entry',
+  })
+  expect(within(review).getByText(/Balance to take back/)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Verify and post' }))
+  await user.type(
+    await screen.findByLabelText('Password', { selector: 'input' }),
+    'test-password'
+  )
+  await user.click(screen.getByRole('button', { name: 'Verify' }))
+  await waitFor(() => expect(done).toHaveBeenCalledOnce())
+  expect(posted).toEqual([
+    expect.objectContaining({
+      kind: 'refund',
+      user_id: 42,
+      amount: '65.00',
+      currency: 'CNY',
+      quota: 32500000,
+      corrects_id: 0,
+      payment_method: 'bank',
+      payment_reference: 'refund-001',
+    }),
+  ])
+})
+
 it('makes corrected records read-only while keeping complete details keyboard-accessible', async () => {
   const row: LedgerEntry = {
     id: 1,
@@ -291,9 +390,6 @@ it('makes corrected records read-only while keeping complete details keyboard-ac
       />
     </QueryClientProvider>
   )
-  expect(
-    screen.queryByRole('button', { name: 'Full refund' })
-  ).not.toBeInTheDocument()
   expect(
     screen.queryByRole('button', { name: 'Reverse entry' })
   ).not.toBeInTheDocument()

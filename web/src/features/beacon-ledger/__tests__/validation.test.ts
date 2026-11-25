@@ -142,6 +142,47 @@ describe('ledger input validation', () => {
     )
     expect(ledgerMoney(-1234, 'USD')).toBe('USD -12.34')
   })
+  it('sends a refund as its own customer entry, taking back the balance typed', () => {
+    const input = ledgerInput(
+      ledgerFormSchema.parse({ ...receipt(), kind: 'refund', credit: '0.5' }),
+      'test-request-0001'
+    )
+    expect(input).toMatchObject({
+      kind: 'refund',
+      user_id: 42,
+      quota: 250000,
+      corrects_id: 0,
+      amount: '12.34',
+      currency: 'CNY',
+      cny_per_unit: '1',
+      payment_reference: 'ref-001',
+    })
+  })
+  it.each([
+    ['0', true],
+    ['-1', false],
+    ['', false],
+  ])('accepts a refund taking back %s balance: %s', (credit, valid) => {
+    expect(
+      ledgerFormSchema.safeParse({ ...receipt(), kind: 'refund', credit })
+        .success
+    ).toBe(valid)
+  })
+  it('asks a refund for its customer, amount and reference', () => {
+    const result = ledgerFormSchema.safeParse({
+      ...receipt(),
+      kind: 'refund',
+      user_id: '',
+      amount: '',
+      payment_reference: '',
+    })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues.map((issue) => issue.path[0]).sort()).toEqual([
+      'amount',
+      'payment_reference',
+      'user_id',
+    ])
+  })
   it('sends a customer entry with no reason or exchange-rate source', () => {
     const input = ledgerInput(
       ledgerFormSchema.parse({ ...receipt(), note: 'left from a cost' }),

@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 
 import { api } from '@/lib/api'
 
@@ -62,7 +62,8 @@ function report(rows: CustomerFinanceRow[]): CustomerFinanceData {
 
 function renderCustomers(
   requests: Record<string, string>[],
-  rows: CustomerFinanceRow[] = [alice]
+  rows: CustomerFinanceRow[] = [alice],
+  onRefund = vi.fn()
 ) {
   api.defaults.adapter = async (config) => {
     requests.push(config.params)
@@ -77,7 +78,7 @@ function renderCustomers(
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <CustomerFinance />
+      <CustomerFinance onRefund={onRefund} />
     </QueryClientProvider>
   )
 }
@@ -93,6 +94,31 @@ it('lists what each customer paid, used and has left, all time by default', asyn
     screen.getByText(/was used with no recorded payment/)
   ).toBeInTheDocument()
   expect(requests[0]).toMatchObject({ view: 'customers', period: 'all' })
+})
+
+it('starts a refund preset to the customer and what they paid for but have not used', async () => {
+  const onRefund = vi.fn()
+  const bob = {
+    ...alice,
+    user_id: 8,
+    username: '',
+    remaining_micro_cny: '-1500000',
+  }
+  renderCustomers(
+    [],
+    [{ ...alice, remaining_micro_cny: '65004999' }, bob],
+    onRefund
+  )
+  const user = userEvent.setup()
+  await user.click(
+    await screen.findByRole('button', { name: 'Record a refund to alice' })
+  )
+  expect(onRefund).toHaveBeenLastCalledWith(7, '65.00')
+  // Nothing left unused: the amount is left for the operator to fill in.
+  await user.click(
+    screen.getByRole('button', { name: 'Record a refund to #8' })
+  )
+  expect(onRefund).toHaveBeenLastCalledWith(8, '')
 })
 
 it('explains an empty list instead of showing an empty table', async () => {

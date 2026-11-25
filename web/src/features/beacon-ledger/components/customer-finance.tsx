@@ -24,6 +24,7 @@ import { StaticDataTable } from '@/components/data-table'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
 import { LoadingState } from '@/components/loading-state'
+import { Button } from '@/components/ui/button'
 import { TitledCard } from '@/components/ui/titled-card'
 import { formatQuota } from '@/lib/format'
 
@@ -33,7 +34,11 @@ import { formatCny } from '../lib/cost'
 import { RangeForm } from './range-form'
 import { SummaryMetrics } from './summary-metrics'
 
-export function CustomerFinance() {
+// A refund is recorded through New entry, preset to this customer and to what
+// they paid for but have not used.
+export function CustomerFinance(props: {
+  onRefund: (userId: number, amount: string) => void
+}) {
   const { t } = useTranslation()
   const [range, setRange] = useState<CashRangeValues>({
     period: 'all',
@@ -116,7 +121,7 @@ export function CustomerFinance() {
                   'aria-label': t('Customers'),
                   tabIndex: 0,
                 }}
-                tableClassName='min-w-[640px]'
+                tableClassName='min-w-[760px]'
                 columns={[
                   {
                     id: 'customer',
@@ -149,6 +154,30 @@ export function CustomerFinance() {
                     id: 'balance',
                     header: t('Wallet balance'),
                     cell: (row) => formatQuota(Number(row.balance_quota)),
+                  },
+                  {
+                    id: 'actions',
+                    header: t('Actions'),
+                    cell: (row) => {
+                      // Whole cents of the unused paid value, rounded down.
+                      const cents = BigInt(row.remaining_micro_cny) / 10000n
+                      const unused =
+                        cents > 0n
+                          ? `${cents / 100n}.${String(cents % 100n).padStart(2, '0')}`
+                          : ''
+                      return (
+                        <Button
+                          className='min-h-11'
+                          variant='outline'
+                          aria-label={t('Record a refund to {{name}}', {
+                            name: row.username || `#${row.user_id}`,
+                          })}
+                          onClick={() => props.onRefund(row.user_id, unused)}
+                        >
+                          {t('Refund')}
+                        </Button>
+                      )
+                    },
                   },
                 ]}
               />
