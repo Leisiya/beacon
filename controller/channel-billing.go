@@ -663,6 +663,13 @@ func updateStandardChannelBalance(channel *model.Channel) (float64, error) {
 		return updateChannelSub2APIBalance(channel)
 	case constant.ChannelTypeNewAPI:
 		return updateChannelNewAPIBalance(channel)
+	case constant.ChannelTypeAnthropic:
+		// Anthropic has no balance API. A relay in front of it usually runs
+		// New API, which answers the same per-key usage query.
+		if strings.TrimRight(channel.GetBaseURL(), "/") == baseURL {
+			return 0, common.NewMessage("Not implemented yet")
+		}
+		return updateChannelNewAPIBalance(channel)
 	default:
 		return 0, common.NewMessage("Not implemented yet")
 	}
