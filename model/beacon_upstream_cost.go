@@ -23,6 +23,9 @@ const (
 	beaconMaxUpstreamQuotaPerUnit int64 = 1_000_000_000_000
 	beaconCostMatchWindow               = 2 * 24 * 60 * 60
 	beaconCostBatch                     = 500
+	// Upstream clocks drift; a record this close before the channel was
+	// added is still treated as this site's.
+	beaconChannelAddedSkew = 10 * 60
 )
 
 // BeaconUpstreamRate is append-only. From EffectiveAt on, one unit of the
@@ -223,10 +226,17 @@ func StoreBeaconUpstreamCharges(channelID int, keyFingerprint string, quotaPerUn
 	if err != nil {
 		return 0, err
 	}
+	// A key may have been used elsewhere before it was added here; those
+	// records are not this site's cost and would stay unpriced forever.
+	var channel Channel
+	if err := DB.Select("id", "created_time").Where("id = ?", channelID).Limit(1).Find(&channel).Error; err != nil {
+		return 0, err
+	}
 	charges := make([]BeaconUpstreamCharge, 0, len(records))
 	valid := make([]BeaconUpstreamRecord, 0, len(records))
 	for _, record := range records {
-		if record.Quota < 0 || record.Quota > beaconMaxUpstreamQuota || record.OccurredAt <= 0 {
+		if record.Quota < 0 || record.Quota > beaconMaxUpstreamQuota || record.OccurredAt <= 0 ||
+			(channel.CreatedTime > 0 && record.OccurredAt < channel.CreatedTime-beaconChannelAddedSkew) {
 			continue
 		}
 		credit := decimal.NewFromInt(record.Quota).Shift(6).Div(decimal.NewFromInt(quotaPerUnit)).Round(0).IntPart()

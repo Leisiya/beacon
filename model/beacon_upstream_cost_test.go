@@ -117,6 +117,23 @@ func TestBeaconUpstreamChargesKeepTheirPricedCost(t *testing.T) {
 	assert.Equal(t, "1.8", observation.GroupRatio)
 }
 
+func TestBeaconUpstreamChargesSkipUseBeforeTheChannelWasAdded(t *testing.T) {
+	_, _, channel := setupBeaconCostTest(t)
+	added := time.Date(2026, 11, 24, 14, 16, 24, 0, time.UTC).Unix()
+	require.NoError(t, DB.Model(&channel).Update("created_time", added).Error)
+	records := []BeaconUpstreamRecord{
+		{LogID: 1, RequestID: "elsewhere", OccurredAt: added - 86400, ModelName: "claude-opus-4-6", Quota: 1000},
+		{LogID: 2, RequestID: "skewed-test", OccurredAt: added - 5, ModelName: "claude-opus-4-6", Quota: 220},
+		{LogID: 3, RequestID: "after", OccurredAt: added + 60, ModelName: "claude-opus-4-6", Quota: 220},
+	}
+	inserted, err := StoreBeaconUpstreamCharges(channel.Id, "key-a", 500000, records, added+600)
+	require.NoError(t, err)
+	assert.Equal(t, 2, inserted, "a day-old record from before the channel was added is not this site's cost")
+	var requests []string
+	require.NoError(t, DB.Model(&BeaconUpstreamCharge{}).Order("occurred_at").Pluck("upstream_request_id", &requests).Error)
+	assert.Equal(t, []string{"skewed-test", "after"}, requests, "a record seconds early is kept for clock skew")
+}
+
 func TestMigrateBeaconChargeSourceKeyRemovesShiftedCopies(t *testing.T) {
 	_, _, channel := setupBeaconCostTest(t)
 	migrator := DB.Migrator()
