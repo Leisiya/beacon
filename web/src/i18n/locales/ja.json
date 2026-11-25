@@ -7572,7 +7572,6 @@
     "No request on this site": "本サイトにリクエストなし",
     "Top-up price saved": "チャージ価格を保存しました",
     "Top-up price": "チャージ価格",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "顧客が残高 $1 に支払う金額です。手動入金の残高はこの値で事前入力され、販売価格もこの値で CNY に換算されます。利益は各顧客が実際に支払った額で計算します。",
     "Change top-up price": "チャージ価格を変更",
     "¥{{price}} = $1 of balance": "¥{{price}} = 残高 $1",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "入金済みの残高はそのままです。モデルの USD 価格は変わりませんが、CNY 換算の価格は変わります。",
@@ -7654,6 +7653,9 @@
     "Profit = what customers used − what upstreams charged for it − other costs such as servers and promotion. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Money paid to upstreams becomes cost as they deduct it, so it is not counted again when paid.": "利益 = 顧客の利用額 − それに対する上流の差し引き − サーバーやプロモーションなどその他の費用。利用額は各顧客が実際に支払った単価で計算し、贈与残高は先に使われ価値はゼロです。上流へのチャージは差し引かれた時点で費用になるため、支払い時には二重に数えません。",
     "What customers used against what upstreams charged and other costs · CNY": "顧客の利用額と上流の差し引き・その他の費用の比較 · CNY",
     "Profit = what customers used − what upstreams charged for it − other costs. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time. Other costs count on the day they were paid; grouped by customer, model or channel they are one separate row.": "利益 = 顧客の利用額 − それに対する上流の差し引き − その他の費用。利用額は各顧客が実際に支払った単価で計算し、贈与残高は先に使われ価値はゼロです。上流の差し引きは当時有効だった仕入れ価格で計算します。その他の費用は支払った日に計上し、顧客・モデル・チャネル別では別の行になります。",
-    "Check the category, amount, date and note.": "カテゴリ、金額、日付、メモを確認してください。"
+    "Check the category, amount, date and note.": "カテゴリ、金額、日付、メモを確認してください。",
+    "Not counted, no cost yet: {{channels}}": "未計上（原価データなし）：{{channels}}",
+    "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "ここはグループ倍率を掛ける前の価格です。顧客はこの価格 × {{ratio}} を支払います。100 万トークンあたり ¥{{target}} にするには {{entered}} と入力します。",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "顧客が $1 分の残高に支払う金額です。手動入金の初期値になり、各ページの価格と残高もこのレートで CNY 表示されます。保存するとサイトの為替レートも変更されます。利益は各顧客が実際に支払った額で計算します。"
   }
 }

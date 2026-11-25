@@ -152,7 +152,10 @@ function renderPricingRules(
       status: 200,
       statusText: 'OK',
       headers: {},
-      data: { success: true, data: config.method === 'get' ? data : null },
+      data: {
+        success: true,
+        data: config.method === 'get' ? data : null,
+      },
     }
   }
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -194,6 +197,48 @@ it('shows each model’s CNY sale and cost prices next to its markup', async () 
   expect(
     screen.getByRole('button', { name: 'Edit sale price' })
   ).toBeInTheDocument()
+})
+
+it('names enabled channels left out of the markup because they have no cost yet', async () => {
+  const unobserved = {
+    ...basis,
+    channel_id: 2,
+    channel_name: 'NOVARIS',
+    status: 'no_observation' as const,
+    group_ratio: '',
+    min_markup_bp: null,
+    lines: [],
+  }
+  renderPricingRules([], {
+    ...report,
+    models: [{ ...report.models[0], channels: [basis, unobserved] }],
+  })
+  expect(
+    await screen.findByText('Not counted, no cost yet: #2 NOVARIS')
+  ).toBeInTheDocument()
+})
+
+it('tells the operator the sale price editor takes prices before the group ratio', async () => {
+  renderPricingRules([], { ...report, default_group_ratio: 3.6 })
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Edit sale price' })
+  )
+  expect(
+    await screen.findByText(
+      'These are prices before the group ratio: customers pay them × 3.6. To charge ¥5 per 1M, enter 1.3889.'
+    )
+  ).toBeInTheDocument()
+})
+
+it('hides the group ratio note when customers pay the entered price', async () => {
+  renderPricingRules([])
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Edit sale price' })
+  )
+  await screen.findByRole('dialog')
+  expect(
+    screen.queryByText(/These are prices before the group ratio/)
+  ).not.toBeInTheDocument()
 })
 
 it('hides the pending changes card when nothing awaits confirmation', async () => {

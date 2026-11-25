@@ -283,9 +283,9 @@ func TestBeaconPricingProposalLifecycle(t *testing.T) {
 	})
 	const name = "claude-beacon-test"
 	const sonnet = `tier("base", p * 3 + c * 15 + cr * 0.3 + cc * 3.75 + cc1h * 6)`
-	previousPrice := operation_setting.Price
-	operation_setting.Price = 7.3
-	t.Cleanup(func() { operation_setting.Price = previousPrice })
+	previousPrice, previousRate := operation_setting.Price, operation_setting.USDExchangeRate
+	operation_setting.Price, operation_setting.USDExchangeRate = 7.3, 7.3
+	t.Cleanup(func() { operation_setting.Price, operation_setting.USDExchangeRate = previousPrice, previousRate })
 	require.Equal(t, float64(1), ratio_setting.GetGroupRatio("default"))
 	require.NoError(t, DB.Create(&Ability{Group: "default", Model: name, ChannelId: channel.Id, Enabled: true}).Error)
 	setSalePrice := func(expression string) {
@@ -445,8 +445,23 @@ func TestBeaconPricingProposalLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "3.65", saved)
 	assert.Equal(t, 3.65, operation_setting.Price)
+	assert.Equal(t, 3.65, operation_setting.USDExchangeRate, "the display rate follows, so every page shows the same price")
 	report, err = AnalyzeBeaconPricing()
 	require.NoError(t, err)
 	assert.Equal(t, 3.65, report.ReferenceCNYPerUnit)
 	assert.InDelta(t, 7.3, report.Models[0].Sale[0].SaleCNY, 1e-9, "$2 per 1M input at ¥3.65")
+
+	// A raise worked out at ¥3.65 must not be applied once the top-up price
+	// is back at ¥7.3, where the current price already clears the target.
+	outcome, err = EvaluateBeaconPricing(now)
+	require.NoError(t, err)
+	require.Equal(t, []string{name}, outcome.Proposed)
+	proposal = BeaconPriceProposal{}
+	require.NoError(t, DB.Where("status = ?", BeaconProposalPending).First(&proposal).Error)
+	_, err = SetBeaconReferencePrice("7.3")
+	require.NoError(t, err)
+	assert.ErrorIs(t, ApplyBeaconPriceProposal(proposal.ID, operator.Id, now), ErrBeaconProposalOutdated)
+	require.NoError(t, DB.Where("id = ?", proposal.ID).First(&proposal).Error)
+	assert.Equal(t, BeaconProposalSuperseded, proposal.Status)
+	assert.Equal(t, `tier("base", p * 2 + c * 10 + cr * 0.2 + cc * 2.5 + cc1h * 4)`, salePrice(), "the sale price is unchanged")
 }

@@ -7572,7 +7572,6 @@
     "No request on this site": "无本地记录",
     "Top-up price saved": "充值价格已保存",
     "Top-up price": "充值价格",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "客户付多少人民币得到 $1 余额。人工收款时按它预填到账余额，售价也按它折算成人民币。利润按每个客户实际付的钱计算，不受它影响。",
     "Change top-up price": "修改充值价格",
     "¥{{price}} = $1 of balance": "¥{{price}} = $1 余额",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "已经到账的余额不变。模型的美元价格不变，但折算成人民币的售价会变。",
@@ -7654,6 +7653,9 @@
     "Profit = what customers used − what upstreams charged for it − other costs such as servers and promotion. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Money paid to upstreams becomes cost as they deduct it, so it is not counted again when paid.": "利润 = 客户用掉的钱 − 上游为此扣的钱 − 服务器、推广等其他费用。客户用掉的钱按每个客户实际付款的单价算；赠送的额度先用，不算钱。付给上游的充值在上游扣费时才算成本，付款时不重复计算。",
     "What customers used against what upstreams charged and other costs · CNY": "客户用掉的钱对比上游扣的钱和其他费用 · 人民币",
     "Profit = what customers used − what upstreams charged for it − other costs. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time. Other costs count on the day they were paid; grouped by customer, model or channel they are one separate row.": "利润 = 客户用掉的钱 − 上游为此扣的钱 − 其他费用。客户用掉的钱按每个客户实际付款的单价算；赠送的额度先用，不算钱。上游扣费按当时生效的进价算。其他费用算在付款当天；按客户、模型或渠道分组时单独列一行。",
-    "Check the category, amount, date and note.": "请检查类别、金额、时间和备注。"
+    "Check the category, amount, date and note.": "请检查类别、金额、时间和备注。",
+    "Not counted, no cost yet: {{channels}}": "未计入（还没有成本数据）：{{channels}}",
+    "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "这里是乘分组倍率之前的价格：客户实际付的是这里的价格 × {{ratio}}。想让客户每百万 token 付 ¥{{target}}，就填 {{entered}}。",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "客户付多少人民币得到 $1 余额。人工收款时按它预填到账余额，各页面的价格和余额也按它换算成人民币：保存时会同时修改站点汇率。利润按每个客户实际付的钱计算，不受它影响。"
   }
 }

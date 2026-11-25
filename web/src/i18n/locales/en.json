@@ -7572,7 +7572,6 @@
     "No request on this site": "No request on this site",
     "Top-up price saved": "Top-up price saved",
     "Top-up price": "Top-up price",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.",
     "Change top-up price": "Change top-up price",
     "¥{{price}} = $1 of balance": "¥{{price}} = $1 of balance",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.",
@@ -7654,6 +7653,9 @@
     "Profit = what customers used − what upstreams charged for it − other costs such as servers and promotion. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Money paid to upstreams becomes cost as they deduct it, so it is not counted again when paid.": "Profit = what customers used − what upstreams charged for it − other costs such as servers and promotion. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Money paid to upstreams becomes cost as they deduct it, so it is not counted again when paid.",
     "What customers used against what upstreams charged and other costs · CNY": "What customers used against what upstreams charged and other costs · CNY",
     "Profit = what customers used − what upstreams charged for it − other costs. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time. Other costs count on the day they were paid; grouped by customer, model or channel they are one separate row.": "Profit = what customers used − what upstreams charged for it − other costs. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time. Other costs count on the day they were paid; grouped by customer, model or channel they are one separate row.",
-    "Check the category, amount, date and note.": "Check the category, amount, date and note."
+    "Check the category, amount, date and note.": "Check the category, amount, date and note.",
+    "Not counted, no cost yet: {{channels}}": "Not counted, no cost yet: {{channels}}",
+    "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid."
   }
 }

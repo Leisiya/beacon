@@ -7572,7 +7572,6 @@
     "No request on this site": "Aucune requête sur ce site",
     "Top-up price saved": "Prix de recharge enregistré",
     "Top-up price": "Prix de recharge",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "Ce qu’un client paie pour 1 $ de solde. Les encaissements manuels sont préremplis avec, et les prix de vente sont affichés en CNY grâce à lui. Le bénéfice utilise ce que chaque client a réellement payé.",
     "Change top-up price": "Modifier le prix de recharge",
     "¥{{price}} = $1 of balance": "¥{{price}} = 1 $ de solde",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "Les soldes déjà crédités ne changent pas. Les prix des modèles en USD restent les mêmes, mais leur valeur en CNY change.",
@@ -7654,6 +7653,9 @@
     "Profit = what customers used − what upstreams charged for it − other costs such as servers and promotion. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Money paid to upstreams becomes cost as they deduct it, so it is not counted again when paid.": "Bénéfice = ce que les clients ont utilisé − ce que les amonts ont facturé pour cela − autres frais comme les serveurs et la promotion. L'usage est valorisé au prix que chaque client a réellement payé ; le solde offert est utilisé en premier et ne vaut rien. L'argent payé aux amonts devient un coût au fil de leurs déductions ; il n'est donc pas compté une seconde fois au paiement.",
     "What customers used against what upstreams charged and other costs · CNY": "Utilisé par les clients face aux facturations des amonts et aux autres frais · CNY",
     "Profit = what customers used − what upstreams charged for it − other costs. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time. Other costs count on the day they were paid; grouped by customer, model or channel they are one separate row.": "Bénéfice = ce que les clients ont utilisé − ce que les amonts ont facturé pour cela − autres frais. L'usage est valorisé au prix que chaque client a réellement payé ; le solde offert est utilisé en premier et ne vaut rien. Les facturations des amonts utilisent le prix d'achat en vigueur. Les autres frais comptent le jour du paiement ; groupés par client, modèle ou canal, ils forment une ligne à part.",
-    "Check the category, amount, date and note.": "Vérifiez la catégorie, le montant, la date et la note."
+    "Check the category, amount, date and note.": "Vérifiez la catégorie, le montant, la date et la note.",
+    "Not counted, no cost yet: {{channels}}": "Non compté, pas encore de coût : {{channels}}",
+    "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "Ces prix sont avant le ratio de groupe : les clients paient ces prix × {{ratio}}. Pour facturer ¥{{target}} par million, saisissez {{entered}}.",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "Ce qu'un client paie pour 1 $ de solde. Les encaissements manuels sont préremplis avec, et chaque page affiche prix et soldes en CNY à ce taux : l'enregistrer modifie aussi le taux de change du site. Le bénéfice utilise ce que chaque client a réellement payé."
   }
 }

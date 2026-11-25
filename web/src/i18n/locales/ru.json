@@ -7572,7 +7572,6 @@
     "No request on this site": "Нет запроса на этом сайте",
     "Top-up price saved": "Цена пополнения сохранена",
     "Top-up price": "Цена пополнения",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "Сколько клиент платит за $1 баланса. По ней заполняются ручные поступления, а цены продажи пересчитываются в юани. Прибыль считается по тому, что каждый клиент фактически заплатил.",
     "Change top-up price": "Изменить цену пополнения",
     "¥{{price}} = $1 of balance": "¥{{price}} = $1 баланса",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "Уже зачисленные балансы не меняются. Цены моделей в USD остаются прежними, но их стоимость в юанях меняется.",
@@ -7654,6 +7653,9 @@
     "Profit = what customers used − what upstreams charged for it − other costs such as servers and promotion. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Money paid to upstreams becomes cost as they deduct it, so it is not counted again when paid.": "Прибыль = израсходованное клиентами − списанное за это поставщиками − прочие расходы, например серверы и продвижение. Использование оценивается по цене, которую фактически заплатил каждый клиент; подаренный баланс расходуется первым и ничего не стоит. Деньги, отправленные поставщикам, становятся расходом по мере списаний, поэтому при оплате повторно не учитываются.",
     "What customers used against what upstreams charged and other costs · CNY": "Израсходованное клиентами против списаний поставщиков и прочих расходов · юани",
     "Profit = what customers used − what upstreams charged for it − other costs. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time. Other costs count on the day they were paid; grouped by customer, model or channel they are one separate row.": "Прибыль = израсходованное клиентами − списанное за это поставщиками − прочие расходы. Использование оценивается по цене, которую фактически заплатил каждый клиент; подаренный баланс расходуется первым и ничего не стоит. Списания поставщиков считаются по закупочной цене, действовавшей в тот момент. Прочие расходы учитываются в день оплаты; при группировке по клиенту, модели или каналу они идут отдельной строкой.",
-    "Check the category, amount, date and note.": "Проверьте категорию, сумму, дату и примечание."
+    "Check the category, amount, date and note.": "Проверьте категорию, сумму, дату и примечание.",
+    "Not counted, no cost yet: {{channels}}": "Не учтено, нет данных о себестоимости: {{channels}}",
+    "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "Это цены до коэффициента группы: клиенты платят их × {{ratio}}. Чтобы брать ¥{{target}} за 1M, введите {{entered}}.",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "Сколько клиент платит за $1 баланса. По нему заполняются ручные поступления, и все страницы показывают цены и балансы в юанях по этому курсу: при сохранении меняется и курс сайта. Прибыль считается по фактической оплате клиентов."
   }
 }

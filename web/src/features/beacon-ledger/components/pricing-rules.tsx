@@ -88,7 +88,11 @@ export function PricingRules() {
       {data.proposals.length > 0 && (
         <PriceProposals proposals={data.proposals} />
       )}
-      <ModelPricingTable models={data.models} proposals={data.proposals} />
+      <ModelPricingTable
+        models={data.models}
+        proposals={data.proposals}
+        groupRatio={data.default_group_ratio}
+      />
       <TitledCard
         title={<h2>{t('Default price rule')}</h2>}
         description={t(

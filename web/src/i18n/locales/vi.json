@@ -7572,7 +7572,6 @@
     "No request on this site": "Không có yêu cầu trên trang này",
     "Top-up price saved": "Đã lưu giá nạp",
     "Top-up price": "Giá nạp",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "Số tiền khách trả cho $1 số dư. Khoản thu thủ công được điền sẵn theo giá này, giá bán cũng quy đổi sang CNY theo nó. Lợi nhuận tính theo số tiền mỗi khách thực trả.",
     "Change top-up price": "Đổi giá nạp",
     "¥{{price}} = $1 of balance": "¥{{price}} = $1 số dư",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "Số dư đã cộng giữ nguyên. Giá mô hình bằng USD không đổi, nhưng giá trị quy đổi sang CNY sẽ đổi.",
@@ -7654,6 +7653,9 @@
     "Profit = what customers used − what upstreams charged for it − other costs such as servers and promotion. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Money paid to upstreams becomes cost as they deduct it, so it is not counted again when paid.": "Lợi nhuận = phần khách đã dùng − phần nguồn đã trừ cho việc đó − chi phí khác như máy chủ và quảng bá. Phần khách dùng được tính theo đơn giá mỗi khách thực trả; số dư được tặng dùng trước và không có giá trị. Tiền trả cho nguồn trở thành chi phí khi nguồn trừ dần, nên không tính lại lúc thanh toán.",
     "What customers used against what upstreams charged and other costs · CNY": "Khách đã dùng so với phần nguồn đã trừ và chi phí khác · CNY",
     "Profit = what customers used − what upstreams charged for it − other costs. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time. Other costs count on the day they were paid; grouped by customer, model or channel they are one separate row.": "Lợi nhuận = phần khách đã dùng − phần nguồn đã trừ cho việc đó − chi phí khác. Phần khách dùng được tính theo đơn giá mỗi khách thực trả; số dư được tặng dùng trước và không có giá trị. Phần nguồn trừ dùng giá nhập có hiệu lực lúc đó. Chi phí khác tính vào ngày trả; khi nhóm theo khách, mô hình hoặc kênh thì thành một dòng riêng.",
-    "Check the category, amount, date and note.": "Kiểm tra danh mục, số tiền, ngày và ghi chú."
+    "Check the category, amount, date and note.": "Kiểm tra danh mục, số tiền, ngày và ghi chú.",
+    "Not counted, no cost yet: {{channels}}": "Chưa tính, chưa có giá vốn: {{channels}}",
+    "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "Đây là giá trước hệ số nhóm: khách trả giá này × {{ratio}}. Muốn thu ¥{{target}} mỗi 1M, hãy nhập {{entered}}.",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "Số tiền khách trả cho $1 số dư. Dùng để điền sẵn khi ghi thu thủ công, và mọi trang hiển thị giá, số dư bằng CNY theo tỷ lệ này: lưu sẽ đổi luôn tỷ giá của trang. Lợi nhuận tính theo số tiền mỗi khách thực trả."
   }
 }

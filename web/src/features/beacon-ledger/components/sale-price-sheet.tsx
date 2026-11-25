@@ -37,6 +37,8 @@ import { ModelPricingPanel } from '@/features/model-pricing/model-pricing-panel'
 // can be changed next to its cost.
 export function SalePriceSheet(props: {
   modelName: string | null
+  // The default group's ratio, which customers pay on top of these prices.
+  groupRatio: number
   onOpenChange: (open: boolean) => void
 }) {
   const { t } = useTranslation()
@@ -64,6 +66,18 @@ export function SalePriceSheet(props: {
                 'Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.'
               )}
             </SheetDescription>
+            {props.groupRatio !== 1 && (
+              <p className='text-warning text-sm font-medium'>
+                {t(
+                  'These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.',
+                  {
+                    ratio: props.groupRatio,
+                    target: 5,
+                    entered: Number((5 / props.groupRatio).toFixed(4)),
+                  }
+                )}
+              </p>
+            )}
           </SheetHeader>
           {props.modelName && (
             <div className='flex min-h-0 flex-1 flex-col'>

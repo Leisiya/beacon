@@ -641,7 +641,9 @@ func AnalyzeBeaconPricing() (*BeaconPricingReport, error) {
 
 // SetBeaconReferencePrice saves the top-up price: the CNY a customer pays for
 // $1 of balance. Manual receipts are prefilled with it, and sale prices and
-// customer charges are converted to CNY with it.
+// customer charges are converted to CNY with it. The display exchange rate is
+// set to the same value: the model list, the pricing editor, balances and
+// logs convert with it, and a different value would show other prices there.
 func SetBeaconReferencePrice(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	price, err := decimal.NewFromString(value)
@@ -649,6 +651,9 @@ func SetBeaconReferencePrice(value string) (string, error) {
 		return "", ErrBeaconReferencePrice
 	}
 	value = price.String()
+	if err := UpdateOption("USDExchangeRate", value); err != nil {
+		return "", err
+	}
 	return value, UpdateOption("Price", value)
 }
 
@@ -813,6 +818,23 @@ func ApplyBeaconPriceProposal(id int64, deciderID int, now int64) error {
 		return err
 	}
 	if len(snapshot.Entries) != 1 || snapshot.Entries[0].Version != proposal.OldVersion {
+		_ = closeBeaconProposal(id, BeaconProposalSuperseded, deciderID, now, ErrBeaconProposalOutdated.Error())
+		return ErrBeaconProposalOutdated
+	}
+	// The proposal was worked out from the top-up price, group ratio and
+	// supplier costs of its time. If any changed, today's analysis no longer
+	// proposes the same price, and applying the old one could sell below cost.
+	report, err := AnalyzeBeaconPricing()
+	if err != nil {
+		return err
+	}
+	current := ""
+	for _, analysis := range report.Models {
+		if analysis.ModelName == proposal.ModelName {
+			current = analysis.ProposedExpr
+		}
+	}
+	if current != proposal.NewExpr {
 		_ = closeBeaconProposal(id, BeaconProposalSuperseded, deciderID, now, ErrBeaconProposalOutdated.Error())
 		return ErrBeaconProposalOutdated
 	}

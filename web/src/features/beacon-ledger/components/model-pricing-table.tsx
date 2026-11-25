@@ -35,6 +35,7 @@ import { SalePriceSheet } from './sale-price-sheet'
 export function ModelPricingTable(props: {
   models: ModelPricing[]
   proposals: PriceProposal[]
+  groupRatio: number
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -146,16 +147,39 @@ export function ModelPricingTable(props: {
             {
               id: 'markup',
               header: t('Lowest markup'),
-              cell: (model) => (
-                <div className='flex flex-wrap items-center gap-2'>
-                  <span className='tabular-nums'>
-                    {formatBp(model.current_markup_bp, locale)}
-                  </span>
-                  {model.below_minimum && (
-                    <Badge variant='destructive'>{t('Below minimum')}</Badge>
-                  )}
-                </div>
-              ),
+              cell: (model) => {
+                // An enabled channel without a cost is left out of the
+                // comparison, so the markup through it may be lower.
+                const uncosted = model.channels.filter(
+                  (channel) => channel.status !== 'ok'
+                )
+                return (
+                  <div className='flex flex-col gap-1'>
+                    <div className='flex flex-wrap items-center gap-2'>
+                      <span className='tabular-nums'>
+                        {formatBp(model.current_markup_bp, locale)}
+                      </span>
+                      {model.below_minimum && (
+                        <Badge variant='destructive'>
+                          {t('Below minimum')}
+                        </Badge>
+                      )}
+                    </div>
+                    {uncosted.length > 0 && (
+                      <span className='text-warning text-xs break-all'>
+                        {t('Not counted, no cost yet: {{channels}}', {
+                          channels: uncosted
+                            .map(
+                              (channel) =>
+                                `#${channel.channel_id} ${channel.channel_name}`
+                            )
+                            .join(', '),
+                        })}
+                      </span>
+                    )}
+                  </div>
+                )
+              },
             },
             {
               id: 'status',
@@ -196,6 +220,7 @@ export function ModelPricingTable(props: {
       )}
       <SalePriceSheet
         modelName={editing}
+        groupRatio={props.groupRatio}
         onOpenChange={(open) => {
           if (open) return
           setEditing(null)

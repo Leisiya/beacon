@@ -7572,7 +7572,6 @@
     "No request on this site": "無本地記錄",
     "Top-up price saved": "儲值價格已儲存",
     "Top-up price": "儲值價格",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and sale prices are shown in CNY through it. Profit uses what each customer actually paid.": "客戶付多少人民幣得到 $1 餘額。人工收款時按它預填到帳餘額，售價也按它換算成人民幣。利潤按每個客戶實際付的錢計算，不受它影響。",
     "Change top-up price": "修改儲值價格",
     "¥{{price}} = $1 of balance": "¥{{price}} = $1 餘額",
     "Balances already credited stay as they are. Model prices in USD do not change, but their CNY value does.": "已經到帳的餘額不變。模型的美元價格不變，但換算成人民幣的售價會變。",
@@ -7654,6 +7653,9 @@
     "Profit = what customers used − what upstreams charged for it − other costs such as servers and promotion. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Money paid to upstreams becomes cost as they deduct it, so it is not counted again when paid.": "利潤 = 客戶用掉的錢 − 上游為此扣的錢 − 伺服器、推廣等其他費用。客戶用掉的錢按每個客戶實際付款的單價算；贈送的額度先用，不算錢。付給上游的儲值在上游扣費時才算成本，付款時不重複計算。",
     "What customers used against what upstreams charged and other costs · CNY": "客戶用掉的錢對比上游扣的錢和其他費用 · 人民幣",
     "Profit = what customers used − what upstreams charged for it − other costs. Customer usage is valued at what each customer actually paid; gifted balance is used first and is worth nothing. Upstream charges use the purchase price in effect at the time. Other costs count on the day they were paid; grouped by customer, model or channel they are one separate row.": "利潤 = 客戶用掉的錢 − 上游為此扣的錢 − 其他費用。客戶用掉的錢按每個客戶實際付款的單價算；贈送的額度先用，不算錢。上游扣費按當時生效的進價算。其他費用算在付款當天；按客戶、模型或渠道分組時單獨列一行。",
-    "Check the category, amount, date and note.": "請檢查類別、金額、時間和備註。"
+    "Check the category, amount, date and note.": "請檢查類別、金額、時間和備註。",
+    "Not counted, no cost yet: {{channels}}": "未計入（還沒有成本資料）：{{channels}}",
+    "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "這裡是乘分組倍率之前的價格：客戶實際付的是這裡的價格 × {{ratio}}。想讓客戶每百萬 token 付 ¥{{target}}，就填 {{entered}}。",
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "客戶付多少人民幣得到 $1 餘額。人工收款時按它預填到帳餘額，各頁面的價格和餘額也按它換算成人民幣：儲存時會同時修改站點匯率。利潤按每個客戶實際付的錢計算，不受它影響。"
   }
 }
