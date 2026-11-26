@@ -73,6 +73,24 @@ var auditContentTemplates = map[string]string{
 	"subscription.plan_reset":       "Reset active subscriptions for plan ${plan_id}",
 	"subscription.user_plan_reset":  "Reset active plan ${plan_id} subscriptions for user ${target_user_id}",
 	"subscription.user_quota_reset": "Administrator reset the quota of subscription plan ${plan_title} (ID: ${plan_id})",
+
+	"beacon.ledger.receipt":           "Recorded a receipt of ¥${amount} from ${target_username} (entry #${entry_id})",
+	"beacon.ledger.gift":              "Gave ${target_username} ${quota} quota (entry #${entry_id})",
+	"beacon.ledger.refund":            "Refunded ¥${amount} to ${target_username} and took back ${quota} quota (entry #${entry_id})",
+	"beacon.ledger.reversal":          "Reversed entry #${corrects_id} of ${target_username} (entry #${entry_id})",
+	"beacon.finance.payment":          "Recorded an upstream top-up of ¥${amount} for ${credit} credit on channel #${channel_id} (top-up #${payment_id})",
+	"beacon.finance.payment_reversal": "Reversed upstream top-up #${corrects_id} of ¥${amount}",
+	"beacon.finance.expense":          "Recorded a ${category} expense of ¥${amount} (expense #${expense_id})",
+	"beacon.finance.expense_reversal": "Reversed expense #${corrects_id} of ¥${amount}",
+	"beacon.pricing.default_rule":     "Set the default price rule: ${mode}, target markup ${markup}%",
+	"beacon.pricing.rule":             "Set the price rule of ${model_name}: ${mode}, target markup ${markup}%",
+	"beacon.pricing.rule_delete":      "Removed the price rule of ${model_name}, which now follows the default rule",
+	"beacon.pricing.reference":        "Changed the top-up price from ¥${previous} to ¥${cny_per_unit} per unit of balance",
+	"beacon.pricing.apply":            "Applied the suggested price for ${model_name} (suggestion #${proposal_id})",
+	"beacon.pricing.dismiss":          "Dismissed the suggested price for ${model_name} (suggestion #${proposal_id})",
+	"beacon.pricing.evaluate":         "Rechecked sale prices against current costs",
+	"beacon.cost.rate":                "Set the cost of channel #${channel_id} to ¥${cny_per_unit} per upstream credit unit",
+	"beacon.cost.sync":                "Synced upstream costs",
 }
 
 func recordPasskeyDomainAudit(c *gin.Context, change *model.PasskeyDomainChange, confirmed bool, err error) {

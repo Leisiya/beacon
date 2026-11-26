@@ -138,6 +138,50 @@ it.each([
 })
 
 it.each([
+  [
+    'beacon.ledger.receipt',
+    { entry_id: 12, target_username: 'Tedlee', amount: '30.00' },
+    '记录收款 ¥30.00，客户 Tedlee（账务记录 #12）',
+  ],
+  [
+    'beacon.finance.expense',
+    { expense_id: 3, category: 'server', amount: '120.00' },
+    '记录费用 ¥120.00（服务器费用，费用 #3）',
+  ],
+  [
+    'beacon.pricing.default_rule',
+    { model_name: '', mode: 'cost_plus', markup: '30' },
+    '修改默认定价规则：按成本加价，目标加价率 30%',
+  ],
+  [
+    'beacon.pricing.rule',
+    { model_name: 'claude-sonnet-4-6', mode: 'fixed', markup: '25' },
+    '修改 claude-sonnet-4-6 的定价规则：固定售价，目标加价率 25%',
+  ],
+  [
+    'model.pricing.update',
+    { models: ['claude-sonnet-4-6', 'claude-opus-4-1'] },
+    '修改售价：claude-sonnet-4-6, claude-opus-4-1',
+  ],
+] as const)(
+  'shows the Beacon operation %s in Chinese with its key details',
+  async (action, params, summary) => {
+    const i18n = createInstance()
+    await i18n.init({ lng: 'zh', resources: { zh } })
+    const detail = buildAuditDetails(
+      {
+        ...entry,
+        action,
+        content: action,
+        other: { op: { action, params: { ...params } } },
+      },
+      i18n.t
+    )
+    expect(detail.summary).toBe(summary)
+  }
+)
+
+it.each([
   [[], 'No changes'],
   [
     ['remain_quota', 'auto_groups', 'cross_group_retry'],

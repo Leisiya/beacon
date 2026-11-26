@@ -7664,6 +7664,25 @@
     "Check the category, amount, date and note.": "Kiểm tra danh mục, số tiền, ngày và ghi chú.",
     "Not counted, no cost yet: {{channels}}": "Chưa tính, chưa có giá vốn: {{channels}}",
     "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "Đây là giá trước hệ số nhóm: khách trả giá này × {{ratio}}. Muốn thu ¥{{target}} mỗi 1M, hãy nhập {{entered}}.",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "Số tiền khách trả cho $1 số dư. Dùng để điền sẵn khi ghi thu thủ công, và mọi trang hiển thị giá, số dư bằng CNY theo tỷ lệ này: lưu sẽ đổi luôn tỷ giá của trang. Lợi nhuận tính theo số tiền mỗi khách thực trả."
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "Số tiền khách trả cho $1 số dư. Dùng để điền sẵn khi ghi thu thủ công, và mọi trang hiển thị giá, số dư bằng CNY theo tỷ lệ này: lưu sẽ đổi luôn tỷ giá của trang. Lợi nhuận tính theo số tiền mỗi khách thực trả.",
+    "Recorded a receipt of ¥{{amount}} from {{target_username}} (entry #{{entry_id}})": "Đã ghi nhận khoản thu ¥{{amount}} từ {{target_username}} (bút toán #{{entry_id}})",
+    "Gave {{target_username}} {{quota}} of balance (entry #{{entry_id}})": "Đã tặng {{target_username}} số dư {{quota}} (bút toán #{{entry_id}})",
+    "Refunded ¥{{amount}} to {{target_username}} and took back {{quota}} of balance (entry #{{entry_id}})": "Đã hoàn ¥{{amount}} cho {{target_username}} và thu hồi số dư {{quota}} (bút toán #{{entry_id}})",
+    "Reversed entry #{{corrects_id}} of {{target_username}} (entry #{{entry_id}})": "Đã đảo bút toán #{{corrects_id}} của {{target_username}} (bút toán #{{entry_id}})",
+    "Recorded an upstream top-up of ¥{{amount}} for ${{credit}} on channel #{{channel_id}} (top-up #{{payment_id}})": "Đã ghi nhận khoản nạp nhà cung cấp ¥{{amount}} được ${{credit}} cho kênh #{{channel_id}} (lần nạp #{{payment_id}})",
+    "Reversed upstream top-up #{{corrects_id}} of ¥{{amount}}": "Đã đảo khoản nạp nhà cung cấp #{{corrects_id}} trị giá ¥{{amount}}",
+    "Recorded an expense of ¥{{amount}} ({{category}}, expense #{{expense_id}})": "Đã ghi nhận chi phí ¥{{amount}} ({{category}}, chi phí #{{expense_id}})",
+    "Reversed expense #{{corrects_id}} of ¥{{amount}}": "Đã đảo chi phí #{{corrects_id}} trị giá ¥{{amount}}",
+    "Set the default price rule: {{mode}}, target markup {{markup}}%": "Đã đổi quy tắc giá mặc định: {{mode}}, biên lợi nhuận mục tiêu {{markup}}%",
+    "Set the price rule of {{model_name}}: {{mode}}, target markup {{markup}}%": "Đã đổi quy tắc giá của {{model_name}}: {{mode}}, biên lợi nhuận mục tiêu {{markup}}%",
+    "Removed the price rule of {{model_name}}, which now follows the default rule": "Đã xóa quy tắc giá của {{model_name}}, nay áp dụng quy tắc mặc định",
+    "Changed the top-up price from ¥{{previous}} to ¥{{cny_per_unit}} per $1 of balance": "Đã đổi giá nạp từ ¥{{previous}} thành ¥{{cny_per_unit}} cho mỗi $1 số dư",
+    "Applied the suggested price for {{model_name}} (suggestion #{{proposal_id}})": "Đã áp dụng giá đề xuất cho {{model_name}} (đề xuất #{{proposal_id}})",
+    "Dismissed the suggested price for {{model_name}} (suggestion #{{proposal_id}})": "Đã bỏ qua giá đề xuất cho {{model_name}} (đề xuất #{{proposal_id}})",
+    "Rechecked sale prices against current costs": "Đã tính lại giá bán theo giá vốn hiện tại",
+    "Set the cost of channel #{{channel_id}} to ¥{{cny_per_unit}} per upstream $1": "Đã đặt giá vốn của kênh #{{channel_id}} là ¥{{cny_per_unit}} cho mỗi $1 nhà cung cấp",
+    "Synced upstream costs": "Đã đồng bộ giá vốn nhà cung cấp",
+    "Changed the sale price of {{models}}": "Đã đổi giá bán: {{models}}",
+    "Follow cost": "Theo giá vốn"
   }
 }

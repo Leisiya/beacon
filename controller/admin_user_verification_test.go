@@ -73,8 +73,9 @@ func TestBeaconLedgerAPIRequiresExactSingleUseProof(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 500, stored.Quota)
 	var audits []model.AuditLog
-	require.NoError(t, model.LOG_DB.Where("action = ?", "beacon.ledger.post").Find(&audits).Error)
+	require.NoError(t, model.LOG_DB.Where("action = ?", "beacon.ledger.receipt").Find(&audits).Error)
 	require.Len(t, audits, 1)
+	assert.Equal(t, "Recorded a receipt of ¥100.00 from managed-user (entry #1)", audits[0].Content)
 	auditJSON, err := common.Marshal(audits)
 	require.NoError(t, err)
 	assert.NotContains(t, string(auditJSON), proof)

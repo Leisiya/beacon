@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -22,6 +23,12 @@ func beaconLedgerOperator(c *gin.Context) (service.AuthIdentity, bool) {
 		return service.AuthIdentity{}, false
 	}
 	return identity, true
+}
+
+// beaconAuditYuan shows an amount in fen as unsigned yuan for audit logs,
+// whose wording already says which way the money went.
+func beaconAuditYuan(minor int64) string {
+	return decimal.NewFromInt(minor).Abs().Shift(-2).StringFixed(2)
 }
 
 func writeBeaconLedgerError(c *gin.Context, err error) {
@@ -133,9 +140,15 @@ func PostBeaconLedger(c *gin.Context) {
 		return
 	}
 	if created {
-		recordManageAuditFor(c, entry.UserID, "beacon.ledger.post", map[string]any{
+		username, _ := model.GetUsernameById(entry.UserID, false)
+		params := map[string]any{
 			"entry_id": entry.ID, "kind": entry.Kind, "verification_method": authorization.Method,
-		})
+			"target_username": username, "amount": beaconAuditYuan(entry.CNYAmountMinor), "quota": max(entry.QuotaDelta, -entry.QuotaDelta),
+		}
+		if entry.CorrectsID != nil {
+			params["corrects_id"] = *entry.CorrectsID
+		}
+		recordManageAuditFor(c, entry.UserID, "beacon.ledger."+entry.Kind, params)
 	}
 	common.ApiSuccess(c, gin.H{"entry": entry, "created": created})
 }

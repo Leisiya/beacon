@@ -803,11 +803,19 @@ func closeBeaconProposal(id int64, status string, deciderID int, now int64, reas
 	return nil
 }
 
+func GetBeaconPriceProposal(id int64) (*BeaconPriceProposal, error) {
+	var proposal BeaconPriceProposal
+	if err := DB.Where("id = ?", id).First(&proposal).Error; err != nil {
+		return nil, err
+	}
+	return &proposal, nil
+}
+
 // ApplyBeaconPriceProposal saves the proposed expression as the model's sale
 // price. deciderID 0 marks an automatic change.
 func ApplyBeaconPriceProposal(id int64, deciderID int, now int64) error {
-	var proposal BeaconPriceProposal
-	if err := DB.Where("id = ?", id).First(&proposal).Error; err != nil {
+	proposal, err := GetBeaconPriceProposal(id)
+	if err != nil {
 		return err
 	}
 	if proposal.Status != BeaconProposalPending {

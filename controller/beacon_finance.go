@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -80,10 +81,15 @@ func PostBeaconUpstreamPayment(c *gin.Context) {
 		return
 	}
 	if created {
-		recordManageAuditFor(c, 0, "beacon.finance.payment", map[string]any{
+		action, params := "beacon.finance.payment", map[string]any{
 			"payment_id": payment.ID, "kind": payment.Kind, "channel_id": payment.ChannelID,
-			"cny_amount_minor": payment.CNYAmountMinor, "credit_micro": payment.CreditMicro, "corrects_id": payment.CorrectsID,
-		})
+			"cny_amount_minor": payment.CNYAmountMinor, "credit_micro": payment.CreditMicro,
+			"amount": beaconAuditYuan(payment.CNYAmountMinor), "credit": decimal.New(payment.CreditMicro, -6).Abs().String(),
+		}
+		if payment.CorrectsID != nil {
+			action, params["corrects_id"] = "beacon.finance.payment_reversal", *payment.CorrectsID
+		}
+		recordManageAuditFor(c, 0, action, params)
 	}
 	common.ApiSuccess(c, gin.H{"payment": payment, "created": created})
 }
@@ -105,10 +111,14 @@ func PostBeaconExpense(c *gin.Context) {
 		return
 	}
 	if created {
-		recordManageAuditFor(c, 0, "beacon.finance.expense", map[string]any{
+		action, params := "beacon.finance.expense", map[string]any{
 			"expense_id": expense.ID, "kind": expense.Kind, "category": expense.Category,
-			"cny_amount_minor": expense.CNYAmountMinor, "corrects_id": expense.CorrectsID,
-		})
+			"cny_amount_minor": expense.CNYAmountMinor, "amount": beaconAuditYuan(expense.CNYAmountMinor),
+		}
+		if expense.CorrectsID != nil {
+			action, params["corrects_id"] = "beacon.finance.expense_reversal", *expense.CorrectsID
+		}
+		recordManageAuditFor(c, 0, action, params)
 	}
 	common.ApiSuccess(c, gin.H{"expense": expense, "created": created})
 }

@@ -7664,6 +7664,25 @@
     "Check the category, amount, date and note.": "Проверьте категорию, сумму, дату и примечание.",
     "Not counted, no cost yet: {{channels}}": "Не учтено, нет данных о себестоимости: {{channels}}",
     "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "Это цены до коэффициента группы: клиенты платят их × {{ratio}}. Чтобы брать ¥{{target}} за 1M, введите {{entered}}.",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "Сколько клиент платит за $1 баланса. По нему заполняются ручные поступления, и все страницы показывают цены и балансы в юанях по этому курсу: при сохранении меняется и курс сайта. Прибыль считается по фактической оплате клиентов."
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "Сколько клиент платит за $1 баланса. По нему заполняются ручные поступления, и все страницы показывают цены и балансы в юанях по этому курсу: при сохранении меняется и курс сайта. Прибыль считается по фактической оплате клиентов.",
+    "Recorded a receipt of ¥{{amount}} from {{target_username}} (entry #{{entry_id}})": "Записано поступление ¥{{amount}} от {{target_username}} (запись #{{entry_id}})",
+    "Gave {{target_username}} {{quota}} of balance (entry #{{entry_id}})": "Начислено {{target_username}} {{quota}} баланса в подарок (запись #{{entry_id}})",
+    "Refunded ¥{{amount}} to {{target_username}} and took back {{quota}} of balance (entry #{{entry_id}})": "Возвращено ¥{{amount}} пользователю {{target_username}}, списано {{quota}} баланса (запись #{{entry_id}})",
+    "Reversed entry #{{corrects_id}} of {{target_username}} (entry #{{entry_id}})": "Сторнирована запись #{{corrects_id}} пользователя {{target_username}} (запись #{{entry_id}})",
+    "Recorded an upstream top-up of ¥{{amount}} for ${{credit}} on channel #{{channel_id}} (top-up #{{payment_id}})": "Записано пополнение у поставщика ¥{{amount}} на ${{credit}} для канала #{{channel_id}} (пополнение #{{payment_id}})",
+    "Reversed upstream top-up #{{corrects_id}} of ¥{{amount}}": "Сторнировано пополнение у поставщика #{{corrects_id}} на ¥{{amount}}",
+    "Recorded an expense of ¥{{amount}} ({{category}}, expense #{{expense_id}})": "Записан расход ¥{{amount}} ({{category}}, расход #{{expense_id}})",
+    "Reversed expense #{{corrects_id}} of ¥{{amount}}": "Сторнирован расход #{{corrects_id}} на ¥{{amount}}",
+    "Set the default price rule: {{mode}}, target markup {{markup}}%": "Изменено правило цены по умолчанию: {{mode}}, целевая наценка {{markup}}%",
+    "Set the price rule of {{model_name}}: {{mode}}, target markup {{markup}}%": "Изменено правило цены для {{model_name}}: {{mode}}, целевая наценка {{markup}}%",
+    "Removed the price rule of {{model_name}}, which now follows the default rule": "Удалено правило цены для {{model_name}}, теперь действует правило по умолчанию",
+    "Changed the top-up price from ¥{{previous}} to ¥{{cny_per_unit}} per $1 of balance": "Цена пополнения изменена с ¥{{previous}} на ¥{{cny_per_unit}} за $1 баланса",
+    "Applied the suggested price for {{model_name}} (suggestion #{{proposal_id}})": "Применена предложенная цена для {{model_name}} (предложение #{{proposal_id}})",
+    "Dismissed the suggested price for {{model_name}} (suggestion #{{proposal_id}})": "Отклонена предложенная цена для {{model_name}} (предложение #{{proposal_id}})",
+    "Rechecked sale prices against current costs": "Цены продажи пересчитаны по текущей себестоимости",
+    "Set the cost of channel #{{channel_id}} to ¥{{cny_per_unit}} per upstream $1": "Себестоимость канала #{{channel_id}}: ¥{{cny_per_unit}} за $1 поставщика",
+    "Synced upstream costs": "Себестоимость поставщиков синхронизирована",
+    "Changed the sale price of {{models}}": "Изменена цена продажи: {{models}}",
+    "Follow cost": "По себестоимости"
   }
 }

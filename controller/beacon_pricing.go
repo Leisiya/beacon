@@ -11,6 +11,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -60,9 +61,14 @@ func PostBeaconPricingRule(c *gin.Context) {
 		writeBeaconPricingError(c, err)
 		return
 	}
-	recordManageAuditFor(c, 0, "beacon.pricing.rule", map[string]any{
+	action := "beacon.pricing.rule"
+	if rule.ModelName == "" {
+		action = "beacon.pricing.default_rule"
+	}
+	recordManageAuditFor(c, 0, action, map[string]any{
 		"model_name": rule.ModelName, "mode": rule.Mode, "markup_bp": rule.MarkupBP, "auto_apply": rule.AutoApply,
 		"follow_down": rule.FollowDown, "max_step_bp": rule.MaxStepBP, "min_markup_bp": rule.MinMarkupBP,
+		"markup": decimal.New(int64(rule.MarkupBP), -2).String(),
 	})
 	_, _ = service.EvaluateBeaconPricing()
 	common.ApiSuccess(c, gin.H{"rule": rule})
@@ -114,6 +120,7 @@ func PostBeaconPricingEvaluate(c *gin.Context) {
 		writeBeaconPricingError(c, err)
 		return
 	}
+	recordManageAuditFor(c, 0, "beacon.pricing.evaluate", map[string]any{"proposed": outcome.Proposed, "applied": outcome.Applied})
 	common.ApiSuccess(c, gin.H{
 		"proposed": outcome.Proposed, "applied": outcome.Applied,
 		"failed": outcome.Failed, "below_minimum": outcome.BelowMinimum,
@@ -150,6 +157,10 @@ func PostBeaconPriceProposal(c *gin.Context) {
 		writeBeaconPricingError(c, err)
 		return
 	}
-	recordManageAuditFor(c, 0, "beacon.pricing."+action, map[string]any{"proposal_id": id})
+	params := map[string]any{"proposal_id": id}
+	if proposal, err := model.GetBeaconPriceProposal(id); err == nil {
+		params["model_name"] = proposal.ModelName
+	}
+	recordManageAuditFor(c, 0, "beacon.pricing."+action, params)
 	common.ApiSuccess(c, nil)
 }

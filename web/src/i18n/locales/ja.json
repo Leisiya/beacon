@@ -7664,6 +7664,25 @@
     "Check the category, amount, date and note.": "カテゴリ、金額、日付、メモを確認してください。",
     "Not counted, no cost yet: {{channels}}": "未計上（原価データなし）：{{channels}}",
     "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "ここはグループ倍率を掛ける前の価格です。顧客はこの価格 × {{ratio}} を支払います。100 万トークンあたり ¥{{target}} にするには {{entered}} と入力します。",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "顧客が $1 分の残高に支払う金額です。手動入金の初期値になり、各ページの価格と残高もこのレートで CNY 表示されます。保存するとサイトの為替レートも変更されます。利益は各顧客が実際に支払った額で計算します。"
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "顧客が $1 分の残高に支払う金額です。手動入金の初期値になり、各ページの価格と残高もこのレートで CNY 表示されます。保存するとサイトの為替レートも変更されます。利益は各顧客が実際に支払った額で計算します。",
+    "Recorded a receipt of ¥{{amount}} from {{target_username}} (entry #{{entry_id}})": "{{target_username}} からの入金 ¥{{amount}} を記録しました（記録 #{{entry_id}}）",
+    "Gave {{target_username}} {{quota}} of balance (entry #{{entry_id}})": "{{target_username}} に残高 {{quota}} を付与しました（記録 #{{entry_id}}）",
+    "Refunded ¥{{amount}} to {{target_username}} and took back {{quota}} of balance (entry #{{entry_id}})": "{{target_username}} に ¥{{amount}} を返金し、残高 {{quota}} を回収しました（記録 #{{entry_id}}）",
+    "Reversed entry #{{corrects_id}} of {{target_username}} (entry #{{entry_id}})": "{{target_username}} の記録 #{{corrects_id}} を取り消しました（記録 #{{entry_id}}）",
+    "Recorded an upstream top-up of ¥{{amount}} for ${{credit}} on channel #{{channel_id}} (top-up #{{payment_id}})": "チャネル #{{channel_id}} への仕入れチャージ ¥{{amount}}（${{credit}}）を記録しました（チャージ #{{payment_id}}）",
+    "Reversed upstream top-up #{{corrects_id}} of ¥{{amount}}": "仕入れチャージ #{{corrects_id}}（¥{{amount}}）を取り消しました",
+    "Recorded an expense of ¥{{amount}} ({{category}}, expense #{{expense_id}})": "費用 ¥{{amount}} を記録しました（{{category}}、費用 #{{expense_id}}）",
+    "Reversed expense #{{corrects_id}} of ¥{{amount}}": "費用 #{{corrects_id}}（¥{{amount}}）を取り消しました",
+    "Set the default price rule: {{mode}}, target markup {{markup}}%": "デフォルトの価格ルールを変更しました：{{mode}}、目標マークアップ {{markup}}%",
+    "Set the price rule of {{model_name}}: {{mode}}, target markup {{markup}}%": "{{model_name}} の価格ルールを変更しました：{{mode}}、目標マークアップ {{markup}}%",
+    "Removed the price rule of {{model_name}}, which now follows the default rule": "{{model_name}} の価格ルールを削除し、デフォルトのルールに戻しました",
+    "Changed the top-up price from ¥{{previous}} to ¥{{cny_per_unit}} per $1 of balance": "チャージ価格を ¥{{previous}} から ¥{{cny_per_unit}}（残高 $1 あたり）に変更しました",
+    "Applied the suggested price for {{model_name}} (suggestion #{{proposal_id}})": "{{model_name}} の価格提案を適用しました（提案 #{{proposal_id}}）",
+    "Dismissed the suggested price for {{model_name}} (suggestion #{{proposal_id}})": "{{model_name}} の価格提案を却下しました（提案 #{{proposal_id}}）",
+    "Rechecked sale prices against current costs": "現在の原価で販売価格を再計算しました",
+    "Set the cost of channel #{{channel_id}} to ¥{{cny_per_unit}} per upstream $1": "チャネル #{{channel_id}} の原価を仕入れ $1 = ¥{{cny_per_unit}} に設定しました",
+    "Synced upstream costs": "仕入れ原価を同期しました",
+    "Changed the sale price of {{models}}": "販売価格を変更しました：{{models}}",
+    "Follow cost": "原価に連動"
   }
 }

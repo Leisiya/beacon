@@ -7664,6 +7664,25 @@
     "Check the category, amount, date and note.": "请检查类别、金额、时间和备注。",
     "Not counted, no cost yet: {{channels}}": "未计入（还没有成本数据）：{{channels}}",
     "These are prices before the group ratio: customers pay them × {{ratio}}. To charge ¥{{target}} per 1M, enter {{entered}}.": "这里是乘分组倍率之前的价格：客户实际付的是这里的价格 × {{ratio}}。想让客户每百万 token 付 ¥{{target}}，就填 {{entered}}。",
-    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "客户付多少人民币得到 $1 余额。人工收款时按它预填到账余额，各页面的价格和余额也按它换算成人民币：保存时会同时修改站点汇率。利润按每个客户实际付的钱计算，不受它影响。"
+    "What a customer pays for $1 of balance. Manual receipts are prefilled with it, and every page shows prices and balances in CNY through it: saving it also sets the site exchange rate. Profit uses what each customer actually paid.": "客户付多少人民币得到 $1 余额。人工收款时按它预填到账余额，各页面的价格和余额也按它换算成人民币：保存时会同时修改站点汇率。利润按每个客户实际付的钱计算，不受它影响。",
+    "Recorded a receipt of ¥{{amount}} from {{target_username}} (entry #{{entry_id}})": "记录收款 ¥{{amount}}，客户 {{target_username}}（账务记录 #{{entry_id}}）",
+    "Gave {{target_username}} {{quota}} of balance (entry #{{entry_id}})": "赠送客户 {{target_username}} 余额 {{quota}}（账务记录 #{{entry_id}}）",
+    "Refunded ¥{{amount}} to {{target_username}} and took back {{quota}} of balance (entry #{{entry_id}})": "给客户 {{target_username}} 退款 ¥{{amount}}，扣回余额 {{quota}}（账务记录 #{{entry_id}}）",
+    "Reversed entry #{{corrects_id}} of {{target_username}} (entry #{{entry_id}})": "冲正客户 {{target_username}} 的账务记录 #{{corrects_id}}（账务记录 #{{entry_id}}）",
+    "Recorded an upstream top-up of ¥{{amount}} for ${{credit}} on channel #{{channel_id}} (top-up #{{payment_id}})": "记录上游充值 ¥{{amount}}，渠道 #{{channel_id}} 到账 ${{credit}}（充值 #{{payment_id}}）",
+    "Reversed upstream top-up #{{corrects_id}} of ¥{{amount}}": "冲正上游充值 #{{corrects_id}}，金额 ¥{{amount}}",
+    "Recorded an expense of ¥{{amount}} ({{category}}, expense #{{expense_id}})": "记录费用 ¥{{amount}}（{{category}}，费用 #{{expense_id}}）",
+    "Reversed expense #{{corrects_id}} of ¥{{amount}}": "冲正费用 #{{corrects_id}}，金额 ¥{{amount}}",
+    "Set the default price rule: {{mode}}, target markup {{markup}}%": "修改默认定价规则：{{mode}}，目标加价率 {{markup}}%",
+    "Set the price rule of {{model_name}}: {{mode}}, target markup {{markup}}%": "修改 {{model_name}} 的定价规则：{{mode}}，目标加价率 {{markup}}%",
+    "Removed the price rule of {{model_name}}, which now follows the default rule": "删除 {{model_name}} 的单独定价规则，改用默认规则",
+    "Changed the top-up price from ¥{{previous}} to ¥{{cny_per_unit}} per $1 of balance": "充值价从 ¥{{previous}} 改为 ¥{{cny_per_unit}}（每 $1 余额）",
+    "Applied the suggested price for {{model_name}} (suggestion #{{proposal_id}})": "确认 {{model_name}} 的调价建议（建议 #{{proposal_id}}）",
+    "Dismissed the suggested price for {{model_name}} (suggestion #{{proposal_id}})": "忽略 {{model_name}} 的调价建议（建议 #{{proposal_id}}）",
+    "Rechecked sale prices against current costs": "按当前进价重新核算售价",
+    "Set the cost of channel #{{channel_id}} to ¥{{cny_per_unit}} per upstream $1": "设置渠道 #{{channel_id}} 的进价：上游 $1 = ¥{{cny_per_unit}}",
+    "Synced upstream costs": "同步上游进价",
+    "Changed the sale price of {{models}}": "修改售价：{{models}}",
+    "Follow cost": "按成本加价"
   }
 }

@@ -104,5 +104,7 @@ func PostBeaconCostSync(c *gin.Context) {
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Minute)
 	defer cancel()
-	common.ApiSuccess(c, gin.H{"statuses": service.SyncBeaconUpstreamCosts(ctx)})
+	statuses := service.SyncBeaconUpstreamCosts(ctx)
+	recordManageAuditFor(c, 0, "beacon.cost.sync", nil)
+	common.ApiSuccess(c, gin.H{"statuses": statuses})
 }

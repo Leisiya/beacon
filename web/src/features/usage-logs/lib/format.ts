@@ -24,6 +24,7 @@ import {
   splitBillingExprAndRequestRules,
   type ParsedTier,
 } from '@/features/pricing/lib/billing-expr'
+import { formatLogQuota } from '@/lib/format'
 import { translateServerText } from '@/lib/server-error-message'
 
 import type { UsageLog } from '../data/schema'
@@ -562,9 +563,52 @@ const AUDIT_TEMPLATES: Record<string, string> = {
   // Logs
   'log.clear': 'Cleared historical logs',
   'log.cleanup_start': 'Log cleanup task started.',
+  // Beacon ledger, upstream finance and pricing
+  'beacon.ledger.receipt':
+    'Recorded a receipt of ¥{{amount}} from {{target_username}} (entry #{{entry_id}})',
+  'beacon.ledger.gift':
+    'Gave {{target_username}} {{quota}} of balance (entry #{{entry_id}})',
+  'beacon.ledger.refund':
+    'Refunded ¥{{amount}} to {{target_username}} and took back {{quota}} of balance (entry #{{entry_id}})',
+  'beacon.ledger.reversal':
+    'Reversed entry #{{corrects_id}} of {{target_username}} (entry #{{entry_id}})',
+  'beacon.finance.payment':
+    'Recorded an upstream top-up of ¥{{amount}} for ${{credit}} on channel #{{channel_id}} (top-up #{{payment_id}})',
+  'beacon.finance.payment_reversal':
+    'Reversed upstream top-up #{{corrects_id}} of ¥{{amount}}',
+  'beacon.finance.expense':
+    'Recorded an expense of ¥{{amount}} ({{category}}, expense #{{expense_id}})',
+  'beacon.finance.expense_reversal':
+    'Reversed expense #{{corrects_id}} of ¥{{amount}}',
+  'beacon.pricing.default_rule':
+    'Set the default price rule: {{mode}}, target markup {{markup}}%',
+  'beacon.pricing.rule':
+    'Set the price rule of {{model_name}}: {{mode}}, target markup {{markup}}%',
+  'beacon.pricing.rule_delete':
+    'Removed the price rule of {{model_name}}, which now follows the default rule',
+  'beacon.pricing.reference':
+    'Changed the top-up price from ¥{{previous}} to ¥{{cny_per_unit}} per $1 of balance',
+  'beacon.pricing.apply':
+    'Applied the suggested price for {{model_name}} (suggestion #{{proposal_id}})',
+  'beacon.pricing.dismiss':
+    'Dismissed the suggested price for {{model_name}} (suggestion #{{proposal_id}})',
+  'beacon.pricing.evaluate': 'Rechecked sale prices against current costs',
+  'beacon.cost.rate':
+    'Set the cost of channel #{{channel_id}} to ¥{{cny_per_unit}} per upstream $1',
+  'beacon.cost.sync': 'Synced upstream costs',
+  'model.pricing.update': 'Changed the sale price of {{models}}',
   // Generic middleware fallback
   generic: '{{method}} {{route}}',
 }
+
+// Beacon audit params stored as codes, shown by their i18n labels.
+const BEACON_AUDIT_LABELS = new Map([
+  ['server', 'Server cost'],
+  ['promotion', 'Promotion cost'],
+  ['other', 'Other cost'],
+  ['cost_plus', 'Follow cost'],
+  ['fixed', 'Fixed sale price'],
+])
 
 /**
  * Render a log's `other.content_parts`, which the backend stores as English
@@ -634,6 +678,18 @@ export function renderAuditContent(
   if (quotaOperation) {
     return `${quotaOperation.summary} · ${quotaOperation.description}`
   }
-  const params = { ...op.params }
+  const params: Record<string, unknown> = { ...op.params }
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) params[key] = value.join(', ')
+  }
+  if (op.action.startsWith('beacon.')) {
+    for (const key of ['category', 'mode']) {
+      const label = BEACON_AUDIT_LABELS.get(String(params[key]))
+      if (label) params[key] = t(label)
+    }
+    if (typeof params.quota === 'number') {
+      params.quota = formatLogQuota(params.quota)
+    }
+  }
   return t(template, params)
 }
