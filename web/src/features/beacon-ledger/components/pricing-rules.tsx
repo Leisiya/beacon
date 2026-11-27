@@ -88,16 +88,11 @@ export function PricingRules() {
       {data.proposals.length > 0 && (
         <PriceProposals proposals={data.proposals} />
       )}
-      <ModelPricingTable
-        models={data.models}
-        proposals={data.proposals}
-        groupRatio={data.default_group_ratio}
-      />
+      <ModelPricingTable models={data.models} proposals={data.proposals} />
       <TitledCard
         title={<h2>{t('Default price rule')}</h2>}
         description={t(
-          'How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.',
-          { ratio: data.default_group_ratio }
+          'How sale prices follow supplier prices. Each model is compared at the lowest group ratio it is sold at.'
         )}
         action={
           <Button

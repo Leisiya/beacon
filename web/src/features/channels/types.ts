@@ -391,4 +391,6 @@ export interface AddChannelRequest {
   multi_key_mode?: 'random' | 'polling'
   batch_add_set_key_prefix_2_name?: boolean
   channel: Partial<Channel>
+  // CNY paid for $1 of the upstream's credit; every new channel needs one
+  cny_per_unit: string
 }

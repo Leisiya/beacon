@@ -210,6 +210,8 @@ export const channelFormSchema = z
     task_plugin_key: z.string().optional(),
     task_extend_plugin_keys: z.array(z.string()).optional(),
     key: z.string(),
+    // Purchase price, entered only when creating a channel
+    beacon_cny_per_unit: z.string().optional(),
     openai_organization: z.string().optional(),
     models: z.string().min(1, ERROR_MESSAGES.REQUIRED_MODELS),
     group: z.array(z.string()).min(1, ERROR_MESSAGES.REQUIRED_GROUP),
@@ -436,6 +438,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   task_plugin_key: '',
   task_extend_plugin_keys: [],
   key: '',
+  beacon_cny_per_unit: '',
   openai_organization: '',
   models: '',
   group: ['default'],
@@ -607,6 +610,7 @@ export function transformChannelToFormDefaults(
     type: channel.type,
     base_url: channel.base_url || '',
     key: '', // Never populate key from backend for security
+    beacon_cny_per_unit: '',
     openai_organization: channel.openai_organization || '',
     models: channel.models || '',
     group: parseGroups(channel.group || 'default'),
@@ -866,6 +870,7 @@ export function transformFormDataToCreatePayload(formData: ChannelFormValues): {
   multi_key_mode?: 'random' | 'polling'
   batch_add_set_key_prefix_2_name?: boolean
   channel: Partial<Channel>
+  cny_per_unit: string
 } {
   const mode = formData.multi_key_mode || 'single'
 
@@ -907,7 +912,16 @@ export function transformFormDataToCreatePayload(formData: ChannelFormValues): {
     batch_add_set_key_prefix_2_name:
       mode === 'batch' ? formData.batch_add_set_key_prefix_2_name : undefined,
     channel,
+    cny_per_unit: formData.beacon_cny_per_unit?.trim() ?? '',
   }
+}
+
+/**
+ * A purchase price is a positive CNY amount for $1 of upstream credit, in the
+ * format the server accepts.
+ */
+export function isValidPurchasePrice(value: string): boolean {
+  return /^(0|[1-9][0-9]{0,4})(\.[0-9]{1,8})?$/.test(value) && Number(value) > 0
 }
 
 /**

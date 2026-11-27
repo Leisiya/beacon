@@ -113,6 +113,47 @@ func CreateBeaconUpstreamRate(rate BeaconUpstreamRate, operatorID int, now int64
 	return &rate, nil
 }
 
+// InsertChannelsWithBeaconRate creates channels together with their purchase
+// price, so no channel serves requests before its cost is known. The rate
+// starts beaconChannelAddedSkew before now, as far back as cost sync keeps a
+// new channel's upstream records.
+func InsertChannelsWithBeaconRate(channels []Channel, cnyPerUnit string, operatorID int, now int64) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		for start := 0; start < len(channels); start += 50 {
+			chunk := channels[start:min(start+50, len(channels))]
+			if err := tx.Create(&chunk).Error; err != nil {
+				return err
+			}
+			for _, channel := range chunk {
+				if err := channel.AddAbilities(tx); err != nil {
+					return err
+				}
+				rate, err := NormalizeBeaconUpstreamRate(BeaconUpstreamRate{
+					ChannelID: channel.Id, EffectiveAt: now - beaconChannelAddedSkew, CNYPerUnit: cnyPerUnit,
+				}, now)
+				if err != nil {
+					return err
+				}
+				rate.OperatorID, rate.RecordedAt = operatorID, now
+				if err := tx.Create(&rate).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
+// BeaconRateInEffect returns the channel's purchase price at the given time,
+// or nil when it has none yet.
+func BeaconRateInEffect(channelID int, at int64) (*BeaconUpstreamRate, error) {
+	rates, err := beaconChannelRates(DB, channelID)
+	if err != nil {
+		return nil, err
+	}
+	return beaconRateAt(rates, at), nil
+}
+
 func ListBeaconUpstreamRates() ([]BeaconUpstreamRate, error) {
 	var rates []BeaconUpstreamRate
 	err := DB.Order("channel_id, effective_at DESC, id DESC").Find(&rates).Error

@@ -143,6 +143,9 @@ type BeaconModelPricing struct {
 	BelowMinimum    bool                `json:"below_minimum"`
 	Factor          string              `json:"factor"`
 	ProposedExpr    string              `json:"proposed_expr"`
+	// GroupRatio is what customers pay on top of the model price: the lowest
+	// ratio among the groups an enabled channel sells the model in.
+	GroupRatio float64 `json:"group_ratio"`
 	// Sale is the CNY sale price of each usage type at standard context.
 	Sale    []BeaconPriceLine `json:"sale"`
 	version string
@@ -500,7 +503,7 @@ func AnalyzeBeaconPricing() (*BeaconPricingReport, error) {
 	}
 	slices.SortFunc(report.Overrides, func(a, b BeaconPricingRule) int { return strings.Compare(a.ModelName, b.ModelName) })
 	var abilities []Ability
-	if err := DB.Select("model", "channel_id").Where("enabled = ?", true).Find(&abilities).Error; err != nil {
+	if err := DB.Select("model, channel_id, "+commonGroupCol).Where("enabled = ?", true).Find(&abilities).Error; err != nil {
 		return nil, err
 	}
 	channelsByModel := map[string][]int{}
@@ -521,6 +524,12 @@ func AnalyzeBeaconPricing() (*BeaconPricingReport, error) {
 			channelByID[channels[i].Id] = &channels[i]
 		}
 	}
+	groupsByModel := map[string][]string{}
+	for _, ability := range abilities {
+		if channelByID[ability.ChannelId] != nil && !slices.Contains(groupsByModel[ability.Model], ability.Group) {
+			groupsByModel[ability.Model] = append(groupsByModel[ability.Model], ability.Group)
+		}
+	}
 	names := slices.Sorted(maps.Keys(channelsByModel))
 	// An empty list would ask GetModelPricingSnapshot for every priced model.
 	snapshot := &ModelPricingSnapshot{}
@@ -529,10 +538,18 @@ func AnalyzeBeaconPricing() (*BeaconPricingReport, error) {
 			return nil, err
 		}
 	}
-	saleCNYPerUSD := report.ReferenceCNYPerUnit * report.DefaultGroupRatio
 	now := common.GetTimestamp()
 	for _, entry := range snapshot.Entries {
 		analysis := BeaconModelPricing{ModelName: entry.ModelName, Rule: defaultRule, version: entry.Version, Channels: []BeaconChannelCost{}, Sale: []BeaconPriceLine{}}
+		// The cheapest group is the lowest price a customer can get, so it
+		// is the one that has to cover the cost.
+		analysis.GroupRatio = report.DefaultGroupRatio
+		for i, group := range groupsByModel[entry.ModelName] {
+			if ratio := ratio_setting.GetGroupRatio(group); i == 0 || ratio < analysis.GroupRatio {
+				analysis.GroupRatio = ratio
+			}
+		}
+		saleCNYPerUSD := report.ReferenceCNYPerUnit * analysis.GroupRatio
 		if rule, ok := overrides[entry.ModelName]; ok {
 			analysis.Rule, analysis.RuleOverridden = rule, true
 		}
@@ -667,7 +684,7 @@ type BeaconPricingOutcome struct {
 type beaconProposalDetail struct {
 	Rule                BeaconPricingRule `json:"rule"`
 	ReferenceCNYPerUnit float64           `json:"reference_cny_per_unit"`
-	DefaultGroupRatio   float64           `json:"default_group_ratio"`
+	GroupRatio          float64           `json:"group_ratio"`
 	Basis               BeaconChannelCost `json:"basis"`
 }
 
@@ -767,7 +784,7 @@ func beaconAutomaticChangeAllowed(analysis BeaconModelPricing, now int64) (bool,
 }
 
 func createBeaconProposal(report *BeaconPricingReport, analysis BeaconModelPricing, now int64) (*BeaconPriceProposal, error) {
-	detail := beaconProposalDetail{Rule: analysis.Rule, ReferenceCNYPerUnit: report.ReferenceCNYPerUnit, DefaultGroupRatio: report.DefaultGroupRatio}
+	detail := beaconProposalDetail{Rule: analysis.Rule, ReferenceCNYPerUnit: report.ReferenceCNYPerUnit, GroupRatio: analysis.GroupRatio}
 	for _, channel := range analysis.Channels {
 		if channel.ChannelID == analysis.BasisChannelID {
 			detail.Basis = channel

@@ -171,6 +171,7 @@ import {
   channelsQueryKeys,
   getAdvancedCustomStats,
   transformChannelToFormDefaults,
+  isValidPurchasePrice,
   type ChannelFormValues,
   deduplicateKeys,
   getKeyPromptForType,
@@ -1617,6 +1618,20 @@ export function ChannelMutateDrawer({
         setConfigurationSection('connection')
         setPendingErrorFocus('key')
         return
+      }
+      if (!isEditing) {
+        const purchasePrice = data.beacon_cny_per_unit?.trim() ?? ''
+        if (!isValidPurchasePrice(purchasePrice)) {
+          form.setError('beacon_cny_per_unit', {
+            type: 'manual',
+            message: purchasePrice
+              ? ERROR_MESSAGES.INVALID_PURCHASE_PRICE
+              : ERROR_MESSAGES.REQUIRED_PURCHASE_PRICE,
+          })
+          setConfigurationSection('connection')
+          setPendingErrorFocus('beacon_cny_per_unit')
+          return
+        }
       }
 
       if (sensitiveLocked) {
@@ -4519,6 +4534,27 @@ export function ChannelMutateDrawer({
                   )
                 }}
               />
+
+              {!isEditing && (
+                <FormField
+                  control={form.control}
+                  name='beacon_cny_per_unit'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel required>{t('Purchase price')}</FormLabel>
+                      <FormControl>
+                        <Input inputMode='decimal' placeholder='1' {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'How much CNY one unit of this upstream’s credit (what it shows as $1) actually cost you, for example 1 when ¥1 buys $1.'
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {currentType === 57 && (
                 <div className='border-border/60 flex flex-col gap-3 border-y py-4'>

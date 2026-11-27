@@ -35,7 +35,6 @@ import { SalePriceSheet } from './sale-price-sheet'
 export function ModelPricingTable(props: {
   models: ModelPricing[]
   proposals: PriceProposal[]
-  groupRatio: number
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -220,7 +219,10 @@ export function ModelPricingTable(props: {
       )}
       <SalePriceSheet
         modelName={editing}
-        groupRatio={props.groupRatio}
+        groupRatio={
+          props.models.find((model) => model.model_name === editing)
+            ?.group_ratio ?? 1
+        }
         onOpenChange={(open) => {
           if (open) return
           setEditing(null)

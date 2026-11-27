@@ -37,7 +37,7 @@ import { ModelPricingPanel } from '@/features/model-pricing/model-pricing-panel'
 // can be changed next to its cost.
 export function SalePriceSheet(props: {
   modelName: string | null
-  // The default group's ratio, which customers pay on top of these prices.
+  // The model's group ratio, which customers pay on top of these prices.
   groupRatio: number
   onOpenChange: (open: boolean) => void
 }) {

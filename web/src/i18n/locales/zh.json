@@ -7555,12 +7555,10 @@
     "Purchase prices": "进价",
     "Sale prices": "售价",
     "Add a new upstream": "接入新上游",
-    "Create the channel and pass its test. Choose the New API type when the upstream is built on New API.": "在「渠道」里创建渠道并测试通过。上游是 New API 搭的就选「New API」类型。",
     "Open channels": "打开渠道",
-    "Set its purchase price below: the CNY you pay for $1 of the upstream’s credit. Start it before the first request on that key.": "在下面给这个渠道设置进价：你花多少人民币买到上游 $1 额度。生效时间要早于这把密钥的第一次调用。",
     "Sync now, then check each model’s markup under Sale prices.": "点「立即同步」，然后到「售价」里看每个模型的加价率。",
     "Open sale prices": "打开售价",
-    "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "供应商价格变化时，售价如何跟随。按默认分组倍率 {{ratio}} 比较。",
+    "How sale prices follow supplier prices. Each model is compared at the lowest group ratio it is sold at.": "供应商价格变化时，售价如何跟随。每个模型按它所在分组中最低的倍率比较。",
     "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "价格按每百万 token 计，单位是下方选的定价货币。修改后立即对所有客户生效。",
     "{{price}} per request": "每次 {{price}}",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "价格按充值价格折算成人民币。加价率取各类用量中最低的一项，对比已启用渠道中最贵的供应商。直接改价后，如果低于规则的目标加价率，系统会生成涨价建议。",
@@ -7683,6 +7681,11 @@
     "Set the cost of channel #{{channel_id}} to ¥{{cny_per_unit}} per upstream $1": "设置渠道 #{{channel_id}} 的进价：上游 $1 = ¥{{cny_per_unit}}",
     "Synced upstream costs": "同步上游进价",
     "Changed the sale price of {{models}}": "修改售价：{{models}}",
-    "Follow cost": "按成本加价"
+    "Follow cost": "按成本加价",
+    "Purchase price": "进价",
+    "Enter the purchase price: the CNY you pay for $1 of the upstream’s credit.": "请填写进价：你花多少人民币买到上游 $1 额度。",
+    "Set a purchase price on the original channel before copying it.": "原渠道还没有进价，请先给它设置进价再复制。",
+    "Create the channel with its purchase price (the CNY you pay for $1 of the upstream’s credit) and pass its test. Choose the New API type when the upstream is built on New API.": "在「渠道」里创建渠道，填好进价（你花多少人民币买到上游 $1 额度）并测试通过。上游是 New API 搭的就选「New API」类型。",
+    "When the upstream changes its price, add a new purchase price below.": "上游调价时，在下面给这个渠道加一条新的进价。"
   }
 }

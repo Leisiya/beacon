@@ -354,6 +354,10 @@ export const ERROR_MESSAGES = {
   REQUIRED_NAME: 'Channel name is required',
   REQUIRED_TYPE: 'Channel type is required',
   REQUIRED_KEY: 'API key is required',
+  REQUIRED_PURCHASE_PRICE:
+    'Enter the purchase price: the CNY you pay for $1 of the upstream’s credit.',
+  INVALID_PURCHASE_PRICE:
+    'Enter a positive number with up to 8 decimal places.',
   REQUIRED_MODELS: 'Models are required',
   REQUIRED_GROUP: 'Group is required',
   INVALID_JSON: 'Invalid JSON format',

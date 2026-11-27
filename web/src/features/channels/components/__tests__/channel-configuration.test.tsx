@@ -443,6 +443,9 @@ test('selecting a plugin opens a prefilled channel and creates its explicit bind
   fireEvent.change(screen.getByLabelText('API Key *'), {
     target: { value: 'channel-secret' },
   })
+  fireEvent.change(screen.getByLabelText('Purchase price *'), {
+    target: { value: '1' },
+  })
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() => expect(post).toHaveBeenCalled())
   const [url, payload] = post.mock.calls[0]
@@ -660,6 +663,9 @@ test('creating a migrated provider uses its plugin binding instead of the legacy
   fireEvent.change(screen.getByLabelText('API Key *'), {
     target: { value: 'test-key' },
   })
+  fireEvent.change(screen.getByLabelText('Purchase price *'), {
+    target: { value: '1' },
+  })
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith(
@@ -773,6 +779,11 @@ test.each(['create', 'edit'])(
       'true'
     )
     await user.keyboard('{Escape}')
+    if (mode === 'create') {
+      fireEvent.change(screen.getByLabelText('Purchase price *'), {
+        target: { value: '1' },
+      })
+    }
     const submitLabel = mode === 'create' ? 'Create Channel' : 'Update Channel'
     await user.click(screen.getByRole('button', { name: submitLabel }))
     if (mode === 'create') {
@@ -973,6 +984,9 @@ test('loading a replacement plugin preserves an already selected legacy creation
   expect(screen.getByLabelText('API Key *')).toHaveValue('draft-key')
   expect(screen.getByLabelText(/Base URL/)).toHaveValue('https://draft.example')
   expect(screen.getByRole('button', { name: 'draft-model' })).toBeVisible()
+  fireEvent.change(screen.getByLabelText('Purchase price *'), {
+    target: { value: '1' },
+  })
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith(
@@ -1030,6 +1044,9 @@ test.each([
   fireEvent.change(screen.getByLabelText('API Key *'), {
     target: { value: 'first-key\nsecond-key' },
   })
+  fireEvent.change(screen.getByLabelText('Purchase price *'), {
+    target: { value: '1' },
+  })
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith(
@@ -1056,6 +1073,9 @@ test('a failed creation keeps its draft and prevents duplicate submission while 
   await user.click(await screen.findByRole('option', { name: /Video A/ }))
   fireEvent.change(screen.getByLabelText('API Key *'), {
     target: { value: 'keep-secret' },
+  })
+  fireEvent.change(screen.getByLabelText('Purchase price *'), {
+    target: { value: '1' },
   })
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   expect(screen.getByRole('button', { name: 'Create Channel' })).toBeDisabled()
@@ -2932,4 +2952,60 @@ test('AWS interface selection is disabled without sensitive channel write permis
   expect(
     await screen.findByRole('combobox', { name: 'AWS API' })
   ).toBeDisabled()
+})
+
+test('creating a channel without a valid purchase price marks the field and sends nothing', async () => {
+  const post = vi
+    .spyOn(api, 'post')
+    .mockResolvedValue({ data: { success: true } })
+  const user = userEvent.setup()
+  render(<ConfigurationHarness />)
+  await user.click(await screen.findByRole('option', { name: /Video A/ }))
+  fireEvent.change(screen.getByLabelText('API Key *'), {
+    target: { value: 'channel-secret' },
+  })
+  await user.click(screen.getByRole('button', { name: 'Create Channel' }))
+  expect(
+    await screen.findByText(
+      'Enter the purchase price: the CNY you pay for $1 of the upstream’s credit.'
+    )
+  ).toBeVisible()
+  expect(screen.getByLabelText('Purchase price *')).toHaveAttribute(
+    'aria-invalid',
+    'true'
+  )
+
+  fireEvent.change(screen.getByLabelText('Purchase price *'), {
+    target: { value: '0' },
+  })
+  await user.click(screen.getByRole('button', { name: 'Create Channel' }))
+  expect(
+    await screen.findByText(
+      'Enter a positive number with up to 8 decimal places.'
+    )
+  ).toBeVisible()
+  expect(post).not.toHaveBeenCalled()
+})
+
+test('creating a channel sends its purchase price with the request', async () => {
+  const post = vi
+    .spyOn(api, 'post')
+    .mockResolvedValue({ data: { success: true } })
+  const user = userEvent.setup()
+  render(<ConfigurationHarness />)
+  await user.click(await screen.findByRole('option', { name: /Video A/ }))
+  fireEvent.change(screen.getByLabelText('API Key *'), {
+    target: { value: 'channel-secret' },
+  })
+  fireEvent.change(screen.getByLabelText('Purchase price *'), {
+    target: { value: ' 1.10 ' },
+  })
+  await user.click(screen.getByRole('button', { name: 'Create Channel' }))
+  await waitFor(() =>
+    expect(post).toHaveBeenCalledWith(
+      '/api/channel',
+      expect.objectContaining({ mode: 'single', cny_per_unit: '1.10' }),
+      expect.anything()
+    )
+  )
 })

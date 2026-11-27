@@ -134,6 +134,65 @@ func TestBeaconUpstreamChargesSkipUseBeforeTheChannelWasAdded(t *testing.T) {
 	assert.Equal(t, []string{"skewed-test", "after"}, requests, "a record seconds early is kept for clock skew")
 }
 
+func TestBeaconChannelsStartWithTheirPurchasePrice(t *testing.T) {
+	operator, _, _ := setupBeaconCostTest(t)
+	require.NoError(t, DB.AutoMigrate(&Ability{}))
+	t.Cleanup(func() {
+		if !common.UsingMainDatabase(common.DatabaseTypeSQLite) {
+			require.NoError(t, DB.Migrator().DropTable(&Ability{}))
+		}
+	})
+	now := time.Date(2026, 11, 27, 16, 0, 0, 0, time.UTC).Unix()
+	batch := func(prefix string, count int) []Channel {
+		channels := make([]Channel, count)
+		for i := range channels {
+			channels[i] = Channel{Name: fmt.Sprintf("%s-%d", prefix, i), Key: "sk", Group: "default", Models: "claude-sonnet-4-6", Status: common.ChannelStatusEnabled, CreatedTime: now}
+		}
+		return channels
+	}
+	var channelsBefore, abilitiesBefore int64
+	require.NoError(t, DB.Model(&Channel{}).Count(&channelsBefore).Error)
+	require.NoError(t, DB.Model(&Ability{}).Count(&abilitiesBefore).Error)
+
+	assert.ErrorIs(t, InsertChannelsWithBeaconRate(batch("unpriced", 2), "", operator.Id, now), ErrBeaconCostInput)
+	assert.ErrorIs(t, InsertChannelsWithBeaconRate(batch("free", 2), "0", operator.Id, now), ErrBeaconCostInput)
+	var channelsAfter, abilitiesAfter, ratesAfter int64
+	require.NoError(t, DB.Model(&Channel{}).Count(&channelsAfter).Error)
+	require.NoError(t, DB.Model(&Ability{}).Count(&abilitiesAfter).Error)
+	require.NoError(t, DB.Model(&BeaconUpstreamRate{}).Count(&ratesAfter).Error)
+	assert.Equal(t, channelsBefore, channelsAfter, "a channel without a valid purchase price is not created")
+	assert.Equal(t, abilitiesBefore, abilitiesAfter)
+	assert.Zero(t, ratesAfter)
+
+	// More than one insert chunk, so every chunk's channels get their rate.
+	channels := batch("priced", 51)
+	require.NoError(t, InsertChannelsWithBeaconRate(channels, "1.10", operator.Id, now))
+	var rates []BeaconUpstreamRate
+	require.NoError(t, DB.Order("channel_id").Find(&rates).Error)
+	require.Len(t, rates, 51)
+	for i, rate := range rates {
+		assert.Equal(t, channels[i].Id, rate.ChannelID)
+		assert.Equal(t, "1.1", rate.CNYPerUnit)
+		assert.Equal(t, now-beaconChannelAddedSkew, rate.EffectiveAt, "the rate covers every upstream record cost sync keeps")
+		assert.Equal(t, operator.Id, rate.OperatorID)
+	}
+	require.NoError(t, DB.Model(&Ability{}).Count(&abilitiesAfter).Error)
+	assert.Equal(t, int64(51), abilitiesAfter)
+
+	last := channels[50].Id
+	require.NoError(t, DB.Create(&BeaconUpstreamRate{ChannelID: last, EffectiveAt: now + 3600, CNYPerUnit: "1.2", RecordedAt: now}).Error)
+	inEffect, err := BeaconRateInEffect(last, now)
+	require.NoError(t, err)
+	require.NotNil(t, inEffect)
+	assert.Equal(t, "1.1", inEffect.CNYPerUnit, "a later rate is not in effect yet")
+	inEffect, err = BeaconRateInEffect(last, now+3600)
+	require.NoError(t, err)
+	assert.Equal(t, "1.2", inEffect.CNYPerUnit)
+	inEffect, err = BeaconRateInEffect(last, now-beaconChannelAddedSkew-1)
+	require.NoError(t, err)
+	assert.Nil(t, inEffect)
+}
+
 func TestMigrateBeaconChargeSourceKeyRemovesShiftedCopies(t *testing.T) {
 	_, _, channel := setupBeaconCostTest(t)
 	migrator := DB.Migrator()
@@ -341,6 +400,23 @@ func TestBeaconPricingProposalLifecycle(t *testing.T) {
 		assert.Equal(t, want.kind, analysis.Sale[i].Kind)
 		assert.InDelta(t, want.cny, analysis.Sale[i].SaleCNY, 1e-9, want.kind)
 	}
+	assert.Equal(t, float64(1), analysis.GroupRatio)
+
+	// Customers pay their group's ratio on top; the cheapest group selling
+	// the model is the price compared, whatever the default group's ratio.
+	previousGroupRatio := ratio_setting.GroupRatio2JSONString()
+	t.Cleanup(func() { require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(previousGroupRatio)) })
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":2,"vip":1.5,"ccmax":1.2}`))
+	require.NoError(t, DB.Create(&[]Ability{{Group: "vip", Model: name, ChannelId: channel.Id, Enabled: true}, {Group: "ccmax", Model: name, ChannelId: channel.Id, Enabled: true}}).Error)
+	report, err = AnalyzeBeaconPricing()
+	require.NoError(t, err)
+	require.Len(t, report.Models, 1)
+	assert.Equal(t, 1.2, report.Models[0].GroupRatio)
+	assert.InDelta(t, 21.9*1.2, report.Models[0].Sale[0].SaleCNY, 1e-9)
+	require.NotNil(t, report.Models[0].CurrentMarkupBP)
+	assert.Equal(t, 38666, *report.Models[0].CurrentMarkupBP, "¥26.28 against ¥5.4")
+	require.NoError(t, DB.Where(commonGroupCol+" IN ?", []string{"vip", "ccmax"}).Delete(&Ability{}).Error)
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(previousGroupRatio))
 
 	rule := DefaultBeaconPricingRule()
 	rule.FollowDown = true

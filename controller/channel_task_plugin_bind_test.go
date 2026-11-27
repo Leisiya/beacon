@@ -31,7 +31,7 @@ func setupTaskPluginBindChannelTest(t *testing.T) {
 	sqlDB, err := database.DB()
 	require.NoError(t, err)
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, database.AutoMigrate(&model.Channel{}, &model.Ability{}, &model.CasbinRule{}, &model.AuthzRole{}, &model.Log{}, &model.AuditLog{}, &model.User{}))
+	require.NoError(t, database.AutoMigrate(&model.Channel{}, &model.Ability{}, &model.CasbinRule{}, &model.AuthzRole{}, &model.Log{}, &model.AuditLog{}, &model.User{}, &model.BeaconUpstreamRate{}))
 	model.DB = database
 	model.LOG_DB = database
 	require.NoError(t, authz.Init(database))
@@ -70,8 +70,8 @@ export function parseTaskResult() { return {}; }
 	require.NoError(t, err)
 	t.Cleanup(func() { jsplugin.DefaultRegistry.Unregister(key) })
 
-	taskPluginBody := `{"mode":"single","channel":{"type":61,"name":"plugin-channel","key":"sk","models":"doc","group":"default","base_url":"https://example.com","setting":"{\"task_plugin_key\":\"channel-bind\"}"}}`
-	openaiBody := `{"mode":"single","channel":{"type":1,"name":"openai-channel","key":"sk","models":"gpt","group":"default"}}`
+	taskPluginBody := `{"mode":"single","channel":{"type":61,"name":"plugin-channel","key":"sk","models":"doc","group":"default","base_url":"https://example.com","setting":"{\"task_plugin_key\":\"channel-bind\"}"},"cny_per_unit":"1"}`
+	openaiBody := `{"mode":"single","channel":{"type":1,"name":"openai-channel","key":"sk","models":"gpt","group":"default"},"cny_per_unit":"1"}`
 
 	adminDenied := postAddChannel(t, 2, common.RoleAdminUser, taskPluginBody)
 	assert.Contains(t, adminDenied.Body.String(), "task plugin channels require the task_plugin.bind permission")
@@ -145,7 +145,7 @@ export function parseTaskResult() { return {}; }
 		t.Cleanup(func() { jsplugin.DefaultRegistry.Unregister(key) })
 	}
 	body := func(pluginKey string) string {
-		return fmt.Sprintf(`{"mode":"single","channel":{"type":61,"name":"%s","key":"sk","models":"doc","group":"default","setting":"{\"task_plugin_key\":\"%s\"}"}}`, pluginKey, pluginKey)
+		return fmt.Sprintf(`{"mode":"single","channel":{"type":61,"name":"%s","key":"sk","models":"doc","group":"default","setting":"{\"task_plugin_key\":\"%s\"}"},"cny_per_unit":"1"}`, pluginKey, pluginKey)
 	}
 
 	noDefault := postAddChannel(t, 1, common.RoleRootUser, body("bind-no-default"))
@@ -192,8 +192,8 @@ export function parseTaskResult() { return {}; }
 	require.NoError(t, err)
 	t.Cleanup(func() { jsplugin.DefaultRegistry.Unregister(key) })
 
-	bound := `{"mode":"single","channel":{"type":60,"name":"gateway","key":"sk","models":"gateway-doc","group":"default","base_url":"https://gateway.example","setting":"{\"task_extend_plugin_keys\":[\"gateway-bind\"]}"}}`
-	unbound := `{"mode":"single","channel":{"type":60,"name":"plain-gateway","key":"sk","models":"gpt","group":"default","base_url":"https://gateway.example"}}`
+	bound := `{"mode":"single","channel":{"type":60,"name":"gateway","key":"sk","models":"gateway-doc","group":"default","base_url":"https://gateway.example","setting":"{\"task_extend_plugin_keys\":[\"gateway-bind\"]}"},"cny_per_unit":"1"}`
+	unbound := `{"mode":"single","channel":{"type":60,"name":"plain-gateway","key":"sk","models":"gpt","group":"default","base_url":"https://gateway.example"},"cny_per_unit":"1"}`
 	adminDenied := postAddChannel(t, 2, common.RoleAdminUser, bound)
 	assert.Contains(t, adminDenied.Body.String(), "task plugin channels require the task_plugin.bind permission")
 	rootAllowed := postAddChannel(t, 1, common.RoleRootUser, bound)
@@ -217,6 +217,7 @@ export function parseTaskResult() { return {}; }
 	assert.Contains(t, rootRebound.Body.String(), `"success":true`)
 
 	require.NoError(t, model.DB.Model(&model.Channel{}).Where("id = ?", channel.Id).Update("setting", setting).Error)
+	require.NoError(t, model.DB.Create(&model.BeaconUpstreamRate{ChannelID: channel.Id, EffectiveAt: 946684800, CNYPerUnit: "1"}).Error)
 	copyChannel := func(userID, role int) *httptest.ResponseRecorder {
 		recorder := httptest.NewRecorder()
 		context, _ := gin.CreateTestContext(recorder)
@@ -229,4 +230,42 @@ export function parseTaskResult() { return {}; }
 	}
 	assert.Contains(t, copyChannel(2, common.RoleAdminUser).Body.String(), "task plugin channels require the task_plugin.bind permission")
 	assert.Contains(t, copyChannel(1, common.RoleRootUser).Body.String(), `"success":true`)
+}
+
+func TestAddAndCopyChannelRequirePurchasePrice(t *testing.T) {
+	setupTaskPluginBindChannelTest(t)
+	unpriced := postAddChannel(t, 1, common.RoleRootUser, `{"mode":"single","channel":{"type":1,"name":"unpriced","key":"sk","models":"gpt","group":"default"}}`)
+	assert.Contains(t, unpriced.Body.String(), `"success":false`)
+	assert.Contains(t, unpriced.Body.String(), "Enter the purchase price")
+	var channels int64
+	require.NoError(t, model.DB.Model(&model.Channel{}).Count(&channels).Error)
+	assert.Zero(t, channels, "a channel without a purchase price is not created")
+
+	priced := postAddChannel(t, 1, common.RoleRootUser, `{"mode":"batch","channel":{"type":1,"name":"priced","key":"sk-a\nsk-b","models":"gpt","group":"default"},"cny_per_unit":"1.1"}`)
+	require.Contains(t, priced.Body.String(), `"success":true`)
+	var rates []model.BeaconUpstreamRate
+	require.NoError(t, model.DB.Order("channel_id").Find(&rates).Error)
+	require.Len(t, rates, 2, "each channel of a batch gets the purchase price")
+	assert.Equal(t, "1.1", rates[1].CNYPerUnit)
+
+	copyChannel := func(id int) *httptest.ResponseRecorder {
+		recorder := httptest.NewRecorder()
+		context, _ := gin.CreateTestContext(recorder)
+		context.Set("id", 1)
+		context.Set("role", common.RoleRootUser)
+		context.Params = gin.Params{{Key: "id", Value: fmt.Sprint(id)}}
+		context.Request = httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/channel/copy/%d", id), nil)
+		CopyChannel(context)
+		return recorder
+	}
+	legacy := model.Channel{Type: constant.ChannelTypeOpenAI, Status: common.ChannelStatusEnabled, Name: "legacy", Models: "gpt", Group: "default", Key: "sk"}
+	require.NoError(t, legacy.Insert())
+	assert.Contains(t, copyChannel(legacy.Id).Body.String(), "Set a purchase price on the original channel before copying it.")
+
+	copied := copyChannel(rates[1].ChannelID)
+	require.Contains(t, copied.Body.String(), `"success":true`)
+	var copyRate model.BeaconUpstreamRate
+	require.NoError(t, model.DB.Order("id DESC").First(&copyRate).Error)
+	assert.NotEqual(t, rates[1].ChannelID, copyRate.ChannelID)
+	assert.Equal(t, "1.1", copyRate.CNYPerUnit, "the copy starts with the original's purchase price")
 }

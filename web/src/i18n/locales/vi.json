@@ -7555,12 +7555,10 @@
     "Purchase prices": "Giá nhập",
     "Sale prices": "Giá bán",
     "Add a new upstream": "Thêm nguồn mới",
-    "Create the channel and pass its test. Choose the New API type when the upstream is built on New API.": "Tạo kênh và kiểm tra thành công. Chọn loại New API nếu nguồn được dựng trên New API.",
     "Open channels": "Mở kênh",
-    "Set its purchase price below: the CNY you pay for $1 of the upstream’s credit. Start it before the first request on that key.": "Đặt giá nhập bên dưới: số CNY bạn trả cho $1 tín dụng của nguồn. Thời điểm hiệu lực phải trước yêu cầu đầu tiên trên khóa đó.",
     "Sync now, then check each model’s markup under Sale prices.": "Bấm đồng bộ ngay, rồi xem tỷ lệ cộng thêm của từng mô hình trong Giá bán.",
     "Open sale prices": "Mở giá bán",
-    "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "Cách giá bán theo giá nhà cung cấp. So sánh theo hệ số nhóm mặc định {{ratio}}.",
+    "How sale prices follow supplier prices. Each model is compared at the lowest group ratio it is sold at.": "Cách giá bán theo giá nhà cung cấp. Mỗi mô hình được so sánh theo hệ số nhóm thấp nhất mà nó được bán.",
     "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "Giá tính cho mỗi 1M token, theo đơn vị tiền định giá chọn bên dưới. Thay đổi áp dụng ngay cho mọi khách hàng.",
     "{{price}} per request": "{{price}} mỗi yêu cầu",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "Giá quy đổi sang CNY theo giá nạp. Tỷ lệ cộng thêm là mức thấp nhất giữa các loại dùng, so với nhà cung cấp đang bật đắt nhất. Sửa giá trực tiếp thấp hơn mục tiêu của quy tắc sẽ tạo đề xuất tăng giá.",
@@ -7683,6 +7681,11 @@
     "Set the cost of channel #{{channel_id}} to ¥{{cny_per_unit}} per upstream $1": "Đã đặt giá vốn của kênh #{{channel_id}} là ¥{{cny_per_unit}} cho mỗi $1 nhà cung cấp",
     "Synced upstream costs": "Đã đồng bộ giá vốn nhà cung cấp",
     "Changed the sale price of {{models}}": "Đã đổi giá bán: {{models}}",
-    "Follow cost": "Theo giá vốn"
+    "Follow cost": "Theo giá vốn",
+    "Purchase price": "Giá nhập",
+    "Enter the purchase price: the CNY you pay for $1 of the upstream’s credit.": "Hãy nhập giá nhập: số CNY bạn trả cho $1 tín dụng của nguồn.",
+    "Set a purchase price on the original channel before copying it.": "Hãy đặt giá nhập cho kênh gốc trước khi sao chép.",
+    "Create the channel with its purchase price (the CNY you pay for $1 of the upstream’s credit) and pass its test. Choose the New API type when the upstream is built on New API.": "Tạo kênh kèm giá nhập (số CNY bạn trả cho $1 tín dụng của nguồn) và kiểm tra thành công. Chọn loại New API nếu nguồn được dựng trên New API.",
+    "When the upstream changes its price, add a new purchase price below.": "Khi nguồn đổi giá, hãy thêm giá nhập mới bên dưới."
   }
 }

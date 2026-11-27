@@ -695,6 +695,9 @@ type AddChannelRequest struct {
 	MultiKeyMode              constant.MultiKeyMode `json:"multi_key_mode"`
 	BatchAddSetKeyPrefix2Name bool                  `json:"batch_add_set_key_prefix_2_name"`
 	Channel                   *model.Channel        `json:"channel"`
+	// CNYPerUnit is the purchase price every new channel starts with: the CNY
+	// paid for one unit of the upstream's credit.
+	CNYPerUnit string `json:"cny_per_unit"`
 }
 
 func getVertexArrayKeys(keys string) ([]string, error) {
@@ -819,7 +822,11 @@ func AddChannel(c *gin.Context) {
 		}
 		channels = append(channels, *localChannel)
 	}
-	err = model.BatchInsertChannels(channels)
+	err = model.InsertChannelsWithBeaconRate(channels, addChannelRequest.CNYPerUnit, c.GetInt("id"), addChannelRequest.Channel.CreatedTime)
+	if errors.Is(err, model.ErrBeaconCostInput) {
+		common.ApiErrorT(c, "Enter the purchase price: the CNY you pay for $1 of the upstream’s credit.")
+		return
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -1588,12 +1595,24 @@ func CopyChannel(c *gin.Context) {
 		return
 	}
 
-	// insert
-	if err := clone.Insert(); err != nil {
+	// The copy starts with the purchase price the original has now.
+	rate, err := model.BeaconRateInEffect(origin.Id, clone.CreatedTime)
+	if err != nil {
+		common.SysError(common.LogText("failed to read channel rate: %s", err.Error()))
+		common.ApiErrorT(c, "Failed to copy channel. Please try again later")
+		return
+	}
+	if rate == nil {
+		common.ApiErrorT(c, "Set a purchase price on the original channel before copying it.")
+		return
+	}
+	copies := []model.Channel{clone}
+	if err := model.InsertChannelsWithBeaconRate(copies, rate.CNYPerUnit, c.GetInt("id"), clone.CreatedTime); err != nil {
 		common.SysError(common.LogText("failed to clone channel: %s", err.Error()))
 		common.ApiErrorT(c, "Failed to copy channel. Please try again later")
 		return
 	}
+	clone.Id = copies[0].Id
 	model.InitChannelCache()
 	recordManageAudit(c, "channel.copy", map[string]any{
 		"sourceId": id,

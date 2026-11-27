@@ -7555,12 +7555,10 @@
     "Purchase prices": "Prix d’achat",
     "Sale prices": "Prix de vente",
     "Add a new upstream": "Ajouter un nouvel amont",
-    "Create the channel and pass its test. Choose the New API type when the upstream is built on New API.": "Créez le canal et réussissez son test. Choisissez le type New API si l’amont est construit sur New API.",
     "Open channels": "Ouvrir les canaux",
-    "Set its purchase price below: the CNY you pay for $1 of the upstream’s credit. Start it before the first request on that key.": "Définissez son prix d’achat ci-dessous : les CNY payés pour 1 $ de crédit amont. Faites-le commencer avant la première requête sur cette clé.",
     "Sync now, then check each model’s markup under Sale prices.": "Synchronisez, puis vérifiez la marge de chaque modèle dans Prix de vente.",
     "Open sale prices": "Ouvrir les prix de vente",
-    "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "Comment les prix de vente suivent les prix fournisseurs. Comparaison au ratio de groupe par défaut {{ratio}}.",
+    "How sale prices follow supplier prices. Each model is compared at the lowest group ratio it is sold at.": "Comment les prix de vente suivent les prix fournisseurs. Chaque modèle est comparé au plus bas ratio de groupe auquel il est vendu.",
     "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "Prix par 1M tokens, dans la devise de tarification choisie ci-dessous. Un changement s’applique immédiatement à tous les clients.",
     "{{price}} per request": "{{price}} par requête",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "Prix en CNY au prix de recharge. La marge est la plus basse des types d’usage, face au fournisseur actif le plus cher. Un prix modifié sous la marge cible de la règle entraîne une suggestion de hausse.",
@@ -7683,6 +7681,11 @@
     "Set the cost of channel #{{channel_id}} to ¥{{cny_per_unit}} per upstream $1": "Coût du canal #{{channel_id}} fixé à ¥{{cny_per_unit}} pour 1 $ fournisseur",
     "Synced upstream costs": "Coûts fournisseurs synchronisés",
     "Changed the sale price of {{models}}": "Prix de vente modifié : {{models}}",
-    "Follow cost": "Suivre le coût"
+    "Follow cost": "Suivre le coût",
+    "Purchase price": "Prix d’achat",
+    "Enter the purchase price: the CNY you pay for $1 of the upstream’s credit.": "Saisissez le prix d’achat : les CNY payés pour 1 $ de crédit amont.",
+    "Set a purchase price on the original channel before copying it.": "Définissez d’abord un prix d’achat pour le canal d’origine avant de le copier.",
+    "Create the channel with its purchase price (the CNY you pay for $1 of the upstream’s credit) and pass its test. Choose the New API type when the upstream is built on New API.": "Créez le canal avec son prix d’achat (les CNY payés pour 1 $ de crédit amont) et réussissez son test. Choisissez le type New API si l’amont est construit sur New API.",
+    "When the upstream changes its price, add a new purchase price below.": "Quand l’amont change de prix, ajoutez un nouveau prix d’achat ci-dessous."
   }
 }

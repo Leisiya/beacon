@@ -61,7 +61,7 @@ export function BeaconPricing(props: {
                 <ol className='flex list-decimal flex-col gap-2 ps-5 text-sm'>
                   <li>
                     {t(
-                      'Create the channel and pass its test. Choose the New API type when the upstream is built on New API.'
+                      'Create the channel with its purchase price (the CNY you pay for $1 of the upstream’s credit) and pass its test. Choose the New API type when the upstream is built on New API.'
                     )}{' '}
                     <Link
                       to='/channels'
@@ -72,7 +72,7 @@ export function BeaconPricing(props: {
                   </li>
                   <li>
                     {t(
-                      'Set its purchase price below: the CNY you pay for $1 of the upstream’s credit. Start it before the first request on that key.'
+                      'When the upstream changes its price, add a new purchase price below.'
                     )}
                   </li>
                   <li>

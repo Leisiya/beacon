@@ -355,6 +355,9 @@ export interface ModelPricing {
   below_minimum: boolean
   factor: string
   proposed_expr: string
+  // What customers pay on top of the model price: the lowest ratio among the
+  // groups that sell the model.
+  group_ratio: number
   // CNY sale price per usage type at standard context.
   sale: PriceLine[]
 }

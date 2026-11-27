@@ -7555,12 +7555,10 @@
     "Purchase prices": "仕入価格",
     "Sale prices": "販売価格",
     "Add a new upstream": "新しい上流を追加",
-    "Create the channel and pass its test. Choose the New API type when the upstream is built on New API.": "チャネルを作成してテストに合格させます。上流が New API で構築されている場合は New API タイプを選びます。",
     "Open channels": "チャネルを開く",
-    "Set its purchase price below: the CNY you pay for $1 of the upstream’s credit. Start it before the first request on that key.": "下でこのチャネルの仕入価格を設定します：上流のクレジット $1 を何元で買ったか。適用開始はそのキーの最初のリクエストより前にします。",
     "Sync now, then check each model’s markup under Sale prices.": "「今すぐ同期」を押してから、「販売価格」で各モデルの上乗せ率を確認します。",
     "Open sale prices": "販売価格を開く",
-    "How sale prices follow supplier prices. Prices are compared at default group ratio {{ratio}}.": "仕入先の価格変化に販売価格をどう合わせるか。デフォルトのグループ倍率 {{ratio}} で比較します。",
+    "How sale prices follow supplier prices. Each model is compared at the lowest group ratio it is sold at.": "仕入先の価格変化に販売価格をどう合わせるか。各モデルは販売されているグループのうち最も低い倍率で比較します。",
     "Prices are per 1M tokens, in the pricing currency chosen below. A change applies to every customer at once.": "価格は 100 万トークンあたりで、単位は下で選んだ価格通貨です。変更はすべての顧客に即時反映されます。",
     "{{price}} per request": "1 リクエスト {{price}}",
     "Prices in CNY at the top-up price. Markup is the lowest across usage types, against the most expensive enabled supplier. A direct price edit below the rule’s target markup brings a raise suggestion.": "価格はチャージ価格で CNY に換算しています。上乗せ率は利用種別のうち最も低いもので、有効なチャネルのうち最も高い仕入先と比較します。直接編集した価格がルールの目標を下回ると、値上げの提案が出ます。",
@@ -7683,6 +7681,11 @@
     "Set the cost of channel #{{channel_id}} to ¥{{cny_per_unit}} per upstream $1": "チャネル #{{channel_id}} の原価を仕入れ $1 = ¥{{cny_per_unit}} に設定しました",
     "Synced upstream costs": "仕入れ原価を同期しました",
     "Changed the sale price of {{models}}": "販売価格を変更しました：{{models}}",
-    "Follow cost": "原価に連動"
+    "Follow cost": "原価に連動",
+    "Purchase price": "仕入価格",
+    "Enter the purchase price: the CNY you pay for $1 of the upstream’s credit.": "仕入価格を入力してください：上流のクレジット $1 を何元で買ったか。",
+    "Set a purchase price on the original channel before copying it.": "コピーする前に、元のチャネルに仕入価格を設定してください。",
+    "Create the channel with its purchase price (the CNY you pay for $1 of the upstream’s credit) and pass its test. Choose the New API type when the upstream is built on New API.": "仕入価格（上流のクレジット $1 を何元で買ったか）を入れてチャネルを作成し、テストに合格させます。上流が New API で構築されている場合は New API タイプを選びます。",
+    "When the upstream changes its price, add a new purchase price below.": "上流が価格を変えたら、下で新しい仕入価格を追加します。"
   }
 }

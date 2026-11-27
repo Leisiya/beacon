@@ -96,6 +96,7 @@ const report: PricingReport = {
       below_minimum: false,
       factor: '1.04',
       proposed_expr: 'tier("base", p * 1.283)',
+      group_ratio: 1,
       sale: [
         {
           kind: 'input',
@@ -219,7 +220,10 @@ it('names enabled channels left out of the markup because they have no cost yet'
 })
 
 it('tells the operator the sale price editor takes prices before the group ratio', async () => {
-  renderPricingRules([], { ...report, default_group_ratio: 3.6 })
+  renderPricingRules([], {
+    ...report,
+    models: [{ ...report.models[0], group_ratio: 3.6 }],
+  })
   await userEvent.click(
     await screen.findByRole('button', { name: 'Edit sale price' })
   )
